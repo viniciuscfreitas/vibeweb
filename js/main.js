@@ -67,14 +67,9 @@ function collapseSearch() {
 }
 
 function handleSearch() {
-  // Check if we're in financial view
-  if (DOM.financialContainer && DOM.financialContainer.classList.contains('active')) {
-    // Financial search is handled by financial.js
-    const searchTerm = DOM.searchInput ? DOM.searchInput.value.toLowerCase().trim() : '';
-    if (typeof filterAndRenderProjects === 'function') {
-      filterAndRenderProjects(searchTerm);
-    }
-    return;
+  // Try financial search first - it returns true if handled
+  if (typeof handleFinancialSearch === 'function' && handleFinancialSearch()) {
+    return; // Financial view handled the search
   }
 
   // Default Kanban search
@@ -255,9 +250,7 @@ function updateHeader(view) {
     renderFinancialHeader(metrics);
     if (DOM.btnNewProject) DOM.btnNewProject.style.display = 'none';
     if (DOM.searchContainer) DOM.searchContainer.style.display = 'flex';
-    if (DOM.searchInput) {
-      DOM.searchInput.placeholder = 'Buscar projeto financeiro... (/)';
-    }
+    // Placeholder is set by renderFinancial() in financial.js
   } else {
     renderProjectsHeader();
     if (DOM.btnNewProject) DOM.btnNewProject.style.display = 'flex';

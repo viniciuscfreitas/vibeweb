@@ -1,5 +1,8 @@
 // Financial Screen Logic - Minimal Cognitive Load
 
+// Constants
+const FINANCIAL_RENDER_DELAY_MS = 50; // Delay to ensure DOM is ready after innerHTML
+
 function getRevenueChangeClass(revenueChange) {
   if (revenueChange > 0) return 'positive';
   if (revenueChange < 0) return 'negative';
@@ -52,6 +55,52 @@ function calculateFinancialMetrics(tasks) {
   };
 }
 
+// Financial search state - encapsulated in module
+let financialSearchState = {
+  tasks: [],
+  timeout: null
+};
+
+function handleFinancialSearch() {
+  if (!DOM.financialContainer || !DOM.financialContainer.classList.contains('active')) {
+    return false; // Not in financial view
+  }
+
+  if (!DOM.searchInput) return false;
+
+  if (financialSearchState.timeout) {
+    clearTimeout(financialSearchState.timeout);
+  }
+
+  financialSearchState.timeout = setTimeout(() => {
+    const searchTerm = DOM.searchInput.value.toLowerCase().trim();
+    filterAndRenderProjects(searchTerm);
+  }, SEARCH_DEBOUNCE_MS);
+
+  return true; // Handled
+}
+
+function filterAndRenderProjects(searchTerm) {
+  const hasSearchTerm = searchTerm && searchTerm.length > 0;
+  let filteredTasks = financialSearchState.tasks;
+
+  if (hasSearchTerm) {
+    filteredTasks = financialSearchState.tasks.filter(task => {
+      const client = (task.client || '').toLowerCase();
+      const contact = (task.contact || '').toLowerCase();
+      const type = (task.type || '').toLowerCase();
+      const description = (task.description || '').toLowerCase();
+
+      return client.includes(searchTerm) ||
+        contact.includes(searchTerm) ||
+        type.includes(searchTerm) ||
+        description.includes(searchTerm);
+    });
+  }
+
+  renderProjectsTable(filteredTasks, hasSearchTerm);
+}
+
 function renderFinancial() {
   if (!DOM.financialContainer) return;
 
@@ -59,23 +108,27 @@ function renderFinancial() {
   DOM.financialContainer.classList.add('active');
   DOM.financialContainer.style.display = 'block';
 
-  // Reset search state
-  allFinancialTasks = [];
-  if (financialSearchTimeout) {
-    clearTimeout(financialSearchTimeout);
-    financialSearchTimeout = null;
+  const tasks = AppState.getTasks();
+
+  if (!tasks || tasks.length === 0) {
+    DOM.financialContainer.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--text-muted);">Nenhum projeto cadastrado</div>';
+    financialSearchState.tasks = [];
+    return;
+  }
+
+  // Store tasks for search - local to this render cycle
+  financialSearchState.tasks = tasks;
+
+  // Clear search timeout if exists
+  if (financialSearchState.timeout) {
+    clearTimeout(financialSearchState.timeout);
+    financialSearchState.timeout = null;
   }
 
   // Clear search input when switching to financial view
   if (DOM.searchInput) {
     DOM.searchInput.value = '';
-  }
-
-  const tasks = AppState.getTasks();
-
-  if (!tasks || tasks.length === 0) {
-    DOM.financialContainer.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--text-muted);">Nenhum projeto cadastrado</div>';
-    return;
+    DOM.searchInput.placeholder = 'Buscar projeto financeiro... (/)';
   }
 
   const financialMetrics = calculateFinancialMetrics(tasks);
@@ -157,46 +210,10 @@ function renderFinancial() {
     </div>
   `;
 
+  // Delay to ensure DOM is ready after innerHTML
   setTimeout(() => {
     renderProjectsTable(tasks);
-    setupFinancialSearch(tasks);
-  }, 50);
-}
-
-let financialSearchTimeout = null;
-let allFinancialTasks = [];
-
-function setupFinancialSearch(tasks) {
-  allFinancialTasks = tasks;
-
-  if (!DOM.searchInput) return;
-
-  // Update placeholder for financial view
-  DOM.searchInput.placeholder = 'Buscar projeto financeiro... (/)';
-
-  // The search will be handled by checking the active view in the filter function
-  // We just need to ensure the input is cleared when switching views
-}
-
-function filterAndRenderProjects(searchTerm) {
-  let filteredTasks = allFinancialTasks;
-  const hasSearchTerm = searchTerm && searchTerm.length > 0;
-
-  if (hasSearchTerm) {
-    filteredTasks = allFinancialTasks.filter(task => {
-      const client = (task.client || '').toLowerCase();
-      const contact = (task.contact || '').toLowerCase();
-      const type = (task.type || '').toLowerCase();
-      const description = (task.description || '').toLowerCase();
-
-      return client.includes(searchTerm) ||
-        contact.includes(searchTerm) ||
-        type.includes(searchTerm) ||
-        description.includes(searchTerm);
-    });
-  }
-
-  renderProjectsTable(filteredTasks, hasSearchTerm);
+  }, FINANCIAL_RENDER_DELAY_MS);
 }
 
 function renderProjectsTable(tasks, showNoResults = false) {

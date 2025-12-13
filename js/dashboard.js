@@ -444,9 +444,8 @@ function exportDashboardData() {
   const liveCount = tasks.filter(t => t.col_id === 3).length;
 
   const currentMonthTasks = tasks.filter(t => {
-    if (!t.created_at) return false;
-    const taskDate = new Date(t.created_at);
-    if (isNaN(taskDate.getTime())) return false;
+    const taskDate = parseTaskDate(t.created_at);
+    if (!taskDate) return false;
     return taskDate.getMonth() === currentMonth &&
       taskDate.getFullYear() === currentYear &&
       (t.payment_status === PAYMENT_STATUS_PAID || t.payment_status === PAYMENT_STATUS_PARTIAL);

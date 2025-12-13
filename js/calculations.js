@@ -19,14 +19,20 @@ function calculateMRRGaps(mrr) {
   return { gap10k, gap20k, upsellsNeeded10k, upsellsNeeded20k };
 }
 
+// Helper: Parse and validate task date
+function parseTaskDate(dateString) {
+  if (!dateString) return null;
+  const date = new Date(dateString);
+  return isNaN(date.getTime()) ? null : date;
+}
+
 function calculateRevenueForMonth(tasks, month, year) {
   // Business Rule: Revenue is attributed to the month when task was created (created_at)
   // NOTE: This assumes payment happens at task creation. For accurate financial reporting,
   // consider adding a payment_date field in the future.
   const monthTasks = tasks.filter(t => {
-    if (!t.created_at) return false;
-    const taskDate = new Date(t.created_at);
-    if (isNaN(taskDate.getTime())) return false;
+    const taskDate = parseTaskDate(t.created_at);
+    if (!taskDate) return false;
     return taskDate.getMonth() === month &&
       taskDate.getFullYear() === year &&
       (t.payment_status === PAYMENT_STATUS_PAID || t.payment_status === PAYMENT_STATUS_PARTIAL);
@@ -210,9 +216,8 @@ function calculateMonthlyRevenue(tasks, monthsCount = 12) {
 
   paidTasks.forEach(task => {
     // Business Rule: Revenue is attributed to the month when task was created
-    if (!task.created_at) return;
-    const taskCreatedDate = new Date(task.created_at);
-    if (isNaN(taskCreatedDate.getTime())) return;
+    const taskCreatedDate = parseTaskDate(task.created_at);
+    if (!taskCreatedDate) return;
     const taskMonth = taskCreatedDate.getMonth();
     const taskYear = taskCreatedDate.getFullYear();
 
@@ -294,9 +299,8 @@ function calculateProjectedRevenue(tasks, monthsCount = 12) {
 
   // Calculate average new projects per month from last 6 months
   const recentTasks = tasks.filter(t => {
-    if (!t.created_at) return false;
-    const taskCreatedDate = new Date(t.created_at);
-    if (isNaN(taskCreatedDate.getTime())) return false;
+    const taskCreatedDate = parseTaskDate(t.created_at);
+    if (!taskCreatedDate) return false;
     const monthsSinceCreation = (currentDate.getFullYear() - taskCreatedDate.getFullYear()) * 12 +
       (currentDate.getMonth() - taskCreatedDate.getMonth());
     return monthsSinceCreation >= 0 && monthsSinceCreation <= 5;
@@ -388,9 +392,8 @@ function generateRecentActivities(tasks) {
   }
 
   selectedTasks.slice(0, 3).forEach(task => {
-    if (!task.created_at) return;
-    const taskCreatedDate = new Date(task.created_at);
-    if (isNaN(taskCreatedDate.getTime())) return;
+    const taskCreatedDate = parseTaskDate(task.created_at);
+    if (!taskCreatedDate) return;
     const timeAgo = getTimeAgo(taskCreatedDate);
 
     let activityText = '';
