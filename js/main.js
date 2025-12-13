@@ -1,13 +1,5 @@
 // Main Initialization and Event Listeners
 
-const defaultTasks = [
-  { id: 101, client: 'JCuts Video', contact: '@jcuts', domain: 'jcuts.io', stack: 'Next.js', type: 'Landing Essencial', price: 800, deadline: 'Entregue', paymentStatus: PAYMENT_STATUS_PAID, description: '', colId: 3, order: 0, hosting: HOSTING_YES },
-  { id: 102, client: 'Magic Portfolio', contact: 'magic', domain: 'magic.com', stack: 'React', type: 'Aplicação Web', price: 4500, deadline: '24h', paymentStatus: PAYMENT_STATUS_PARTIAL, description: '', colId: 2, order: 0, deadlineTimestamp: Date.now() - (12 * MS_PER_HOUR) },
-  { id: 103, client: 'Marcelo Braz', contact: 'marcelo', domain: 'marcelo.xyz', stack: 'Node', type: 'Aplicação Web', price: 3200, deadline: '48h', paymentStatus: PAYMENT_STATUS_PARTIAL, description: '', colId: 1, order: 0, deadlineTimestamp: Date.now() - HOURS_24_MS },
-  { id: 104, client: 'StartUp Alpha', contact: 'founder', domain: '', stack: 'Landing', type: 'Landing Essencial', price: 1200, deadline: 'Descoberta', paymentStatus: PAYMENT_STATUS_PENDING, description: '', colId: 0, order: 0 },
-  { id: 105, client: 'Loja Bio', contact: 'loja', domain: '', stack: 'Shopify', type: 'Autoridade de Marca', price: 2500, deadline: DEADLINE_UNDEFINED, paymentStatus: PAYMENT_STATUS_PENDING, description: '', colId: 0, order: 1 }
-];
-
 function getCurrentTheme() {
   const saved = localStorage.getItem(THEME_STORAGE_KEY);
   return saved || 'light';
@@ -259,6 +251,56 @@ function updateHeader(view) {
   }
 }
 
+// Named event handlers to allow removal and prevent duplicates
+// These must be defined before setupEventListeners() to prevent duplicate listeners
+const handleDeleteClick = (e) => {
+  // CRITICAL: preventDefault MUST be called FIRST, synchronously
+  e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
+
+  // Call async function but don't await - preventDefault already called
+  deleteItem().catch(err => console.error('Error in deleteItem:', err));
+
+  return false;
+};
+
+const handleCloseModalClick = (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
+  closeModal();
+  return false;
+};
+
+const handleCancelClick = (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
+  closeModal();
+  return false;
+};
+
+const handleSaveClick = (e) => {
+  // CRITICAL: preventDefault MUST be called FIRST, synchronously
+  e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
+
+  // Call async function but don't await - preventDefault already called
+  saveForm().catch(err => console.error('Error in saveForm:', err));
+
+  return false;
+};
+
+const handleModalOverlayClick = (e) => {
+  if (e.target === DOM.modalOverlay) {
+    e.preventDefault();
+    e.stopPropagation();
+    closeModal();
+  }
+};
+
 function setupEventListeners() {
   DOM.navButtons.forEach((btn, index) => {
     btn.addEventListener('click', () => {
@@ -278,8 +320,10 @@ function setupEventListeners() {
     if (isInput) {
       if (e.key === 'Enter' && e.ctrlKey && DOM.modalOverlay.classList.contains('open')) {
         e.preventDefault();
-        saveForm();
-        return;
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        saveForm().catch(err => console.error('Error in saveForm:', err));
+        return false;
       }
       if (e.key === 'Escape' && DOM.modalOverlay.classList.contains('open')) {
         closeModal();
@@ -323,23 +367,42 @@ function setupEventListeners() {
     });
   }
 
+  // Remove old listeners before adding new ones to prevent duplicates
   if (DOM.btnDelete) {
-    DOM.btnDelete.addEventListener('click', deleteItem);
+    DOM.btnDelete.removeEventListener('click', handleDeleteClick);
+    // Use capture phase to catch event early
+    DOM.btnDelete.addEventListener('click', handleDeleteClick, { capture: true, passive: false });
+    // Also prevent on mousedown as backup
+    DOM.btnDelete.addEventListener('mousedown', (e) => {
+      if (e.button === 0) { // Left click only
+        e.preventDefault();
+      }
+    }, { passive: false });
   }
 
   const btnCloseModal = document.getElementById('btnCloseModal');
   if (btnCloseModal) {
-    btnCloseModal.addEventListener('click', closeModal);
+    btnCloseModal.removeEventListener('click', handleCloseModalClick);
+    btnCloseModal.addEventListener('click', handleCloseModalClick);
   }
 
   const btnCancel = document.getElementById('btnCancel');
   if (btnCancel) {
-    btnCancel.addEventListener('click', closeModal);
+    btnCancel.removeEventListener('click', handleCancelClick);
+    btnCancel.addEventListener('click', handleCancelClick);
   }
 
   const btnSave = document.getElementById('btnSave');
   if (btnSave) {
-    btnSave.addEventListener('click', saveForm);
+    btnSave.removeEventListener('click', handleSaveClick);
+    // Use capture phase to catch event early
+    btnSave.addEventListener('click', handleSaveClick, { capture: true, passive: false });
+    // Also prevent on mousedown as backup
+    btnSave.addEventListener('mousedown', (e) => {
+      if (e.button === 0) { // Left click only
+        e.preventDefault();
+      }
+    }, { passive: false });
   }
 
   if (DOM.searchBtn) {
@@ -369,9 +432,11 @@ function setupEventListeners() {
     });
   }
 
-  DOM.modalOverlay.addEventListener('click', (e) => {
-    if (e.target === DOM.modalOverlay) closeModal();
-  });
+  // Remove old modal overlay listener before adding new one
+  if (DOM.modalOverlay) {
+    DOM.modalOverlay.removeEventListener('click', handleModalOverlayClick);
+    DOM.modalOverlay.addEventListener('click', handleModalOverlayClick);
+  }
 
   DOM.formClient.addEventListener('input', () => clearFormError('client'));
   DOM.formContact.addEventListener('input', () => clearFormError('contact'));
@@ -379,8 +444,8 @@ function setupEventListeners() {
   DOM.formPrice.addEventListener('input', () => clearFormError('price'));
 }
 
-function renderUserAvatar() {
-  const user = getCurrentUser();
+async function renderUserAvatar() {
+  const user = await getCurrentUser();
   if (!user) return;
 
   const avatar = document.getElementById('userAvatar');
@@ -472,40 +537,71 @@ function closeUserDropdownOnOutsideClick(e) {
   }
 }
 
-function initApp() {
+async function initApp() {
   DOM.init();
   updateAriaHiddenForViews();
 
+  // Show loading state (only in boardGrid, not entire container)
+  if (DOM.boardGrid) {
+    DOM.boardGrid.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--text-muted); grid-column: 1 / -1;">Carregando...</div>';
+  }
+
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      const migratedTasks = migrateTasksData(parsed);
-      AppState.setTasks(migratedTasks);
-      AppState.log('Loaded from localStorage', { count: migratedTasks.length });
-    } else {
-      AppState.setTasks(defaultTasks);
-      AppState.log('Using default data');
+    // Fetch tasks from API
+    const tasks = await api.getTasks();
+    if (!Array.isArray(tasks)) {
+      console.error('[Init] API retornou dados inválidos:', tasks);
+      throw new Error('Formato de dados inválido da API');
     }
+    const normalizedTasks = normalizeTasksData(tasks);
+    AppState.setTasks(normalizedTasks);
+    AppState.log('Loaded from API', { count: normalizedTasks.length });
   } catch (error) {
-    console.error('[Init] Erro ao carregar dados:', error);
-    AppState.setTasks(defaultTasks);
-    AppState.log('Fallback to defaults due to error');
+    // Log full error for debugging
+    console.error('[Init] Erro ao carregar dados:', {
+      error: error.message,
+      stack: error.stack
+    });
+
+    // If 401, logout
+    if (error.message && error.message.includes('401')) {
+      logout();
+      return;
+    }
+
+    // Show error message (only in boardGrid, not entire container)
+    if (DOM.boardGrid) {
+      DOM.boardGrid.innerHTML = `
+        <div style="padding: 2rem; text-align: center; grid-column: 1 / -1;">
+          <div style="color: var(--danger); margin-bottom: 1rem;">Erro ao carregar dados</div>
+          <div style="color: var(--text-muted); font-size: 0.9rem;">${error.message || 'Erro desconhecido'}</div>
+        </div>
+      `;
+    }
+    AppState.setTasks([]);
+    AppState.log('Failed to load tasks', { error: error.message });
   }
 
   initTheme();
-  renderUserAvatar();
+  await renderUserAvatar();
   renderBoard();
   updateHeader('projects');
   setupEventListeners();
 
+  // Update UI every 60 seconds
+  // NOTE: This updates deadlines and refreshes active views
+  // Only updates visible views - simple optimization without complexity
   setInterval(() => {
+    // Always update deadline displays (lightweight operation)
     updateDeadlineDisplays();
-    if (DOM.dashboardContainer.classList.contains('active')) {
+
+    // Only re-render if view is active (performance optimization)
+    if (DOM.dashboardContainer && DOM.dashboardContainer.classList.contains('active')) {
       renderDashboard();
-    } else if (DOM.financialContainer.classList.contains('active')) {
+    } else if (DOM.financialContainer && DOM.financialContainer.classList.contains('active')) {
       renderFinancial();
     } else {
+      // Projects view: only update header stats, not full board (expensive)
       updateHeader('projects');
     }
   }, 60000);
@@ -582,38 +678,67 @@ function initAuth() {
       const email = emailInput ? emailInput.value.trim() : '';
       const password = passwordInput ? passwordInput.value : '';
 
-      const result = login(email, password);
+      // Disable submit button during login
+      const submitButton = loginForm.querySelector('button[type="submit"]');
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = 'Entrando...';
+      }
 
-      if (result.success) {
-        clearFormCredentials();
-
-        if (loginOverlay) {
-          loginOverlay.classList.remove('fade-in');
-          loginOverlay.classList.add('fade-out');
+      login(email, password).then((result) => {
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.textContent = 'Entrar';
         }
 
-        setTimeout(() => {
-          if (loginOverlay) {
-            loginOverlay.classList.add('hidden');
-            loginOverlay.classList.remove('fade-out', 'fade-in');
-          }
-
-          if (appContainer) {
-            appContainer.classList.remove('hidden', 'fade-out');
-            appContainer.classList.remove('fade-in');
-            requestAnimationFrame(() => {
-              appContainer.classList.add('fade-in');
-            });
-          } else {
-            console.error('[Login] ERRO: appContainer não encontrado!');
-          }
-
+        if (result.success) {
           clearFormCredentials();
-          initApp();
-        }, 400);
-      } else {
+
+          if (loginOverlay) {
+            loginOverlay.classList.remove('fade-in');
+            loginOverlay.classList.add('fade-out');
+          }
+
+          setTimeout(() => {
+            if (loginOverlay) {
+              loginOverlay.classList.add('hidden');
+              loginOverlay.classList.remove('fade-out', 'fade-in');
+            }
+
+            if (appContainer) {
+              appContainer.classList.remove('hidden', 'fade-out');
+              appContainer.classList.remove('fade-in');
+              requestAnimationFrame(() => {
+                appContainer.classList.add('fade-in');
+              });
+            } else {
+              console.error('[Login] ERRO: appContainer não encontrado!');
+            }
+
+            clearFormCredentials();
+            initApp();
+          }, 400);
+        } else {
+          if (errorGeneral) {
+            errorGeneral.textContent = result.message;
+            errorGeneral.classList.add('show');
+          }
+          if (emailInput) {
+            emailInput.setAttribute('aria-invalid', 'true');
+            emailInput.classList.add('error');
+          }
+          if (passwordInput) {
+            passwordInput.setAttribute('aria-invalid', 'true');
+            passwordInput.classList.add('error');
+          }
+        }
+      }).catch((error) => {
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.textContent = 'Entrar';
+        }
         if (errorGeneral) {
-          errorGeneral.textContent = result.message;
+          errorGeneral.textContent = error.message || 'Erro ao fazer login';
           errorGeneral.classList.add('show');
         }
         if (emailInput) {
@@ -624,7 +749,7 @@ function initAuth() {
           passwordInput.setAttribute('aria-invalid', 'true');
           passwordInput.classList.add('error');
         }
-      }
+      });
     });
 
     const emailInput = document.getElementById('loginEmail');

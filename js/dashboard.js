@@ -271,9 +271,9 @@ function renderPieChart(distribution) {
 }
 
 function calculateUrgentProjectTimeDisplay(project, currentTimestamp) {
-  const hasDeadlineTimestamp = project.deadlineTimestamp !== null && project.deadlineTimestamp !== undefined;
+  const hasDeadlineTimestamp = project.deadline_timestamp !== null && project.deadline_timestamp !== undefined;
   const deadlineHours = parseDeadlineHours(project.deadline);
-  const isInBuildWithoutDeadline = project.colId === 2 && (!project.deadline || project.deadline === DEADLINE_UNDEFINED);
+  const isInBuildWithoutDeadline = project.col_id === 2 && (!project.deadline || project.deadline === DEADLINE_UNDEFINED);
   const isUrgentKeyword = URGENT_DEADLINES.includes(project.deadline);
 
   if (isInBuildWithoutDeadline) {
@@ -288,7 +288,7 @@ function calculateUrgentProjectTimeDisplay(project, currentTimestamp) {
     return { display: project.deadline || 'Sem prazo', isOverdue: false };
   }
 
-  const deadlineTimestamp = project.deadlineTimestamp + (deadlineHours * MS_PER_HOUR);
+  const deadlineTimestamp = project.deadline_timestamp + (deadlineHours * MS_PER_HOUR);
   const timeRemaining = deadlineTimestamp - currentTimestamp;
 
   if (timeRemaining <= 0) {
@@ -436,22 +436,22 @@ function exportDashboardData() {
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
 
-  const liveTasks = tasks.filter(t => t.colId === 3 && t.hosting === HOSTING_YES);
-  const discoveryCount = tasks.filter(t => t.colId === 0).length;
-  const agreementCount = tasks.filter(t => t.colId === 1).length;
-  const buildCount = tasks.filter(t => t.colId === 2).length;
-  const liveCount = tasks.filter(t => t.colId === 3).length;
+  const liveTasks = tasks.filter(t => t.col_id === 3 && t.hosting === HOSTING_YES);
+  const discoveryCount = tasks.filter(t => t.col_id === 0).length;
+  const agreementCount = tasks.filter(t => t.col_id === 1).length;
+  const buildCount = tasks.filter(t => t.col_id === 2).length;
+  const liveCount = tasks.filter(t => t.col_id === 3).length;
 
   const currentMonthTasks = tasks.filter(t => {
     const taskDate = new Date(t.id);
     return taskDate.getMonth() === currentMonth &&
       taskDate.getFullYear() === currentYear &&
-      (t.paymentStatus === PAYMENT_STATUS_PAID || t.paymentStatus === PAYMENT_STATUS_PARTIAL);
+      (t.payment_status === PAYMENT_STATUS_PAID || t.payment_status === PAYMENT_STATUS_PARTIAL);
   });
   const monthlyRevenue = currentMonthTasks.reduce((sum, t) => sum + (parseFloat(t.price) || 0), 0);
 
   const paidTasks = tasks.filter(t =>
-    t.paymentStatus === PAYMENT_STATUS_PAID || t.paymentStatus === PAYMENT_STATUS_PARTIAL
+    t.payment_status === PAYMENT_STATUS_PAID || t.payment_status === PAYMENT_STATUS_PARTIAL
   );
   const totalRevenue = paidTasks.reduce((sum, t) => sum + (parseFloat(t.price) || 0), 0);
   const averageTicket = paidTasks.length > 0 ? totalRevenue / paidTasks.length : 0;

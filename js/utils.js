@@ -97,7 +97,14 @@ function getTimeAgo(date) {
   return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
 }
 
-function migrateTasksData(tasks) {
+// Normalize task data from backend - ensure defaults for edge cases
+// Backend uses snake_case (col_id, order_position, payment_status, deadline_timestamp)
+// Frontend uses same naming convention - no field mapping needed
+// This function only sets default values for missing fields:
+// - hosting: defaults to HOSTING_NO if missing (for legacy data or edge cases)
+// - deadline_timestamp: sets from task.id if deadline exists but timestamp missing (legacy data)
+// NOTE: Backend should always return these fields, but this protects against edge cases
+function normalizeTasksData(tasks) {
   if (!Array.isArray(tasks) || tasks.length === 0) {
     return tasks || [];
   }
@@ -108,23 +115,26 @@ function migrateTasksData(tasks) {
         return task;
       }
 
-      const migrated = { ...task };
+      const normalized = { ...task };
 
-      if (migrated.hosting === undefined || migrated.hosting === null) {
-        migrated.hosting = HOSTING_NO;
+      // Set default hosting if missing (edge case: legacy data or missing field)
+      if (normalized.hosting === undefined || normalized.hosting === null) {
+        normalized.hosting = HOSTING_NO;
       }
 
-      if (migrated.deadline && !migrated.deadlineTimestamp) {
-        const deadlineHours = parseDeadlineHours(migrated.deadline);
-        if (deadlineHours && migrated.id) {
-          migrated.deadlineTimestamp = migrated.id;
+      // Set default deadline_timestamp if deadline exists but timestamp doesn't (legacy data)
+      if (normalized.deadline && !normalized.deadline_timestamp) {
+        const deadlineHours = parseDeadlineHours(normalized.deadline);
+        if (deadlineHours && normalized.id) {
+          // Use task ID as fallback timestamp for legacy data
+          normalized.deadline_timestamp = normalized.id;
         }
       }
 
-      return migrated;
+      return normalized;
     });
   } catch (error) {
-    console.error('[Migrate] Erro ao migrar dados:', error);
+    console.error('[Normalize] Erro ao normalizar dados:', error);
     return tasks;
   }
 }

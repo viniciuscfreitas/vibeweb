@@ -44,8 +44,19 @@ function getInitials(fullName) {
   return (firstInitial + lastInitial).toUpperCase();
 }
 
-function getCurrentUser() {
+async function getCurrentUser() {
   try {
+    // Try to get from API first (if token exists)
+    const token = localStorage.getItem('vibeTasks_token');
+    if (token) {
+      const user = await api.getCurrentUser();
+      if (user) {
+        setCurrentUser(user);
+        return user;
+      }
+    }
+    
+    // Fallback to localStorage
     const saved = localStorage.getItem(AUTH_STORAGE_KEY);
     if (saved) {
       return JSON.parse(saved);
@@ -67,6 +78,7 @@ function setCurrentUser(user) {
 
 function logout() {
   localStorage.removeItem(AUTH_STORAGE_KEY);
+  localStorage.removeItem('vibeTasks_token');
   sanitizeUrl();
   AppState.log('User logged out');
 
@@ -104,25 +116,24 @@ function logout() {
 }
 
 function isAuthenticated() {
-  return getCurrentUser() !== null;
+  // Check if token exists (simple check, API will validate if needed)
+  const token = localStorage.getItem('vibeTasks_token');
+  return token !== null;
 }
 
-function login(email, password) {
+async function login(email, password) {
   if (!email || !password) {
     return { success: false, message: 'Email e senha são obrigatórios' };
   }
 
-  const emailTrimmed = email.trim().toLowerCase();
-
-  if (emailTrimmed === 'vinicius@example.com' && password === 'admin123') {
-    const user = {
-      name: DEFAULT_USER.name,
-      email: emailTrimmed
-    };
+  try {
+    const data = await api.login(email, password);
+    const user = data.user;
+    
     setCurrentUser(user);
     sanitizeUrl();
     return { success: true, user };
+  } catch (error) {
+    return { success: false, message: error.message || 'Erro ao fazer login' };
   }
-
-  return { success: false, message: 'Email ou senha incorretos' };
 }

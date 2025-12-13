@@ -20,14 +20,14 @@ function getHostingDisplayText(hosting) {
 
 function calculateFinancialMetrics(tasks) {
   const paidTasks = tasks.filter(t =>
-    t.paymentStatus === PAYMENT_STATUS_PAID || t.paymentStatus === PAYMENT_STATUS_PARTIAL
+    t.payment_status === PAYMENT_STATUS_PAID || t.payment_status === PAYMENT_STATUS_PARTIAL
   );
-  const pendingTasks = tasks.filter(t => t.paymentStatus === PAYMENT_STATUS_PENDING);
+  const pendingTasks = tasks.filter(t => t.payment_status === PAYMENT_STATUS_PENDING);
 
   const totalRevenue = paidTasks.reduce((sum, t) => sum + (parseFloat(t.price) || 0), 0);
   const pendingRevenue = pendingTasks.reduce((sum, t) => sum + (parseFloat(t.price) || 0), 0);
 
-  const hostingActive = tasks.filter(t => t.colId === 3 && t.hosting === HOSTING_YES);
+  const hostingActive = tasks.filter(t => t.col_id === 3 && t.hosting === HOSTING_YES);
   const hostingRevenue = hostingActive.length * HOSTING_PRICE_EUR;
 
   const currentMonth = new Date().getMonth();
@@ -168,9 +168,9 @@ function renderProjectsTable(tasks) {
   tableBody.innerHTML = '';
   sortedTasks.forEach(task => {
     const formattedPrice = formatCurrency(task.price);
-    const paymentStatus = task.paymentStatus === PAYMENT_STATUS_PAID
+    const paymentStatus = task.payment_status === PAYMENT_STATUS_PAID
       ? '<span style="color: var(--success);"><i class="fa-solid fa-check"></i> Pago</span>'
-      : task.paymentStatus === PAYMENT_STATUS_PARTIAL
+      : task.payment_status === PAYMENT_STATUS_PARTIAL
         ? '<span style="color: var(--warning);">50%</span>'
         : '<span style="color: var(--danger);">Pendente</span>';
     let hosting = '';
@@ -184,7 +184,7 @@ function renderProjectsTable(tasks) {
     row.style.cursor = 'pointer';
     row.setAttribute('role', 'button');
     row.setAttribute('tabindex', '0');
-    row.setAttribute('aria-label', `Projeto ${task.client}, ${formattedPrice}, ${task.paymentStatus}`);
+    row.setAttribute('aria-label', `Projeto ${task.client}, ${formattedPrice}, ${task.payment_status}`);
     row.addEventListener('click', () => openModal(task));
     row.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
@@ -243,7 +243,7 @@ function exportFinancialData() {
     'Cliente,Valor,Status Pagamento,Hosting',
     ...tasks.map(t => {
       const hosting = getHostingDisplayText(t.hosting);
-      return `"${t.client}",€${(parseFloat(t.price) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })},"${t.paymentStatus}","${hosting}"`;
+      return `"${t.client}",€${(parseFloat(t.price) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })},"${t.payment_status}","${hosting}"`;
     })
   ].join('\n');
 

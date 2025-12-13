@@ -15,7 +15,10 @@ function updateHeaderStats() {
 }
 
 function renderBoard() {
-  if (!DOM.boardGrid || !DOM.searchInput) return;
+  if (!DOM.boardGrid || !DOM.searchInput) {
+    console.warn('[Kanban] DOM elements not ready:', { boardGrid: !!DOM.boardGrid, searchInput: !!DOM.searchInput });
+    return;
+  }
 
   const searchTerm = DOM.searchInput.value.toLowerCase();
   const fragment = document.createDocumentFragment();
@@ -46,10 +49,10 @@ function renderBoard() {
       return;
     }
 
-    let tasksInCol = tasks.filter(t => t.colId === col.id);
+    let tasksInCol = tasks.filter(t => t.col_id === col.id);
 
     if (hasCustomFilter && AppState.filterByCustomType === 'pendingPayments') {
-      tasksInCol = tasksInCol.filter(t => t.paymentStatus === PAYMENT_STATUS_PENDING);
+      tasksInCol = tasksInCol.filter(t => t.payment_status === PAYMENT_STATUS_PENDING);
     }
 
     const colTasks = tasksInCol.filter(t => {
@@ -60,7 +63,7 @@ function renderBoard() {
       const domainMatches = hasDomain && t.domain.toLowerCase().includes(searchTerm);
 
       return clientMatches || domainMatches;
-    }).sort((a, b) => a.order - b.order);
+    }).sort((a, b) => (a.order_position || 0) - (b.order_position || 0));
 
     const colDiv = document.createElement('div');
     colDiv.className = 'column';
@@ -112,12 +115,12 @@ function createCardElement(task, isExpanded = false) {
   }
   el.draggable = true;
   el.dataset.id = task.id;
-  el.dataset.colId = task.colId;
-  el.dataset.deadlineTimestamp = task.deadlineTimestamp || '';
+  el.dataset.colId = task.col_id;
+  el.dataset.deadlineTimestamp = task.deadline_timestamp || '';
 
   const formattedPrice = formatPrice(task.price);
-  const deadlineDisplay = formatDeadlineDisplay(task.deadline, task.deadlineTimestamp);
-  const deadlineHtml = deadlineDisplay ? `<span class="deadline" data-deadline="${task.deadline}" data-timestamp="${task.deadlineTimestamp || ''}">${deadlineDisplay}</span>` : '';
+  const deadlineDisplay = formatDeadlineDisplay(task.deadline, task.deadline_timestamp);
+  const deadlineHtml = deadlineDisplay ? `<span class="deadline" data-deadline="${task.deadline}" data-timestamp="${task.deadline_timestamp || ''}">${deadlineDisplay}</span>` : '';
 
   const badgeHtml = task.type ? `<span class="card-badge">${task.type}</span>` : '';
 
@@ -125,7 +128,7 @@ function createCardElement(task, isExpanded = false) {
     const stackHtml = task.stack ? `<div class="card-detail-item"><span class="card-detail-label">Stack:</span><span class="card-detail-value">${task.stack}</span></div>` : '';
     const domainHtml = task.domain ? `<div class="card-detail-item"><span class="card-detail-label">Domínio:</span><span class="card-detail-value">${task.domain}</span></div>` : '';
     const contactHtml = task.contact ? `<div class="card-detail-item"><span class="card-detail-label">Contato:</span><span class="card-detail-value">${task.contact}</span></div>` : '';
-    const paymentHtml = task.paymentStatus ? `<div class="card-detail-item"><span class="card-detail-label">Pagamento:</span><span class="card-detail-value">${task.paymentStatus}</span></div>` : '';
+    const paymentHtml = task.payment_status ? `<div class="card-detail-item"><span class="card-detail-label">Pagamento:</span><span class="card-detail-value">${task.payment_status}</span></div>` : '';
     let hostingDisplay = 'Não';
     if (task.hosting === HOSTING_YES) {
       hostingDisplay = 'Sim';
@@ -157,7 +160,8 @@ function createCardElement(task, isExpanded = false) {
     `;
   } else {
     const stackHtml = task.stack ? `<div class="card-stack">${task.stack}</div>` : '';
-    const domainHtml = task.domain && task.colId >= 1 ? `<div class="card-domain">${task.domain}</div>` : '';
+    const taskColId = task.col_id || 0;
+    const domainHtml = task.domain && taskColId >= 1 ? `<div class="card-domain">${task.domain}</div>` : '';
     const infoHtml = (stackHtml || domainHtml) ? `<div class="card-info">${stackHtml}${domainHtml}</div>` : '';
 
     el.innerHTML = `
@@ -185,8 +189,11 @@ function createCardElement(task, isExpanded = false) {
   return el;
 }
 
+// Update deadline displays - lightweight operation
+// Only updates visible deadline elements, not entire board
 function updateDeadlineDisplays() {
-  const cards = document.querySelectorAll('.card .deadline[data-deadline][data-timestamp]');
+  // Only query visible cards (performance: avoid querying hidden elements)
+  const cards = document.querySelectorAll('.card:not(.hidden) .deadline[data-deadline][data-timestamp]');
   cards.forEach(deadlineEl => {
     const deadline = deadlineEl.dataset.deadline;
     const timestamp = deadlineEl.dataset.timestamp ? parseInt(deadlineEl.dataset.timestamp) : null;
@@ -206,6 +213,7 @@ function updateDeadlineDisplays() {
 }
 
 function handleDragStart(e) {
+  e.stopPropagation();
   const taskId = parseInt(this.dataset.id);
   AppState.draggedTaskId = taskId;
   e.dataTransfer.effectAllowed = 'move';
@@ -228,6 +236,7 @@ function calculateInsertIndex(cards, mouseY) {
 
 function handleDragOver(e) {
   e.preventDefault();
+  e.stopPropagation();
   e.dataTransfer.dropEffect = 'move';
 
   const colBody = e.currentTarget;
@@ -247,8 +256,9 @@ function handleDragLeave(e) {
 }
 
 function handleDrop(e) {
-  e.stopPropagation();
   e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
 
   const colBody = e.currentTarget;
   if (!colBody || !colBody.dataset.colId) {
@@ -279,26 +289,57 @@ function handleDrop(e) {
   const cards = Array.from(colBody.querySelectorAll('.card:not(.card-dragging)'));
   const insertIndex = calculateInsertIndex(cards, e.clientY);
 
-  const tasksWithoutMoved = tasks.filter(t => t.id !== taskId);
-  const tasksInOtherCols = tasksWithoutMoved.filter(t => t.colId !== targetColId);
-  const tasksInTargetCol = tasksWithoutMoved
-    .filter(t => t.colId === targetColId)
-    .sort((a, b) => a.order - b.order);
+  // Backup state for rollback
+  const previousState = [...tasks];
 
-  const updatedTask = { ...task, colId: targetColId };
+  const tasksWithoutMoved = tasks.filter(t => t.id !== taskId);
+  const tasksInOtherCols = tasksWithoutMoved.filter(t => t.col_id !== targetColId);
+  const tasksInTargetCol = tasksWithoutMoved
+    .filter(t => t.col_id === targetColId)
+    .sort((a, b) => (a.order_position || 0) - (b.order_position || 0));
+
+  const updatedTask = { ...task, col_id: targetColId };
 
   tasksInTargetCol.splice(insertIndex, 0, updatedTask);
   tasksInTargetCol.forEach((t, idx) => {
-    t.order = idx;
+    t.order_position = idx;
   });
 
   const finalTasks = [...tasksInOtherCols, ...tasksInTargetCol];
 
+  // Optimistic update: Update UI immediately for better UX
+  // If API call fails, we rollback to previousState
+  // This gives instant feedback while maintaining data consistency
   AppState.setTasks(finalTasks);
   cards.forEach(card => card.classList.remove('card-over'));
-  saveData();
+  renderBoard();
 
-  AppState.log('Drop completed', { taskId, targetColId, insertIndex });
+  // Call API in background - update server state
+  api.moveTask(taskId, targetColId, insertIndex)
+    .then((updatedTaskFromServer) => {
+      // Success: Update with server response (normalize to ensure defaults)
+      const normalizedTask = normalizeTasksData([updatedTaskFromServer])[0];
+      const currentTasks = AppState.getTasks();
+      const updatedTasks = currentTasks.map(t => t.id === taskId ? normalizedTask : t);
+      AppState.setTasks(updatedTasks);
+      renderBoard();
+      AppState.log('Task moved successfully', { taskId, targetColId: targetColId, insertIndex });
+    })
+    .catch((error) => {
+      // Error: Rollback to previous state
+      console.error('[Kanban] Failed to move task:', {
+        error: error.message,
+        stack: error.stack,
+        taskId,
+        targetColId
+      });
+      AppState.setTasks(previousState);
+      renderBoard();
+      AppState.log('Task move failed, rolled back', { taskId, error: error.message });
+      // Show user-friendly error message
+      alert('Erro ao mover tarefa: ' + (error.message || 'Tente novamente'));
+    });
+
   return false;
 }
 
@@ -436,30 +477,7 @@ function exportKanbanData() {
   const tasks = AppState.getTasks();
   const csv = 'Cliente,Contato,Domínio,Stack,Tipo,Preço,Status Pagamento,Deadline,Hosting\n' +
     tasks.map(t =>
-      `"${t.client || ''}","${t.contact || ''}","${t.domain || ''}","${t.stack || ''}","${t.type || ''}",${t.price || 0},"${t.paymentStatus || ''}","${t.deadline || ''}","${t.hosting || 'não'}"`
+      `"${t.client || ''}","${t.contact || ''}","${t.domain || ''}","${t.stack || ''}","${t.type || ''}",${t.price || 0},"${t.payment_status || ''}","${t.deadline || ''}","${t.hosting || 'não'}"`
     ).join('\n');
   downloadCSV(csv, `vibeos-kanban-${new Date().toISOString().split('T')[0]}.csv`);
-}
-
-function saveData() {
-  try {
-    const tasks = AppState.getTasks();
-    if (!Array.isArray(tasks)) {
-      AppState.log('Save failed: invalid tasks array');
-      return;
-    }
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-    AppState.log('Data saved', { count: tasks.length });
-    renderBoard();
-
-    if (DOM.dashboardContainer && DOM.dashboardContainer.classList.contains('active')) {
-      renderDashboard();
-    } else if (DOM.financialContainer && DOM.financialContainer.classList.contains('active')) {
-      renderFinancial();
-    }
-  } catch (error) {
-    console.error('[Save] Erro ao salvar:', error);
-    AppState.log('Save failed', { error: error.message });
-  }
 }

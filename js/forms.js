@@ -28,7 +28,7 @@ function openModal(task = null) {
   DOM.formDomain.value = task?.domain || '';
   DOM.formDesc.value = task?.description || '';
   DOM.formPrice.value = task?.price || '';
-  DOM.formPayment.value = task?.paymentStatus || PAYMENT_STATUS_PENDING;
+  DOM.formPayment.value = task?.payment_status || PAYMENT_STATUS_PENDING;
   DOM.formDeadline.value = task?.deadline || '';
 
   const hostingValue = task?.hosting || HOSTING_NO;
@@ -163,6 +163,9 @@ function clearFormErrors() {
   clearFormError('price');
 }
 
+// Validate form before submission
+// NOTE: Validation is duplicated in backend (server.js) for security.
+// Frontend validation provides immediate UX feedback, backend validation is the source of truth.
 function validateForm() {
   let isFormValid = true;
   clearFormErrors();
@@ -199,7 +202,7 @@ function validateForm() {
   return isFormValid;
 }
 
-function saveForm() {
+async function saveForm() {
   if (!validateForm()) {
     AppState.log('Form validation failed');
     return;
@@ -219,79 +222,104 @@ function saveForm() {
   const deadlineValue = DOM.formDeadline.value.trim();
   const deadline = deadlineValue || DEADLINE_UNDEFINED;
 
-  const formData = {
-    client: clientName,
-    contact: DOM.formContact.value.trim(),
-    type: DOM.formType.value,
-    stack: DOM.formStack.value.trim(),
-    domain: DOM.formDomain.value.trim(),
-    description: DOM.formDesc.value.trim(),
-    price: price,
-    paymentStatus: DOM.formPayment.value,
-    deadline: deadline,
-    hosting: DOM.formHosting.value,
-  };
-
-  const tasks = AppState.getTasks();
-  if (!Array.isArray(tasks)) {
-    AppState.log('Form save failed: invalid tasks array');
-    return;
+  // Get save button and disable it
+  const saveButton = DOM.btnSave;
+  const originalButtonText = saveButton ? saveButton.textContent : 'Salvar';
+  if (saveButton) {
+    saveButton.disabled = true;
+    saveButton.textContent = 'Salvando...';
   }
 
-  if (AppState.currentTaskId) {
-    const idx = tasks.findIndex(t => t.id === AppState.currentTaskId);
-    if (idx === -1) {
-      AppState.log('Form save failed: task not found', { taskId: AppState.currentTaskId });
-      return;
-    }
-
-    const task = tasks[idx];
-    if (!task) {
-      AppState.log('Form save failed: invalid task');
-      return;
-    }
-    const updatedTasks = [...tasks];
-    const currentDeadline = task.deadline;
-    const newDeadline = formData.deadline;
-
-    if (currentDeadline !== newDeadline && parseDeadlineHours(newDeadline)) {
-      formData.deadlineTimestamp = Date.now();
-    } else if (currentDeadline === newDeadline && task.deadlineTimestamp) {
-      formData.deadlineTimestamp = task.deadlineTimestamp;
-    }
-
-    updatedTasks[idx] = { ...updatedTasks[idx], ...formData };
-    AppState.setTasks(updatedTasks);
-    AppState.log('Task updated', { taskId: AppState.currentTaskId });
-  } else {
-    const inboxTasks = tasks.filter(t => t.colId === DISCOVERY_COLUMN_ID);
-    const inboxOrders = inboxTasks.map(t => t.order);
-    const maxOrder = inboxOrders.length > 0 ? Math.max(...inboxOrders) : -1;
-    const newOrder = maxOrder + 1;
-
-    const hours = parseDeadlineHours(formData.deadline);
-    const deadlineTimestamp = hours ? Date.now() : null;
-
-    const newTask = {
-      id: Date.now(),
-      colId: DISCOVERY_COLUMN_ID,
-      order: newOrder,
-      ...formData,
-      deadlineTimestamp: deadlineTimestamp
+  try {
+    const tasks = AppState.getTasks();
+    const formData = {
+      client: clientName,
+      contact: DOM.formContact.value.trim(),
+      type: DOM.formType.value,
+      stack: DOM.formStack.value.trim(),
+      domain: DOM.formDomain.value.trim(),
+      description: DOM.formDesc.value.trim(),
+      price: price,
+      payment_status: DOM.formPayment.value, // Use snake_case consistently
+      deadline: deadline,
+      hosting: DOM.formHosting.value,
     };
 
-    const updatedTasks = [...tasks, newTask];
-    AppState.setTasks(updatedTasks);
-    AppState.log('Task created', { taskId: newTask.id });
-  }
+    if (AppState.currentTaskId) {
+      // Update existing task
+      const existingTask = tasks.find(t => t.id === AppState.currentTaskId);
+      if (existingTask) {
+        const currentDeadline = existingTask.deadline;
+        const newDeadline = formData.deadline;
 
-  saveData();
-  closeModal();
+        if (currentDeadline !== newDeadline && parseDeadlineHours(newDeadline)) {
+          formData.deadline_timestamp = Date.now();
+        } else if (currentDeadline === newDeadline && existingTask.deadline_timestamp) {
+          formData.deadline_timestamp = existingTask.deadline_timestamp;
+        }
 
-  if (DOM.dashboardContainer.classList.contains('active')) {
-    renderDashboard();
-  } else if (DOM.financialContainer.classList.contains('active')) {
-    renderFinancial();
+        formData.col_id = existingTask.col_id; // Use snake_case consistently
+        formData.order_position = existingTask.order_position || 0; // Use snake_case consistently
+      }
+
+      const updatedTaskFromServer = await api.updateTask(AppState.currentTaskId, formData);
+
+      // Normalize task to ensure defaults
+      const normalizedTask = normalizeTasksData([updatedTaskFromServer])[0];
+
+      // Update local state
+      const updatedTasks = tasks.map(t => t.id === AppState.currentTaskId ? normalizedTask : t);
+      AppState.setTasks(updatedTasks);
+      AppState.log('Task updated', { taskId: AppState.currentTaskId });
+    } else {
+      // Create new task
+      const inboxTasks = tasks.filter(t => t.col_id === DISCOVERY_COLUMN_ID);
+      const inboxOrders = inboxTasks.map(t => t.order_position || 0);
+      const maxOrder = inboxOrders.length > 0 ? Math.max(...inboxOrders) : -1;
+      const newOrder = maxOrder + 1;
+
+      const hours = parseDeadlineHours(formData.deadline);
+      const deadline_timestamp = hours ? Date.now() : null;
+
+      formData.col_id = DISCOVERY_COLUMN_ID; // Use snake_case consistently
+      formData.order_position = newOrder; // Use snake_case consistently
+      formData.deadline_timestamp = deadline_timestamp;
+
+      const newTaskFromServer = await api.createTask(formData);
+
+      // Normalize task to ensure defaults
+      const normalizedNewTask = normalizeTasksData([newTaskFromServer])[0];
+
+      // Update local state
+      const updatedTasks = [...tasks, normalizedNewTask];
+      AppState.setTasks(updatedTasks);
+      AppState.log('Task created', { taskId: normalizedNewTask.id });
+    }
+
+    closeModal();
+    renderBoard();
+
+    if (DOM.dashboardContainer.classList.contains('active')) {
+      renderDashboard();
+    } else if (DOM.financialContainer.classList.contains('active')) {
+      renderFinancial();
+    }
+  } catch (error) {
+    // Log full error for debugging
+    console.error('[Forms] Error saving task:', {
+      error: error.message,
+      stack: error.stack,
+      taskId: AppState.currentTaskId
+    });
+    // Show user-friendly error message
+    const errorMessage = error.message || 'Erro ao salvar. Tente novamente.';
+    alert(errorMessage);
+    // Keep modal open on error
+  } finally {
+    if (saveButton) {
+      saveButton.disabled = false;
+      saveButton.textContent = originalButtonText;
+    }
   }
 }
 
@@ -326,18 +354,33 @@ function showConfirmDialog(message, onConfirm) {
 function deleteItem() {
   if (!AppState.currentTaskId) return;
 
-  showConfirmDialog("Arquivar este projeto?", () => {
-    const tasks = AppState.getTasks();
-    const updatedTasks = tasks.filter(t => t.id !== AppState.currentTaskId);
-    AppState.setTasks(updatedTasks);
-    AppState.log('Task deleted', { taskId: AppState.currentTaskId });
-    saveData();
-    closeModal();
+  showConfirmDialog("Arquivar este projeto?", async () => {
+    try {
+      await api.deleteTask(AppState.currentTaskId);
 
-    if (DOM.dashboardContainer.classList.contains('active')) {
-      renderDashboard();
-    } else if (DOM.financialContainer.classList.contains('active')) {
-      renderFinancial();
+      // Update local state
+      const tasks = AppState.getTasks();
+      const updatedTasks = tasks.filter(t => t.id !== AppState.currentTaskId);
+      AppState.setTasks(updatedTasks);
+      AppState.log('Task deleted', { taskId: AppState.currentTaskId });
+
+      closeModal();
+      renderBoard();
+
+      if (DOM.dashboardContainer.classList.contains('active')) {
+        renderDashboard();
+      } else if (DOM.financialContainer.classList.contains('active')) {
+        renderFinancial();
+      }
+    } catch (error) {
+      // Log full error for debugging
+      console.error('[Forms] Error deleting task:', {
+        error: error.message,
+        stack: error.stack,
+        taskId: AppState.currentTaskId
+      });
+      const errorMessage = error.message || 'Erro ao deletar. Tente novamente.';
+      alert(errorMessage);
     }
   });
 }

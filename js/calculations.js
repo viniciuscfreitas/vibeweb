@@ -1,7 +1,7 @@
 // Financial Calculations and Metrics
 
 function calculateMRR(tasks) {
-  const liveTasks = tasks.filter(t => t.colId === 3 && t.hosting === HOSTING_YES);
+  const liveTasks = tasks.filter(t => t.col_id === 3 && t.hosting === HOSTING_YES);
   return liveTasks.length * HOSTING_PRICE_EUR;
 }
 
@@ -18,14 +18,14 @@ function calculateRevenueForMonth(tasks, month, year) {
     const taskDate = new Date(t.id);
     return taskDate.getMonth() === month &&
       taskDate.getFullYear() === year &&
-      (t.paymentStatus === PAYMENT_STATUS_PAID || t.paymentStatus === PAYMENT_STATUS_PARTIAL);
+      (t.payment_status === PAYMENT_STATUS_PAID || t.payment_status === PAYMENT_STATUS_PARTIAL);
   });
   return monthTasks.reduce((sum, t) => sum + (parseFloat(t.price) || 0), 0);
 }
 
 function calculateAverageTicket(tasks) {
   const paidTasks = tasks.filter(t =>
-    t.paymentStatus === PAYMENT_STATUS_PAID || t.paymentStatus === PAYMENT_STATUS_PARTIAL
+    t.payment_status === PAYMENT_STATUS_PAID || t.payment_status === PAYMENT_STATUS_PARTIAL
   );
   if (paidTasks.length === 0) return 0;
 
@@ -34,16 +34,16 @@ function calculateAverageTicket(tasks) {
 }
 
 function calculateProjectCountsByStatus(tasks) {
-  const discoveryCount = tasks.filter(t => t.colId === 0).length;
-  const agreementCount = tasks.filter(t => t.colId === 1).length;
-  const buildCount = tasks.filter(t => t.colId === 2).length;
-  const liveCount = tasks.filter(t => t.colId === 3).length;
+  const discoveryCount = tasks.filter(t => t.col_id === 0).length;
+  const agreementCount = tasks.filter(t => t.col_id === 1).length;
+  const buildCount = tasks.filter(t => t.col_id === 2).length;
+  const liveCount = tasks.filter(t => t.col_id === 3).length;
   const activeProjects = agreementCount + buildCount;
   return { discoveryCount, agreementCount, buildCount, liveCount, activeProjects };
 }
 
 function isTaskUrgent(task, now) {
-  const isInBuildWithoutDeadline = task.colId === 2 && (!task.deadline || task.deadline === DEADLINE_UNDEFINED);
+  const isInBuildWithoutDeadline = task.col_id === 2 && (!task.deadline || task.deadline === DEADLINE_UNDEFINED);
   if (isInBuildWithoutDeadline) return true;
 
   const hasNoDeadline = !task.deadline || task.deadline === DEADLINE_UNDEFINED;
@@ -52,13 +52,13 @@ function isTaskUrgent(task, now) {
   const isUrgentKeyword = URGENT_DEADLINES.includes(task.deadline);
   if (isUrgentKeyword) return true;
 
-  const hasDeadlineTimestamp = task.deadlineTimestamp !== null && task.deadlineTimestamp !== undefined;
+  const hasDeadlineTimestamp = task.deadline_timestamp !== null && task.deadline_timestamp !== undefined;
   if (!hasDeadlineTimestamp) return false;
 
   const deadlineHours = parseDeadlineHours(task.deadline);
   if (!deadlineHours) return false;
 
-  const deadlineTimestamp = task.deadlineTimestamp + (deadlineHours * MS_PER_HOUR);
+  const deadlineTimestamp = task.deadline_timestamp + (deadlineHours * MS_PER_HOUR);
   const timeRemaining = deadlineTimestamp - now;
   const isWithin48Hours = timeRemaining > 0 && timeRemaining <= URGENT_HOURS_48_MS;
   const isOverdue = timeRemaining <= 0;
@@ -68,19 +68,19 @@ function isTaskUrgent(task, now) {
 
 function compareUrgentProjects(projectA, projectB, now) {
   let projectAIsOverdue = false;
-  if (projectA.deadlineTimestamp) {
+  if (projectA.deadline_timestamp) {
     const projectADeadlineHours = parseDeadlineHours(projectA.deadline);
     if (projectADeadlineHours) {
-      const projectADeadlineTimestamp = projectA.deadlineTimestamp + (projectADeadlineHours * MS_PER_HOUR);
+      const projectADeadlineTimestamp = projectA.deadline_timestamp + (projectADeadlineHours * MS_PER_HOUR);
       projectAIsOverdue = projectADeadlineTimestamp <= now;
     }
   }
 
   let projectBIsOverdue = false;
-  if (projectB.deadlineTimestamp) {
+  if (projectB.deadline_timestamp) {
     const projectBDeadlineHours = parseDeadlineHours(projectB.deadline);
     if (projectBDeadlineHours) {
-      const projectBDeadlineTimestamp = projectB.deadlineTimestamp + (projectBDeadlineHours * MS_PER_HOUR);
+      const projectBDeadlineTimestamp = projectB.deadline_timestamp + (projectBDeadlineHours * MS_PER_HOUR);
       projectBIsOverdue = projectBDeadlineTimestamp <= now;
     }
   }
@@ -92,13 +92,13 @@ function compareUrgentProjects(projectA, projectB, now) {
   const projectBDeadlineHours = parseDeadlineHours(projectB.deadline) || 999;
 
   let projectADeadlineTimestamp = Infinity;
-  if (projectA.deadlineTimestamp) {
-    projectADeadlineTimestamp = projectA.deadlineTimestamp + (projectADeadlineHours * MS_PER_HOUR);
+  if (projectA.deadline_timestamp) {
+    projectADeadlineTimestamp = projectA.deadline_timestamp + (projectADeadlineHours * MS_PER_HOUR);
   }
 
   let projectBDeadlineTimestamp = Infinity;
-  if (projectB.deadlineTimestamp) {
-    projectBDeadlineTimestamp = projectB.deadlineTimestamp + (projectBDeadlineHours * MS_PER_HOUR);
+  if (projectB.deadline_timestamp) {
+    projectBDeadlineTimestamp = projectB.deadline_timestamp + (projectBDeadlineHours * MS_PER_HOUR);
   }
 
   return projectADeadlineTimestamp - projectBDeadlineTimestamp;
@@ -128,12 +128,12 @@ function calculateDashboardMetrics() {
   const averageTicket = calculateAverageTicket(tasks);
   const projectCounts = calculateProjectCountsByStatus(tasks);
   const urgentProjects = calculateUrgentProjects(tasks);
-  const upsellPending = tasks.filter(t => t.hosting === HOSTING_LATER && t.colId >= 1);
+  const upsellPending = tasks.filter(t => t.hosting === HOSTING_LATER && t.col_id >= 1);
 
   const statusDistribution = calculateStatusDistribution(tasks);
   const recentActivities = generateRecentActivities(tasks);
   const paidTasks = tasks.filter(t =>
-    t.paymentStatus === PAYMENT_STATUS_PAID || t.paymentStatus === PAYMENT_STATUS_PARTIAL
+    t.payment_status === PAYMENT_STATUS_PAID || t.payment_status === PAYMENT_STATUS_PARTIAL
   );
   const totalRevenue = paidTasks.reduce((sum, t) => sum + (parseFloat(t.price) || 0), 0);
 
@@ -153,7 +153,7 @@ function calculateDashboardMetrics() {
     agreementCount: projectCounts.agreementCount,
     buildCount: projectCounts.buildCount,
     liveCount: projectCounts.liveCount,
-    pendingPayments: tasks.filter(t => t.paymentStatus === PAYMENT_STATUS_PENDING).length,
+    pendingPayments: tasks.filter(t => t.payment_status === PAYMENT_STATUS_PENDING).length,
     cacAverage: DEFAULT_CAC,
     urgentCount: urgentProjects.length,
     urgentProjects,
@@ -180,7 +180,7 @@ function calculateMonthlyRevenue(tasks, monthsCount = 12) {
   }
 
   const paidTasks = tasks.filter(t =>
-    t.paymentStatus === PAYMENT_STATUS_PAID || t.paymentStatus === PAYMENT_STATUS_PARTIAL
+    t.payment_status === PAYMENT_STATUS_PAID || t.payment_status === PAYMENT_STATUS_PARTIAL
   );
 
   paidTasks.forEach(task => {
@@ -189,7 +189,7 @@ function calculateMonthlyRevenue(tasks, monthsCount = 12) {
     const taskYear = taskCreatedDate.getFullYear();
 
     let taskRevenue = parseFloat(task.price || 0);
-    if (task.paymentStatus === PAYMENT_STATUS_PARTIAL) {
+    if (task.payment_status === PAYMENT_STATUS_PARTIAL) {
       taskRevenue = taskRevenue / 2;
     }
 
@@ -221,9 +221,9 @@ function calculateMonthlyRevenue(tasks, monthsCount = 12) {
 
 function calculateConversionRates(tasks) {
   const totalProjectsEver = tasks.length;
-  const projectsInAgreement = tasks.filter(t => t.colId >= 1).length;
-  const projectsInBuild = tasks.filter(t => t.colId >= 2).length;
-  const projectsInLive = tasks.filter(t => t.colId === 3).length;
+  const projectsInAgreement = tasks.filter(t => t.col_id >= 1).length;
+  const projectsInBuild = tasks.filter(t => t.col_id >= 2).length;
+  const projectsInLive = tasks.filter(t => t.col_id === 3).length;
 
   return {
     discoveryToAgreement: totalProjectsEver > 0 ? projectsInAgreement / totalProjectsEver : 0.6,
@@ -233,9 +233,9 @@ function calculateConversionRates(tasks) {
 }
 
 function calculatePipelineValue(tasks, averageTicketPrice, conversionRates) {
-  const discoveryProjects = tasks.filter(t => t.colId === 0);
-  const agreementProjects = tasks.filter(t => t.colId === 1);
-  const buildProjects = tasks.filter(t => t.colId === 2);
+  const discoveryProjects = tasks.filter(t => t.col_id === 0);
+  const agreementProjects = tasks.filter(t => t.col_id === 1);
+  const buildProjects = tasks.filter(t => t.col_id === 2);
 
   const discoveryValue = discoveryProjects.length * conversionRates.discoveryToAgreement *
     conversionRates.agreementToBuild * conversionRates.buildToLive * averageTicketPrice;
@@ -248,7 +248,7 @@ function calculatePipelineValue(tasks, averageTicketPrice, conversionRates) {
 
 function calculateAverageTicketFromRecentTasks(recentTasks) {
   const paidRecentTasks = recentTasks.filter(t =>
-    t.paymentStatus === PAYMENT_STATUS_PAID || t.paymentStatus === PAYMENT_STATUS_PARTIAL
+    t.payment_status === PAYMENT_STATUS_PAID || t.payment_status === PAYMENT_STATUS_PARTIAL
   );
 
   if (paidRecentTasks.length === 0) {
@@ -257,7 +257,7 @@ function calculateAverageTicketFromRecentTasks(recentTasks) {
 
   const totalPaidRevenue = paidRecentTasks.reduce((sum, task) => {
     let taskRevenue = parseFloat(task.price || 0);
-    if (task.paymentStatus === PAYMENT_STATUS_PARTIAL) {
+    if (task.payment_status === PAYMENT_STATUS_PARTIAL) {
       taskRevenue = taskRevenue / 2;
     }
     return sum + taskRevenue;
@@ -276,7 +276,7 @@ function calculateProjectedRevenue(tasks, monthsCount = 12) {
   const projectedMonths = [];
   const currentDate = new Date();
 
-  const liveProjectsWithHosting = tasks.filter(t => t.colId === 3 && t.hosting === HOSTING_YES);
+  const liveProjectsWithHosting = tasks.filter(t => t.col_id === 3 && t.hosting === HOSTING_YES);
   const monthlyRecurringRevenue = liveProjectsWithHosting.length * HOSTING_PRICE_EUR;
 
   const last6MonthsRevenue = calculateMonthlyRevenue(tasks, 6);
@@ -332,9 +332,9 @@ function calculateProjectedRevenue(tasks, monthsCount = 12) {
 function calculateStatusDistribution(tasks) {
   const distribution = COLUMNS.map(col => ({
     name: col.name,
-    count: tasks.filter(t => t.colId === col.id).length,
+    count: tasks.filter(t => t.col_id === col.id).length,
     value: tasks
-      .filter(t => t.colId === col.id)
+      .filter(t => t.col_id === col.id)
       .reduce((sum, t) => sum + (parseFloat(t.price) || 0), 0)
   }));
 
@@ -346,10 +346,10 @@ function generateRecentActivities(tasks) {
   const currentDate = Date.now();
 
   // Priorizar projetos em diferentes estágios para dar visão completa
-  const projectsInBuild = tasks.filter(t => t.colId === 2).sort((a, b) => b.id - a.id);
-  const projectsInAgreement = tasks.filter(t => t.colId === 1).sort((a, b) => b.id - a.id);
-  const projectsRecentlyCreated = tasks.filter(t => t.colId === 0).sort((a, b) => b.id - a.id);
-  const projectsRecentlyCompleted = tasks.filter(t => t.colId === 3).sort((a, b) => b.id - a.id);
+  const projectsInBuild = tasks.filter(t => t.col_id === 2).sort((a, b) => b.id - a.id);
+  const projectsInAgreement = tasks.filter(t => t.col_id === 1).sort((a, b) => b.id - a.id);
+  const projectsRecentlyCreated = tasks.filter(t => t.col_id === 0).sort((a, b) => b.id - a.id);
+  const projectsRecentlyCompleted = tasks.filter(t => t.col_id === 3).sort((a, b) => b.id - a.id);
 
   // Selecionar atividades mais relevantes (máximo 3)
   const selectedTasks = [];
@@ -391,16 +391,16 @@ function generateRecentActivities(tasks) {
     let activityText = '';
     let icon = 'fa-file-invoice';
 
-    if (task.colId === 0) {
+    if (task.col_id === 0) {
       activityText = `Novo projeto <strong>${task.client}</strong>`;
       icon = 'fa-plus-circle';
-    } else if (task.colId === 1) {
+    } else if (task.col_id === 1) {
       activityText = `<strong>${task.client}</strong> em acordo`;
       icon = 'fa-handshake';
-    } else if (task.colId === 2) {
+    } else if (task.col_id === 2) {
       activityText = `<strong>${task.client}</strong> em desenvolvimento`;
       icon = 'fa-code';
-    } else if (task.colId === 3) {
+    } else if (task.col_id === 3) {
       activityText = `<strong>${task.client}</strong> concluído`;
       icon = 'fa-check-circle';
     }

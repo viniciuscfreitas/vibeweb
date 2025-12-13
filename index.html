@@ -229,7 +229,7 @@
             </div>
             <h2 class="modal-title" id="modalTitle">Novo Projeto</h2>
           </div>
-          <button class="btn-text" id="btnCloseModal" aria-label="Fechar modal"><i
+          <button type="button" class="btn-text" id="btnCloseModal" aria-label="Fechar modal"><i
               class="fa-solid fa-xmark close-icon"></i></button>
         </div>
         <div class="modal-body">
@@ -312,10 +312,11 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn-danger hidden" id="btnDelete" aria-label="Arquivar projeto">Arquivar</button>
+          <button type="button" class="btn-danger hidden" id="btnDelete" aria-label="Arquivar projeto">Arquivar</button>
           <div class="form-actions">
-            <button class="btn-text" id="btnCancel" aria-label="Cancelar e fechar formulário">Cancelar</button>
-            <button class="btn-primary" id="btnSave" aria-label="Salvar projeto">Salvar</button>
+            <button type="button" class="btn-text" id="btnCancel"
+              aria-label="Cancelar e fechar formulário">Cancelar</button>
+            <button type="button" class="btn-primary" id="btnSave" aria-label="Salvar projeto">Salvar</button>
           </div>
         </div>
       </div>
@@ -324,6 +325,7 @@
   <!-- JavaScript Modules -->
   <script src="js/constants.js"></script>
   <script src="js/state.js"></script>
+  <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/dom.js"></script>
   <script src="js/utils.js"></script>

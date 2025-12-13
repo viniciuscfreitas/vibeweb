@@ -1,0 +1,9 @@
+# Backend
+backend/*.db
+backend/node_modules/
+backend/.env
+
+# Frontend
+node_modules/
+.DS_Store
+.cursor/
