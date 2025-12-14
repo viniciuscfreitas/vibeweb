@@ -2,9 +2,12 @@
 // Grug Rule: Base URL no topo do mesmo arquivo (Localidade de Comportamento)
 // All API configuration in one place - easy to change for production
 
-// API Configuration - change for production
-// TODO: Use environment variable or build-time config for production
-const API_BASE_URL = 'http://localhost:3000';
+// API Configuration
+// In production, nginx proxies /api to backend, so use relative path
+// In development, use full URL
+const API_BASE_URL = window.location.hostname === 'localhost'
+  ? 'http://localhost:3000'
+  : '';
 const TOKEN_STORAGE_KEY = 'vibeTasks_token';
 
 // Generic API request wrapper

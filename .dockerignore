@@ -1,0 +1,45 @@
+# Git
+.git
+.gitignore
+
+# Node
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Database
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+backend/data/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+
+# Documentation (keep minimal)
+*.md
+
+# Test files
+backend/scripts/test.js
+
+# Development seed scripts (keep seed.js for initial setup)
+backend/scripts/seed-extreme*.js
+backend/scripts/add-tasks-to-default-user.js

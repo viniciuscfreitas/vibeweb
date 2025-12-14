@@ -2,8 +2,13 @@
 backend/*.db
 backend/node_modules/
 backend/.env
+backend/data/
 
 # Frontend
 node_modules/
 .DS_Store
 .cursor/
+
+# Environment
+.env
+.env.local

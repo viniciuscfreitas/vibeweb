@@ -149,6 +149,11 @@ function initDatabase() {
   });
 }
 
+// Health check endpoint (no auth required)
+app.get('/api/health', (req, res) => {
+  res.json({ success: true, status: 'healthy', timestamp: new Date().toISOString() });
+});
+
 // Authentication middleware
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
