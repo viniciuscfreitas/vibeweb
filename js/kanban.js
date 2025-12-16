@@ -1,6 +1,5 @@
 // Kanban Board Logic
-
-const URL_PATTERN = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i;
+// URL_PATTERN is defined in forms.js (loaded before this file)
 
 function updateHeaderStats() {
   if (!DOM.dashboardContainer || !DOM.financialContainer) return;
