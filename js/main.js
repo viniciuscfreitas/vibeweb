@@ -181,9 +181,20 @@ function updateAriaHiddenForViews() {
   DOM.financialContainer.setAttribute('aria-hidden', isFinancialVisible ? 'false' : 'true');
 }
 
-function switchView(view) {
-  if (!DOM.boardContainer || !DOM.dashboardContainer || !DOM.financialContainer) return;
+// Announce view changes to screen readers (WCAG 2.1 - Status Changes)
+function announceToScreenReader(message) {
+  const liveRegion = document.getElementById('ariaLiveRegion');
+  if (liveRegion) {
+    liveRegion.textContent = message;
+    // Clear after announcement to allow re-announcement of same message
+    setTimeout(() => {
+      liveRegion.textContent = '';
+    }, 1000);
+  }
+}
 
+// Determine current and target view states
+function determineViewState(view) {
   const isDashboard = view === 'dashboard';
   const isProjects = view === 'projects';
   const isFinancial = view === 'financial';
@@ -192,51 +203,85 @@ function switchView(view) {
   const currentIsProjects = !DOM.boardContainer.classList.contains('hidden');
   const currentIsFinancial = DOM.financialContainer.classList.contains('active');
 
-  const isSwitchingToDashboard = isDashboard && !currentIsDashboard;
-  const isSwitchingToProjects = isProjects && !currentIsProjects;
-  const isSwitchingToFinancial = isFinancial && !currentIsFinancial;
+  return {
+    isDashboard,
+    isProjects,
+    isFinancial,
+    currentIsDashboard,
+    currentIsProjects,
+    currentIsFinancial,
+    isSwitchingToDashboard: isDashboard && !currentIsDashboard,
+    isSwitchingToProjects: isProjects && !currentIsProjects,
+    isSwitchingToFinancial: isFinancial && !currentIsFinancial
+  };
+}
 
-  if (isSwitchingToDashboard) {
-    switchToDashboard();
-  } else if (isSwitchingToProjects) {
-    switchToProjects();
-  } else if (isSwitchingToFinancial) {
-    switchToFinancial();
+// Update view visibility without animation
+function updateViewVisibility(state) {
+  DOM.boardContainer.classList.toggle('hidden', state.isDashboard || state.isFinancial);
+  DOM.dashboardContainer.classList.toggle('active', state.isDashboard);
+  DOM.dashboardContainer.classList.toggle('hidden', state.isProjects || state.isFinancial);
+
+  if (state.isFinancial) {
+    DOM.financialContainer.classList.remove('hidden');
+    DOM.financialContainer.classList.add('active');
+    DOM.financialContainer.style.display = 'block';
+    fadeContainer(DOM.financialContainer, true);
   } else {
-    DOM.boardContainer.classList.toggle('hidden', isDashboard || isFinancial);
-    DOM.dashboardContainer.classList.toggle('active', isDashboard);
-    DOM.dashboardContainer.classList.toggle('hidden', isProjects || isFinancial);
-
-    if (isFinancial) {
-      DOM.financialContainer.classList.remove('hidden');
-      DOM.financialContainer.classList.add('active');
-      DOM.financialContainer.style.display = 'block';
-      fadeContainer(DOM.financialContainer, true);
-    } else {
-      DOM.financialContainer.classList.remove('active');
-      DOM.financialContainer.classList.add('hidden');
-      DOM.financialContainer.style.display = '';
-    }
-
-    if (isProjects) {
-      fadeContainer(DOM.boardContainer, true);
-    }
-
-    if (isDashboard) {
-      clearKanbanFilter();
-      renderDashboard();
-    }
-
-    if (isFinancial) {
-      renderFinancial();
-      updateHeader('financial');
-    } else {
-      updateHeader(view);
-    }
+    DOM.financialContainer.classList.remove('active');
+    DOM.financialContainer.classList.add('hidden');
+    DOM.financialContainer.style.display = '';
   }
 
-  updateNavButtons(isProjects, isDashboard, isFinancial);
+  if (state.isProjects) {
+    fadeContainer(DOM.boardContainer, true);
+  }
+}
+
+// Update view content based on state
+function updateViewContent(state) {
+  if (state.isDashboard) {
+    clearKanbanFilter();
+    renderDashboard();
+  }
+
+  if (state.isFinancial) {
+    renderFinancial();
+    updateHeader('financial');
+  } else {
+    updateHeader(state.isDashboard ? 'dashboard' : state.isProjects ? 'projects' : 'financial');
+  }
+}
+
+function switchView(view) {
+  if (!DOM.boardContainer || !DOM.dashboardContainer || !DOM.financialContainer) return;
+
+  const state = determineViewState(view);
+
+  // Handle animated transitions for major view changes
+  if (state.isSwitchingToDashboard) {
+    switchToDashboard();
+  } else if (state.isSwitchingToProjects) {
+    switchToProjects();
+  } else if (state.isSwitchingToFinancial) {
+    switchToFinancial();
+  } else {
+    // Minor updates - no animation needed
+    updateViewVisibility(state);
+    updateViewContent(state);
+  }
+
+  updateNavButtons(state.isProjects, state.isDashboard, state.isFinancial);
   updateAriaHiddenForViews();
+
+  // Announce view change to screen readers
+  if (state.isDashboard) {
+    announceToScreenReader('Visualização alterada para Painel de controle');
+  } else if (state.isProjects) {
+    announceToScreenReader('Visualização alterada para Projetos');
+  } else if (state.isFinancial) {
+    announceToScreenReader('Visualização alterada para Financeiro');
+  }
 }
 
 function updateHeader(view) {
@@ -424,7 +469,7 @@ function setupEventListeners() {
     DOM.searchInput.addEventListener('blur', collapseSearch);
   }
 
-  // Chart toggle buttons
+  // Chart toggle buttons (WCAG - Update aria-selected for screen readers)
   const chartToggleHistory = document.getElementById('chartToggleHistory');
   const chartToggleProjection = document.getElementById('chartToggleProjection');
   if (chartToggleHistory) {
@@ -432,6 +477,13 @@ function setupEventListeners() {
       const tasks = AppState.getTasks();
       const historicalData = calculateMonthlyRevenue(tasks, 12);
       renderRevenueChart(historicalData, 'history');
+      // Update aria-selected for accessibility
+      chartToggleHistory.setAttribute('aria-selected', 'true');
+      if (chartToggleProjection) {
+        chartToggleProjection.setAttribute('aria-selected', 'false');
+        chartToggleProjection.classList.remove('active');
+      }
+      chartToggleHistory.classList.add('active');
     });
   }
   if (chartToggleProjection) {
@@ -439,6 +491,13 @@ function setupEventListeners() {
       const tasks = AppState.getTasks();
       const projectionData = calculateProjectedRevenue(tasks, 12);
       renderRevenueChart(projectionData, 'projection');
+      // Update aria-selected for accessibility
+      chartToggleProjection.setAttribute('aria-selected', 'true');
+      if (chartToggleHistory) {
+        chartToggleHistory.setAttribute('aria-selected', 'false');
+        chartToggleHistory.classList.remove('active');
+      }
+      chartToggleProjection.classList.add('active');
     });
   }
 
@@ -463,7 +522,6 @@ async function renderUserAvatar() {
   const userDropdown = document.getElementById('userDropdown');
   const dropdownAvatar = document.getElementById('dropdownAvatar');
   const dropdownName = document.getElementById('dropdownName');
-  const dropdownEmail = document.getElementById('dropdownEmail');
   const dropdownTheme = document.getElementById('dropdownTheme');
   const dropdownLogout = document.getElementById('dropdownLogout');
 
@@ -480,10 +538,6 @@ async function renderUserAvatar() {
 
   if (dropdownName) {
     dropdownName.textContent = user.name;
-  }
-
-  if (dropdownEmail) {
-    dropdownEmail.textContent = user.email;
   }
 
   if (userProfile) {
@@ -573,7 +627,6 @@ async function initApp() {
       stack: error.stack
     });
 
-    // If 401, logout
     if (error.message && error.message.includes('401')) {
       logout();
       return;
@@ -598,23 +651,54 @@ async function initApp() {
   updateHeader('projects');
   setupEventListeners();
 
-  // Update UI every 60 seconds
-  // NOTE: This updates deadlines and refreshes active views
-  // Only updates visible views - simple optimization without complexity
-  setInterval(() => {
-    // Always update deadline displays (lightweight operation)
-    updateDeadlineDisplays();
+  let updateInterval = null;
 
-    // Only re-render if view is active (performance optimization)
-    if (DOM.dashboardContainer && DOM.dashboardContainer.classList.contains('active')) {
-      renderDashboard();
-    } else if (DOM.financialContainer && DOM.financialContainer.classList.contains('active')) {
-      renderFinancial();
-    } else {
-      // Projects view: only update header stats, not full board (expensive)
-      updateHeader('projects');
+  function startUpdateInterval() {
+    if (updateInterval) return;
+
+    updateInterval = setInterval(() => {
+      if (document.hidden) return;
+
+      updateDeadlineDisplays();
+
+      if (DOM.dashboardContainer && DOM.dashboardContainer.classList.contains('active')) {
+        renderDashboard();
+      } else if (DOM.financialContainer && DOM.financialContainer.classList.contains('active')) {
+        renderFinancial();
+      } else {
+        updateHeader('projects');
+      }
+    }, 60000);
+  }
+
+  function stopUpdateInterval() {
+    if (updateInterval) {
+      clearInterval(updateInterval);
+      updateInterval = null;
     }
-  }, 60000);
+  }
+
+  startUpdateInterval();
+
+  const handleVisibilityChange = () => {
+    if (document.hidden) {
+      stopUpdateInterval();
+    } else {
+      startUpdateInterval();
+      updateDeadlineDisplays();
+      if (DOM.dashboardContainer && DOM.dashboardContainer.classList.contains('active')) {
+        renderDashboard();
+      } else if (DOM.financialContainer && DOM.financialContainer.classList.contains('active')) {
+        renderFinancial();
+      }
+    }
+  };
+
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+
+  window.addEventListener('beforeunload', () => {
+    stopUpdateInterval();
+  });
 }
 
 function initAuth() {

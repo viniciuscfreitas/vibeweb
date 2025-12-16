@@ -105,24 +105,20 @@ function validateContact(contact) {
   return matchesEmail || matchesContact;
 }
 
-function showFormError(fieldId, message) {
-  let errorEl, inputEl;
+// Field error mapping to reduce repetition
+const FIELD_ERROR_MAP = {
+  client: { error: () => DOM.errorClient, input: () => DOM.formClient },
+  contact: { error: () => DOM.errorContact, input: () => DOM.formContact },
+  domain: { error: () => DOM.errorDomain, input: () => DOM.formDomain },
+  price: { error: () => DOM.errorPrice, input: () => DOM.formPrice }
+};
 
-  if (fieldId === 'client') {
-    errorEl = DOM.errorClient;
-    inputEl = DOM.formClient;
-  } else if (fieldId === 'contact') {
-    errorEl = DOM.errorContact;
-    inputEl = DOM.formContact;
-  } else if (fieldId === 'domain') {
-    errorEl = DOM.errorDomain;
-    inputEl = DOM.formDomain;
-  } else if (fieldId === 'price') {
-    errorEl = DOM.errorPrice;
-    inputEl = DOM.formPrice;
-  } else {
-    return;
-  }
+function showFormError(fieldId, message) {
+  const field = FIELD_ERROR_MAP[fieldId];
+  if (!field) return;
+
+  const errorEl = field.error();
+  const inputEl = field.input();
 
   if (errorEl && inputEl) {
     errorEl.textContent = message;
@@ -132,23 +128,11 @@ function showFormError(fieldId, message) {
 }
 
 function clearFormError(fieldId) {
-  let errorEl, inputEl;
+  const field = FIELD_ERROR_MAP[fieldId];
+  if (!field) return;
 
-  if (fieldId === 'client') {
-    errorEl = DOM.errorClient;
-    inputEl = DOM.formClient;
-  } else if (fieldId === 'contact') {
-    errorEl = DOM.errorContact;
-    inputEl = DOM.formContact;
-  } else if (fieldId === 'domain') {
-    errorEl = DOM.errorDomain;
-    inputEl = DOM.formDomain;
-  } else if (fieldId === 'price') {
-    errorEl = DOM.errorPrice;
-    inputEl = DOM.formPrice;
-  } else {
-    return;
-  }
+  const errorEl = field.error();
+  const inputEl = field.input();
 
   if (errorEl && inputEl) {
     errorEl.classList.remove('show');
@@ -163,9 +147,6 @@ function clearFormErrors() {
   clearFormError('price');
 }
 
-// Validate form before submission
-// NOTE: Validation is duplicated in backend (server.js) for security.
-// Frontend validation provides immediate UX feedback, backend validation is the source of truth.
 function validateForm() {
   let isFormValid = true;
   clearFormErrors();
@@ -253,9 +234,15 @@ async function saveForm() {
         const newDeadline = formData.deadline;
 
         if (currentDeadline !== newDeadline && parseDeadlineHours(newDeadline)) {
-          formData.deadline_timestamp = Date.now();
+          const hours = parseDeadlineHours(newDeadline);
+          formData.deadline_timestamp = Date.now() + (hours * MS_PER_HOUR);
         } else if (currentDeadline === newDeadline && existingTask.deadline_timestamp) {
+          // Deadline unchanged - preserve existing timestamp
           formData.deadline_timestamp = existingTask.deadline_timestamp;
+        } else if (newDeadline && parseDeadlineHours(newDeadline) && !existingTask.deadline_timestamp) {
+          // New deadline without existing timestamp - calculate it
+          const hours = parseDeadlineHours(newDeadline);
+          formData.deadline_timestamp = Date.now() + (hours * MS_PER_HOUR);
         }
 
         formData.col_id = existingTask.col_id; // Use snake_case consistently
@@ -273,9 +260,13 @@ async function saveForm() {
       AppState.log('Task updated', { taskId: AppState.currentTaskId });
     } else {
       // Create new task
-      const inboxTasks = tasks.filter(t => t.col_id === DISCOVERY_COLUMN_ID);
-      const inboxOrders = inboxTasks.map(t => t.order_position || 0);
-      const maxOrder = inboxOrders.length > 0 ? Math.max(...inboxOrders) : -1;
+      let maxOrder = -1;
+      tasks.forEach(t => {
+        if (t.col_id === DISCOVERY_COLUMN_ID) {
+          const order = t.order_position || 0;
+          if (order > maxOrder) maxOrder = order;
+        }
+      });
       const newOrder = maxOrder + 1;
 
       const hours = parseDeadlineHours(formData.deadline);

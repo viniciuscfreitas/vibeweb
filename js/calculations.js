@@ -1,12 +1,4 @@
-// Financial Calculations and Metrics
-// Business Rules:
-// - MRR: Only projects in Live (col_id=3) with hosting='sim' count
-// - Revenue: Based on task creation date (task.id) - assumes payment happens at creation
-// - Partial payment: Always 50% of total price
-
 function calculateMRR(tasks) {
-  // MRR = Monthly Recurring Revenue from hosting subscriptions
-  // Only count projects that are Live AND have hosting activated
   const liveTasks = tasks.filter(t => t.col_id === 3 && t.hosting === HOSTING_YES);
   return liveTasks.length * HOSTING_PRICE_EUR;
 }
@@ -19,7 +11,6 @@ function calculateMRRGaps(mrr) {
   return { gap10k, gap20k, upsellsNeeded10k, upsellsNeeded20k };
 }
 
-// Helper: Parse and validate task date
 function parseTaskDate(dateString) {
   if (!dateString) return null;
   const date = new Date(dateString);
@@ -27,9 +18,6 @@ function parseTaskDate(dateString) {
 }
 
 function calculateRevenueForMonth(tasks, month, year) {
-  // Business Rule: Revenue is attributed to the month when task was created (created_at)
-  // NOTE: This assumes payment happens at task creation. For accurate financial reporting,
-  // consider adding a payment_date field in the future.
   const monthTasks = tasks.filter(t => {
     const taskDate = parseTaskDate(t.created_at);
     if (!taskDate) return false;
@@ -59,32 +47,21 @@ function calculateProjectCountsByStatus(tasks) {
   return { discoveryCount, agreementCount, buildCount, liveCount, activeProjects };
 }
 
-// Business Rules for Urgency:
-// 1. Project in Build (col_id=2) without deadline = urgent (needs attention)
-// 2. Deadline keywords ('48h', '24h', 'Hoje') = always urgent
-// 3. Calculated deadline within 48h or overdue = urgent
 function isTaskUrgent(task, now) {
-  // Rule 1: Projects in Build without deadline are urgent (need deadline set)
   const isInBuildWithoutDeadline = task.col_id === 2 && (!task.deadline || task.deadline === DEADLINE_UNDEFINED);
   if (isInBuildWithoutDeadline) return true;
 
-  // Rule 2: No deadline = not urgent (unless in Build, handled above)
   const hasNoDeadline = !task.deadline || task.deadline === DEADLINE_UNDEFINED;
   if (hasNoDeadline) return false;
 
-  // Rule 3: Urgent keywords are always urgent
   const isUrgentKeyword = URGENT_DEADLINES.includes(task.deadline);
   if (isUrgentKeyword) return true;
-
-  // Rule 4: Calculate time remaining for numeric deadlines (e.g., "48h")
   const hasDeadlineTimestamp = task.deadline_timestamp !== null && task.deadline_timestamp !== undefined;
   if (!hasDeadlineTimestamp) return false;
 
   const deadlineHours = parseDeadlineHours(task.deadline);
   if (!deadlineHours) return false;
 
-  // deadline_timestamp is when deadline was set, deadlineHours is the duration
-  // Final deadline = deadline_timestamp + deadlineHours
   const deadlineTimestamp = task.deadline_timestamp + (deadlineHours * MS_PER_HOUR);
   const timeRemaining = deadlineTimestamp - now;
   const isWithin48Hours = timeRemaining > 0 && timeRemaining <= URGENT_HOURS_48_MS;
@@ -143,26 +120,83 @@ function calculateDashboardMetrics() {
   const now = Date.now();
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
+  let mrr = 0;
+  let totalRevenue = 0;
+  let paidTasksCount = 0;
+  let pendingPaymentsCount = 0;
+  const projectCounts = { discoveryCount: 0, agreementCount: 0, buildCount: 0, liveCount: 0 };
+  const paidTasks = [];
+  const pendingTasks = [];
+  const upsellPending = [];
+  const statusDistribution = COLUMNS.map(col => ({ name: col.name, count: 0, value: 0 }));
 
-  const mrr = calculateMRR(tasks);
+  tasks.forEach(task => {
+    const colId = task.col_id || 0;
+    if (colId >= 0 && colId <= 3) {
+      const countKeys = ['discoveryCount', 'agreementCount', 'buildCount', 'liveCount'];
+      projectCounts[countKeys[colId]]++;
+      statusDistribution[colId].count++;
+      statusDistribution[colId].value += parseFloat(task.price) || 0;
+    }
+
+    if (colId === 3 && task.hosting === HOSTING_YES) {
+      mrr += HOSTING_PRICE_EUR;
+    }
+
+    const isPaid = task.payment_status === PAYMENT_STATUS_PAID || task.payment_status === PAYMENT_STATUS_PARTIAL;
+    const isPending = task.payment_status === PAYMENT_STATUS_PENDING;
+
+    if (isPaid) {
+      paidTasks.push(task);
+      paidTasksCount++;
+      const price = parseFloat(task.price) || 0;
+      totalRevenue += price;
+    } else if (isPending) {
+      pendingPaymentsCount++;
+      pendingTasks.push(task);
+    }
+
+    if (task.hosting === HOSTING_LATER && colId >= 1) {
+      upsellPending.push(task);
+    }
+  });
+
   const mrrGaps = calculateMRRGaps(mrr);
-
-  const monthlyRevenue = calculateRevenueForMonth(tasks, currentMonth, currentYear);
   const lastMonthInfo = getLastMonthInfo(currentMonth, currentYear);
-  const lastMonthRevenue = calculateRevenueForMonth(tasks, lastMonthInfo.month, lastMonthInfo.year);
+
+  const monthRevenueMap = new Map();
+  tasks.forEach(task => {
+    const isPaid = task.payment_status === PAYMENT_STATUS_PAID || task.payment_status === PAYMENT_STATUS_PARTIAL;
+    if (!isPaid) return;
+
+    const taskDate = parseTaskDate(task.created_at);
+    if (!taskDate) return;
+
+    const taskMonth = taskDate.getMonth();
+    const taskYear = taskDate.getFullYear();
+    const monthKey = `${taskYear}-${taskMonth}`;
+
+    if (!monthRevenueMap.has(monthKey)) {
+      monthRevenueMap.set(monthKey, 0);
+    }
+
+    let taskRevenue = parseFloat(task.price) || 0;
+    if (task.payment_status === PAYMENT_STATUS_PARTIAL) {
+      taskRevenue = taskRevenue / 2;
+    }
+    monthRevenueMap.set(monthKey, monthRevenueMap.get(monthKey) + taskRevenue);
+  });
+
+  const currentMonthKey = `${currentYear}-${currentMonth}`;
+  const lastMonthKey = `${lastMonthInfo.year}-${lastMonthInfo.month}`;
+  const monthlyRevenue = monthRevenueMap.get(currentMonthKey) || 0;
+  const lastMonthRevenue = monthRevenueMap.get(lastMonthKey) || 0;
   const revenueChange = calculateRevenueChange(monthlyRevenue, lastMonthRevenue);
 
-  const averageTicket = calculateAverageTicket(tasks);
-  const projectCounts = calculateProjectCountsByStatus(tasks);
+  const averageTicket = paidTasksCount > 0 ? totalRevenue / paidTasksCount : 0;
+  const activeProjects = projectCounts.agreementCount + projectCounts.buildCount;
   const urgentProjects = calculateUrgentProjects(tasks);
-  const upsellPending = tasks.filter(t => t.hosting === HOSTING_LATER && t.col_id >= 1);
-
-  const statusDistribution = calculateStatusDistribution(tasks);
   const recentActivities = generateRecentActivities(tasks);
-  const paidTasks = tasks.filter(t =>
-    t.payment_status === PAYMENT_STATUS_PAID || t.payment_status === PAYMENT_STATUS_PARTIAL
-  );
-  const totalRevenue = paidTasks.reduce((sum, t) => sum + (parseFloat(t.price) || 0), 0);
 
   return {
     mrr,
@@ -175,12 +209,12 @@ function calculateDashboardMetrics() {
     revenueChange,
     averageTicket,
     totalRevenue,
-    activeProjects: projectCounts.activeProjects,
+    activeProjects,
     discoveryCount: projectCounts.discoveryCount,
     agreementCount: projectCounts.agreementCount,
     buildCount: projectCounts.buildCount,
     liveCount: projectCounts.liveCount,
-    pendingPayments: tasks.filter(t => t.payment_status === PAYMENT_STATUS_PENDING).length,
+    pendingPayments: pendingPaymentsCount,
     cacAverage: DEFAULT_CAC,
     urgentCount: urgentProjects.length,
     urgentProjects,
@@ -190,58 +224,49 @@ function calculateDashboardMetrics() {
   };
 }
 
-// Business Rule: Monthly revenue is calculated based on task creation date (task.id)
-// This assumes payment happens when task is created. For accurate financial reporting,
-// consider tracking actual payment_date separately in the future.
 function calculateMonthlyRevenue(tasks, monthsCount = 12) {
   const months = [];
   const now = new Date();
 
+  const monthMap = new Map();
   for (let i = monthsCount - 1; i >= 0; i--) {
     const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const monthName = date.toLocaleDateString('pt-BR', { month: 'short' });
     const year = date.getFullYear();
-    months.push({
+    const monthKey = `${year}-${date.getMonth()}`;
+    const monthData = {
       name: monthName,
       value: 0,
       month: date.getMonth(),
       year: year
-    });
+    };
+    months.push(monthData);
+    monthMap.set(monthKey, monthData);
   }
 
-  // Only count tasks that are paid (fully or partially)
-  const paidTasks = tasks.filter(t =>
-    t.payment_status === PAYMENT_STATUS_PAID || t.payment_status === PAYMENT_STATUS_PARTIAL
-  );
+  tasks.forEach(task => {
+    const isPaid = task.payment_status === PAYMENT_STATUS_PAID || task.payment_status === PAYMENT_STATUS_PARTIAL;
+    if (!isPaid) return;
 
-  paidTasks.forEach(task => {
-    // Business Rule: Revenue is attributed to the month when task was created
     const taskCreatedDate = parseTaskDate(task.created_at);
     if (!taskCreatedDate) return;
+
     const taskMonth = taskCreatedDate.getMonth();
     const taskYear = taskCreatedDate.getFullYear();
+    const monthKey = `${taskYear}-${taskMonth}`;
 
-    let taskRevenue = parseFloat(task.price || 0);
-    if (task.payment_status === PAYMENT_STATUS_PARTIAL) {
-      taskRevenue = taskRevenue / 2;
-    }
-
-    months.forEach((month) => {
-      const isSameMonth = month.month === taskMonth && month.year === taskYear;
-      if (isSameMonth) {
-        month.value += taskRevenue;
+    const monthData = monthMap.get(monthKey);
+    if (monthData) {
+      let taskRevenue = parseFloat(task.price || 0);
+      if (task.payment_status === PAYMENT_STATUS_PARTIAL) {
+        taskRevenue = taskRevenue / 2;
       }
-    });
+      monthData.value += taskRevenue;
+    }
   });
 
-  // Business Rule: Only return real data - no mock data generation
-  // If there's no revenue, show zeros (empty chart is better than fake data)
   return months;
 }
-
-// Removed: calculateConversionRates and calculatePipelineValue
-// These were used in complex projection formulas with pipeline calculations
-// Grug Rule: Removed unused complexity - projection simplified to MRR + new projects
 
 function calculateAverageTicketFromRecentTasks(recentTasks) {
   const paidRecentTasks = recentTasks.filter(t =>
@@ -263,27 +288,25 @@ function calculateAverageTicketFromRecentTasks(recentTasks) {
   return totalPaidRevenue / paidRecentTasks.length;
 }
 
-// Removed: calculateTrendFactor - was used in complex projection formulas
-// Grug Rule: Removed unused complexity - projection now uses simple growth rate
-
-// Business Rule: Projected revenue = MRR (recurring) + new projects (based on recent average)
-// Only generate projections if there are actual live projects (placements) or paid projects
-// Grug Rule: Simple projection, no complex sin() formulas - easy to understand and maintain
 function calculateProjectedRevenue(tasks, monthsCount = 12) {
   const projectedMonths = [];
   const currentDate = new Date();
 
-  // Base: MRR from active hosting subscriptions (recurring revenue)
-  const liveProjectsWithHosting = tasks.filter(t => t.col_id === 3 && t.hosting === HOSTING_YES);
-  const monthlyRecurringRevenue = liveProjectsWithHosting.length * HOSTING_PRICE_EUR;
+  let liveProjectsWithHostingCount = 0;
+  let paidTasksCount = 0;
 
-  // Check if there are any paid projects to base projections on
-  const paidTasks = tasks.filter(t =>
-    t.payment_status === PAYMENT_STATUS_PAID || t.payment_status === PAYMENT_STATUS_PARTIAL
-  );
+  tasks.forEach(task => {
+    if (task.col_id === 3 && task.hosting === HOSTING_YES) {
+      liveProjectsWithHostingCount++;
+    }
+    if (task.payment_status === PAYMENT_STATUS_PAID || task.payment_status === PAYMENT_STATUS_PARTIAL) {
+      paidTasksCount++;
+    }
+  });
 
-  // If no live projects (placements) and no paid projects, return empty projection
-  if (liveProjectsWithHosting.length === 0 && paidTasks.length === 0) {
+  const monthlyRecurringRevenue = liveProjectsWithHostingCount * HOSTING_PRICE_EUR;
+
+  if (liveProjectsWithHostingCount === 0 && paidTasksCount === 0) {
     for (let monthsAhead = 1; monthsAhead <= monthsCount; monthsAhead++) {
       const futureDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + monthsAhead, 1);
       const monthName = futureDate.toLocaleDateString('pt-BR', { month: 'short' });
@@ -297,7 +320,6 @@ function calculateProjectedRevenue(tasks, monthsCount = 12) {
     return projectedMonths;
   }
 
-  // Calculate average new projects per month from last 6 months
   const recentTasks = tasks.filter(t => {
     const taskCreatedDate = parseTaskDate(t.created_at);
     if (!taskCreatedDate) return false;
@@ -306,21 +328,14 @@ function calculateProjectedRevenue(tasks, monthsCount = 12) {
     return monthsSinceCreation >= 0 && monthsSinceCreation <= 5;
   });
 
-  // Only calculate projection if we have recent tasks to base it on
   const averageJobsPerMonth = recentTasks.length > 0 ? recentTasks.length / 6 : 0;
   const averageTicketPrice = calculateAverageTicketFromRecentTasks(recentTasks);
   const baseNewProjectsRevenue = averageJobsPerMonth * averageTicketPrice;
-
-  // Simple growth: 1% per month (conservative estimate)
-  // No complex sin() formulas - just simple linear growth
   const monthlyGrowthRate = 1.01;
 
   for (let monthsAhead = 1; monthsAhead <= monthsCount; monthsAhead++) {
     const futureDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + monthsAhead, 1);
     const monthName = futureDate.toLocaleDateString('pt-BR', { month: 'short' });
-
-    // Projected revenue = MRR + (new projects * growth factor)
-    // Simple formula: no complex variations, easy to understand
     const growthFactor = Math.pow(monthlyGrowthRate, monthsAhead);
     const projectedNewProjectsRevenue = baseNewProjectsRevenue * growthFactor;
     const projectedRevenue = Math.round(monthlyRecurringRevenue + projectedNewProjectsRevenue);
@@ -337,13 +352,15 @@ function calculateProjectedRevenue(tasks, monthsCount = 12) {
 }
 
 function calculateStatusDistribution(tasks) {
-  const distribution = COLUMNS.map(col => ({
-    name: col.name,
-    count: tasks.filter(t => t.col_id === col.id).length,
-    value: tasks
-      .filter(t => t.col_id === col.id)
-      .reduce((sum, t) => sum + (parseFloat(t.price) || 0), 0)
-  }));
+  const distribution = COLUMNS.map(col => ({ name: col.name, count: 0, value: 0 }));
+
+  tasks.forEach(task => {
+    const colId = task.col_id || 0;
+    if (colId >= 0 && colId <= 3) {
+      distribution[colId].count++;
+      distribution[colId].value += parseFloat(task.price) || 0;
+    }
+  });
 
   return distribution;
 }
@@ -352,13 +369,20 @@ function generateRecentActivities(tasks) {
   const activities = [];
   const currentDate = Date.now();
 
-  // Priorizar projetos em diferentes estágios para dar visão completa
-  const projectsInBuild = tasks.filter(t => t.col_id === 2).sort((a, b) => b.id - a.id);
-  const projectsInAgreement = tasks.filter(t => t.col_id === 1).sort((a, b) => b.id - a.id);
-  const projectsRecentlyCreated = tasks.filter(t => t.col_id === 0).sort((a, b) => b.id - a.id);
-  const projectsRecentlyCompleted = tasks.filter(t => t.col_id === 3).sort((a, b) => b.id - a.id);
+  const tasksByStatus = { 0: [], 1: [], 2: [], 3: [] };
 
-  // Selecionar atividades mais relevantes (máximo 3)
+  tasks.forEach(task => {
+    const colId = task.col_id || 0;
+    if (colId >= 0 && colId <= 3) {
+      tasksByStatus[colId].push(task);
+    }
+  });
+
+  const projectsInBuild = tasksByStatus[2].sort((a, b) => b.id - a.id);
+  const projectsInAgreement = tasksByStatus[1].sort((a, b) => b.id - a.id);
+  const projectsRecentlyCreated = tasksByStatus[0].sort((a, b) => b.id - a.id);
+  const projectsRecentlyCompleted = tasksByStatus[3].sort((a, b) => b.id - a.id);
+
   const selectedTasks = [];
 
   if (projectsInBuild.length > 0) {
@@ -374,7 +398,6 @@ function generateRecentActivities(tasks) {
     selectedTasks.push(projectsRecentlyCompleted[0]);
   }
 
-  // Se não tiver projetos suficientes, pegar os mais recentes de qualquer status
   if (selectedTasks.length < 3 && tasks.length > 0) {
     const allTasksSorted = [...tasks].sort((a, b) => b.id - a.id);
     allTasksSorted.forEach(task => {
@@ -385,7 +408,6 @@ function generateRecentActivities(tasks) {
     });
   }
 
-  // Garantir que sempre tenha pelo menos 1 atividade se houver projetos
   if (selectedTasks.length === 0 && tasks.length > 0) {
     const mostRecentTask = [...tasks].sort((a, b) => b.id - a.id)[0];
     selectedTasks.push(mostRecentTask);
@@ -399,17 +421,18 @@ function generateRecentActivities(tasks) {
     let activityText = '';
     let icon = 'fa-file-invoice';
 
+    const escapedClient = escapeHtml(task.client);
     if (task.col_id === 0) {
-      activityText = `Novo projeto <strong>${task.client}</strong>`;
+      activityText = `Novo projeto <strong>${escapedClient}</strong>`;
       icon = 'fa-plus-circle';
     } else if (task.col_id === 1) {
-      activityText = `<strong>${task.client}</strong> em acordo`;
+      activityText = `<strong>${escapedClient}</strong> em acordo`;
       icon = 'fa-handshake';
     } else if (task.col_id === 2) {
-      activityText = `<strong>${task.client}</strong> em desenvolvimento`;
+      activityText = `<strong>${escapedClient}</strong> em desenvolvimento`;
       icon = 'fa-code';
     } else if (task.col_id === 3) {
-      activityText = `<strong>${task.client}</strong> concluído`;
+      activityText = `<strong>${escapedClient}</strong> concluído`;
       icon = 'fa-check-circle';
     }
 

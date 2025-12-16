@@ -55,7 +55,7 @@ async function getCurrentUser() {
         return user;
       }
     }
-    
+
     // Fallback to localStorage
     const saved = localStorage.getItem(AUTH_STORAGE_KEY);
     if (saved) {
@@ -116,20 +116,19 @@ function logout() {
 }
 
 function isAuthenticated() {
-  // Check if token exists (simple check, API will validate if needed)
   const token = localStorage.getItem('vibeTasks_token');
   return token !== null;
 }
 
-async function login(email, password) {
-  if (!email || !password) {
-    return { success: false, message: 'Email e senha são obrigatórios' };
+async function login(emailOrUsername, password) {
+  if (!emailOrUsername || !password) {
+    return { success: false, message: 'Email/usuário e senha são obrigatórios' };
   }
 
   try {
-    const data = await api.login(email, password);
+    const data = await api.login(emailOrUsername, password);
     const user = data.user;
-    
+
     setCurrentUser(user);
     sanitizeUrl();
     return { success: true, user };

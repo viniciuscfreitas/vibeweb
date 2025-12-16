@@ -33,6 +33,40 @@ function renderBoard() {
     DOM.boardGrid.classList.remove('filtered-view');
   }
 
+  const tasksByColumn = new Map();
+  COLUMNS.forEach(col => {
+    tasksByColumn.set(col.id, []);
+  });
+
+  tasks.forEach(task => {
+    const colId = task.col_id || 0;
+
+    if (hasColumnFilter && colId !== AppState.filterByColumnId) {
+      return;
+    }
+
+    if (hasCustomFilter) {
+      if (AppState.filterByCustomType === 'activeJobs' && colId !== 1 && colId !== 2) {
+        return;
+      }
+      if (AppState.filterByCustomType === 'pendingPayments' && task.payment_status !== PAYMENT_STATUS_PENDING) {
+        return;
+      }
+    }
+
+    if (searchTerm) {
+      const clientMatches = task.client && task.client.toLowerCase().includes(searchTerm);
+      const domainMatches = task.domain && task.domain.toLowerCase().includes(searchTerm);
+      if (!clientMatches && !domainMatches) {
+        return;
+      }
+    }
+
+    if (tasksByColumn.has(colId)) {
+      tasksByColumn.get(colId).push(task);
+    }
+  });
+
   COLUMNS.forEach(col => {
     let shouldShowColumn = true;
     if (hasColumnFilter) {
@@ -49,21 +83,8 @@ function renderBoard() {
       return;
     }
 
-    let tasksInCol = tasks.filter(t => t.col_id === col.id);
-
-    if (hasCustomFilter && AppState.filterByCustomType === 'pendingPayments') {
-      tasksInCol = tasksInCol.filter(t => t.payment_status === PAYMENT_STATUS_PENDING);
-    }
-
-    const colTasks = tasksInCol.filter(t => {
-      if (!searchTerm) return true;
-
-      const clientMatches = t.client.toLowerCase().includes(searchTerm);
-      const hasDomain = !!t.domain;
-      const domainMatches = hasDomain && t.domain.toLowerCase().includes(searchTerm);
-
-      return clientMatches || domainMatches;
-    }).sort((a, b) => (a.order_position || 0) - (b.order_position || 0));
+    const colTasks = tasksByColumn.get(col.id) || [];
+    colTasks.sort((a, b) => (a.order_position || 0) - (b.order_position || 0));
 
     const colDiv = document.createElement('div');
     colDiv.className = 'column';
@@ -109,7 +130,9 @@ function createCardElement(task, isExpanded = false) {
   el.className = 'card';
   el.setAttribute('role', 'button');
   el.setAttribute('tabindex', '0');
-  el.setAttribute('aria-label', `Projeto ${task.client}, ${formatPrice(task.price)}`);
+  const deadlineInfo = task.deadline ? `, prazo: ${task.deadline}` : '';
+  const colName = COLUMNS.find(col => col.id === task.col_id)?.name || '';
+  el.setAttribute('aria-label', `Projeto ${task.client}, ${formatPrice(task.price)}${deadlineInfo}, coluna: ${colName}. Use setas esquerda e direita para mover entre colunas, Enter ou Espaço para editar`);
   if (isExpanded) {
     el.classList.add('card-expanded');
   }
@@ -120,27 +143,27 @@ function createCardElement(task, isExpanded = false) {
 
   const formattedPrice = formatPrice(task.price);
   const deadlineDisplay = formatDeadlineDisplay(task.deadline, task.deadline_timestamp);
-  const deadlineHtml = deadlineDisplay ? `<span class="deadline" data-deadline="${task.deadline}" data-timestamp="${task.deadline_timestamp || ''}">${deadlineDisplay}</span>` : '';
+  const deadlineHtml = deadlineDisplay ? `<span class="deadline" data-deadline="${escapeHtml(task.deadline || '')}" data-timestamp="${task.deadline_timestamp || ''}">${escapeHtml(deadlineDisplay)}</span>` : '';
 
-  const badgeHtml = task.type ? `<span class="card-badge">${task.type}</span>` : '';
+  const badgeHtml = task.type ? `<span class="card-badge">${escapeHtml(task.type)}</span>` : '';
 
   if (isExpanded) {
-    const stackHtml = task.stack ? `<div class="card-detail-item"><span class="card-detail-label">Stack:</span><span class="card-detail-value">${task.stack}</span></div>` : '';
-    const domainHtml = task.domain ? `<div class="card-detail-item"><span class="card-detail-label">Domínio:</span><span class="card-detail-value">${task.domain}</span></div>` : '';
-    const contactHtml = task.contact ? `<div class="card-detail-item"><span class="card-detail-label">Contato:</span><span class="card-detail-value">${task.contact}</span></div>` : '';
-    const paymentHtml = task.payment_status ? `<div class="card-detail-item"><span class="card-detail-label">Pagamento:</span><span class="card-detail-value">${task.payment_status}</span></div>` : '';
+    const stackHtml = task.stack ? `<div class="card-detail-item"><span class="card-detail-label">Stack:</span><span class="card-detail-value">${escapeHtml(task.stack)}</span></div>` : '';
+    const domainHtml = task.domain ? `<div class="card-detail-item"><span class="card-detail-label">Domínio:</span><span class="card-detail-value">${escapeHtml(task.domain)}</span></div>` : '';
+    const contactHtml = task.contact ? `<div class="card-detail-item"><span class="card-detail-label">Contato:</span><span class="card-detail-value">${escapeHtml(task.contact)}</span></div>` : '';
+    const paymentHtml = task.payment_status ? `<div class="card-detail-item"><span class="card-detail-label">Pagamento:</span><span class="card-detail-value">${escapeHtml(task.payment_status)}</span></div>` : '';
     let hostingDisplay = 'Não';
     if (task.hosting === HOSTING_YES) {
       hostingDisplay = 'Sim';
     } else if (task.hosting === HOSTING_LATER) {
       hostingDisplay = 'Depois';
     }
-    const hostingHtml = task.hosting ? `<div class="card-detail-item"><span class="card-detail-label">Hosting:</span><span class="card-detail-value">${hostingDisplay}</span></div>` : '';
-    const descriptionHtml = task.description ? `<div class="card-description"><span class="card-detail-label">Descrição:</span><p class="card-detail-value">${task.description}</p></div>` : '';
+    const hostingHtml = task.hosting ? `<div class="card-detail-item"><span class="card-detail-label">Hosting:</span><span class="card-detail-value">${escapeHtml(hostingDisplay)}</span></div>` : '';
+    const descriptionHtml = task.description ? `<div class="card-description"><span class="card-detail-label">Descrição:</span><p class="card-detail-value">${escapeHtml(task.description)}</p></div>` : '';
 
     el.innerHTML = `
       <div class="card-header">
-        <h4 class="card-title">${task.client}</h4>
+        <h4 class="card-title">${escapeHtml(task.client)}</h4>
         ${badgeHtml}
       </div>
       <div class="card-expanded-content">
@@ -159,14 +182,14 @@ function createCardElement(task, isExpanded = false) {
       </div>
     `;
   } else {
-    const stackHtml = task.stack ? `<div class="card-stack">${task.stack}</div>` : '';
+    const stackHtml = task.stack ? `<div class="card-stack">${escapeHtml(task.stack)}</div>` : '';
     const taskColId = task.col_id || 0;
-    const domainHtml = task.domain && taskColId >= 1 ? `<div class="card-domain">${task.domain}</div>` : '';
+    const domainHtml = task.domain && taskColId >= 1 ? `<div class="card-domain">${escapeHtml(task.domain)}</div>` : '';
     const infoHtml = (stackHtml || domainHtml) ? `<div class="card-info">${stackHtml}${domainHtml}</div>` : '';
 
     el.innerHTML = `
       <div class="card-header">
-        <h3 class="card-title">${task.client}</h3>
+        <h3 class="card-title">${escapeHtml(task.client)}</h3>
         ${badgeHtml}
       </div>
       ${infoHtml}
@@ -183,16 +206,17 @@ function createCardElement(task, isExpanded = false) {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       openModal(task);
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      // Keyboard navigation for moving cards between columns
+      e.preventDefault();
+      handleKeyboardMove(e, task, el);
     }
   });
 
   return el;
 }
 
-// Update deadline displays - lightweight operation
-// Only updates visible deadline elements, not entire board
 function updateDeadlineDisplays() {
-  // Only query visible cards (performance: avoid querying hidden elements)
   const cards = document.querySelectorAll('.card:not(.hidden) .deadline[data-deadline][data-timestamp]');
   cards.forEach(deadlineEl => {
     const deadline = deadlineEl.dataset.deadline;
@@ -210,6 +234,52 @@ function updateDeadlineDisplays() {
       }
     }
   });
+}
+
+// Keyboard navigation for moving cards between columns (WCAG 2.1 - Keyboard Accessible)
+function handleKeyboardMove(e, task, cardElement) {
+  const currentColId = task.col_id || 0;
+  let newColId = currentColId;
+
+  if (e.key === 'ArrowLeft' && currentColId > 0) {
+    newColId = currentColId - 1;
+  } else if (e.key === 'ArrowRight' && currentColId < 3) {
+    newColId = currentColId + 1;
+  } else {
+    return; // Cannot move in this direction
+  }
+
+  const tasks = AppState.getTasks();
+  const tasksInTargetCol = tasks
+    .filter(t => t.col_id === newColId && t.id !== task.id)
+    .sort((a, b) => (a.order_position || 0) - (b.order_position || 0));
+
+  const newOrderPosition = tasksInTargetCol.length;
+
+  // Update task position
+  api.moveTask(task.id, newColId, newOrderPosition)
+    .then((updatedTask) => {
+      const normalizedTask = normalizeTasksData([updatedTask])[0];
+      const updatedTasks = tasks.map(t => t.id === task.id ? normalizedTask : t);
+      AppState.setTasks(updatedTasks);
+      renderBoard();
+
+      // Announce move to screen readers
+      const colName = COLUMNS.find(col => col.id === newColId)?.name || 'Coluna';
+      NotificationManager.info(`Projeto ${task.client} movido para ${colName}`, 2000);
+
+      // Focus the moved card
+      setTimeout(() => {
+        const movedCard = document.querySelector(`[data-id="${task.id}"]`);
+        if (movedCard) {
+          movedCard.focus();
+        }
+      }, 100);
+    })
+    .catch((error) => {
+      console.error('[Keyboard Move] Error:', error);
+      NotificationManager.error('Erro ao mover projeto. Tente novamente.');
+    });
 }
 
 function handleDragStart(e) {
@@ -255,26 +325,20 @@ function handleDragLeave(e) {
   cards.forEach(card => card.classList.remove('card-over'));
 }
 
-function handleDrop(e) {
-  e.preventDefault();
-  e.stopPropagation();
-  e.stopImmediatePropagation();
-
-  const colBody = e.currentTarget;
+// Validate drop target and extract column ID
+function validateDropTarget(colBody) {
   if (!colBody) {
     AppState.log('Drop failed: invalid column element');
-    return false;
+    return { valid: false, error: 'Coluna inválida. Tente novamente.' };
   }
 
-  // Get col_id from dataset (camelCase) or attribute (snake_case)
   const colIdValue = colBody.dataset.colId || colBody.getAttribute('data-col-id');
   if (!colIdValue) {
     AppState.log('Drop failed: column ID not found', {
       hasDataset: !!colBody.dataset.colId,
       hasAttribute: !!colBody.getAttribute('data-col-id')
     });
-    NotificationManager.error('Erro: Coluna inválida. Tente novamente.');
-    return false;
+    return { valid: false, error: 'Coluna inválida. Tente novamente.' };
   }
 
   const targetColId = parseInt(colIdValue);
@@ -284,36 +348,20 @@ function handleDrop(e) {
       rawValue: colIdValue,
       parsed: targetColId
     });
-    NotificationManager.error(`Erro: Coluna inválida (${colIdValue}). Valores permitidos: 0-3.`);
-    return false;
+    return { valid: false, error: `Coluna inválida (${colIdValue}). Valores permitidos: 0-3.` };
   }
 
-  const taskId = parseInt(e.dataTransfer.getData('text/plain'));
-  if (isNaN(taskId)) {
-    AppState.log('Drop failed: invalid task ID');
-    return false;
-  }
+  return { valid: true, targetColId };
+}
 
-  const tasks = AppState.getTasks();
-  const task = tasks.find(t => t.id === taskId);
-
-  if (!task) {
-    AppState.log('Drop failed: task not found', { taskId });
-    return false;
-  }
-
-  const cards = Array.from(colBody.querySelectorAll('.card:not(.card-dragging)'));
-  const insertIndex = calculateInsertIndex(cards, e.clientY);
-
-  // Backup state for rollback
-  const previousState = [...tasks];
-
+function calculateNewTaskPosition(tasks, taskId, targetColId, insertIndex) {
   const tasksWithoutMoved = tasks.filter(t => t.id !== taskId);
   const tasksInOtherCols = tasksWithoutMoved.filter(t => t.col_id !== targetColId);
   const tasksInTargetCol = tasksWithoutMoved
     .filter(t => t.col_id === targetColId)
     .sort((a, b) => (a.order_position || 0) - (b.order_position || 0));
 
+  const task = tasks.find(t => t.id === taskId);
   const updatedTask = { ...task, col_id: targetColId };
 
   tasksInTargetCol.splice(insertIndex, 0, updatedTask);
@@ -321,31 +369,11 @@ function handleDrop(e) {
     t.order_position = idx;
   });
 
-  const finalTasks = [...tasksInOtherCols, ...tasksInTargetCol];
+  return [...tasksInOtherCols, ...tasksInTargetCol];
+}
 
-  // Optimistic update: Update UI immediately for better UX
-  // If API call fails, we rollback to previousState
-  // This gives instant feedback while maintaining data consistency
-  AppState.setTasks(finalTasks);
-  cards.forEach(card => card.classList.remove('card-over'));
-  renderBoard();
-
-  // Validate values before API call
-  if (targetColId < 0 || targetColId > 3) {
-    AppState.setTasks(previousState);
-    renderBoard();
-    NotificationManager.error('Erro: Coluna inválida. Valores permitidos: 0-3.');
-    return false;
-  }
-
-  if (insertIndex < 0) {
-    AppState.setTasks(previousState);
-    renderBoard();
-    NotificationManager.error('Erro: Posição inválida.');
-    return false;
-  }
-
-  // Call API in background - update server state
+// Update task position via API with rollback on error
+function updateTaskPosition(taskId, targetColId, insertIndex, previousState) {
   api.moveTask(taskId, targetColId, insertIndex)
     .then((updatedTaskFromServer) => {
       // Success: Update with server response (normalize to ensure defaults)
@@ -354,7 +382,7 @@ function handleDrop(e) {
       const updatedTasks = currentTasks.map(t => t.id === taskId ? normalizedTask : t);
       AppState.setTasks(updatedTasks);
       renderBoard();
-      AppState.log('Task moved successfully', { taskId, targetColId: targetColId, insertIndex });
+      AppState.log('Task moved successfully', { taskId, targetColId, insertIndex });
     })
     .catch((error) => {
       // Error: Rollback to previous state
@@ -367,9 +395,54 @@ function handleDrop(e) {
       AppState.setTasks(previousState);
       renderBoard();
       AppState.log('Task move failed, rolled back', { taskId, error: error.message });
-      // Show user-friendly error message
       NotificationManager.error('Erro ao mover tarefa: ' + (error.message || 'Tente novamente'));
     });
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
+
+  const colBody = e.currentTarget;
+  const validation = validateDropTarget(colBody);
+  if (!validation.valid) {
+    NotificationManager.error(validation.error);
+    return false;
+  }
+
+  const targetColId = validation.targetColId;
+  const taskId = parseInt(e.dataTransfer.getData('text/plain'));
+  if (isNaN(taskId)) {
+    AppState.log('Drop failed: invalid task ID');
+    return false;
+  }
+
+  const tasks = AppState.getTasks();
+  const task = tasks.find(t => t.id === taskId);
+  if (!task) {
+    AppState.log('Drop failed: task not found', { taskId });
+    return false;
+  }
+
+  const cards = Array.from(colBody.querySelectorAll('.card:not(.card-dragging)'));
+  const insertIndex = calculateInsertIndex(cards, e.clientY);
+
+  if (insertIndex < 0) {
+    NotificationManager.error('Erro: Posição inválida.');
+    return false;
+  }
+
+  // Backup state for rollback
+  const previousState = [...tasks];
+
+  const finalTasks = calculateNewTaskPosition(tasks, taskId, targetColId, insertIndex);
+  AppState.setTasks(finalTasks);
+  cards.forEach(card => card.classList.remove('card-over'));
+  renderBoard();
+
+  // Update server state in background
+  updateTaskPosition(taskId, targetColId, insertIndex, previousState);
 
   return false;
 }

@@ -1,7 +1,9 @@
 // Utility Functions
 
+const DEADLINE_HOURS_REGEX = /(\d+)h/i;
+
 function parseDeadlineHours(deadlineStr) {
-  const match = deadlineStr.match(/(\d+)h/i);
+  const match = deadlineStr.match(DEADLINE_HOURS_REGEX);
   return match ? parseInt(match[1]) : null;
 }
 
@@ -44,19 +46,26 @@ function formatDeadlineDisplay(deadline, deadlineTimestamp) {
   return deadline;
 }
 
+const CURRENCY_FORMATTER = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'EUR',
+  minimumFractionDigits: 0
+});
+
+const PRICE_FORMATTER = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'EUR',
+  minimumFractionDigits: 2
+});
+
+// Format currency without decimals (for metrics, MRR, revenue)
 function formatCurrency(value) {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'EUR',
-    minimumFractionDigits: 0
-  }).format(value);
+  return CURRENCY_FORMATTER.format(value);
 }
 
+// Format price with decimals (for task prices)
 function formatPrice(value) {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'EUR'
-  }).format(value);
+  return PRICE_FORMATTER.format(value);
 }
 
 function downloadCSV(csv, filename) {
@@ -69,6 +78,14 @@ function downloadCSV(csv, filename) {
   URL.revokeObjectURL(url);
 }
 
+// Escape HTML to prevent XSS attacks
+function escapeHtml(text) {
+  if (text == null) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 
 function getLastMonthInfo(currentMonth, currentYear) {
   if (currentMonth === 0) {
@@ -78,32 +95,43 @@ function getLastMonthInfo(currentMonth, currentYear) {
 }
 
 function calculateRevenueChange(currentRevenue, lastRevenue) {
-  if (lastRevenue > 0) {
-    return ((currentRevenue - lastRevenue) / lastRevenue * 100).toFixed(1);
+  if (lastRevenue <= 0) {
+    return 0;
   }
-  return 0;
+  return ((currentRevenue - lastRevenue) / lastRevenue * 100).toFixed(1);
 }
 
 function getTimeAgo(date) {
+  if (!date || !(date instanceof Date)) {
+    return 'agora';
+  }
+
   const now = Date.now();
   const diff = now - date.getTime();
+
+  // Handle negative diff (date in future due to timezone issues) or very recent (< 1 min)
+  if (diff < 0 || diff < MS_PER_MINUTE) {
+    return 'agora';
+  }
+
   const minutes = Math.floor(diff / MS_PER_MINUTE);
   const hours = Math.floor(diff / MS_PER_HOUR);
   const days = Math.floor(diff / MS_PER_DAY);
 
-  if (minutes < 60) return `${minutes}m atrás`;
-  if (hours < 24) return `${hours}h atrás`;
-  if (days < 7) return `${days}d atrás`;
-  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+  // Check larger units first to avoid incorrect display (e.g., 90 minutes should show as hours)
+  if (days >= 7) {
+    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+  }
+  if (hours >= 24) {
+    return `${days}d atrás`;
+  }
+  if (hours >= 1) {
+    return `${hours}h atrás`;
+  }
+  return `${minutes}m atrás`;
 }
 
 // Normalize task data from backend - ensure defaults for edge cases
-// Backend uses snake_case (col_id, order_position, payment_status, deadline_timestamp)
-// Frontend uses same naming convention - no field mapping needed
-// This function only sets default values for missing fields:
-// - hosting: defaults to HOSTING_NO if missing (for legacy data or edge cases)
-// - deadline_timestamp: sets from task.id if deadline exists but timestamp missing (legacy data)
-// NOTE: Backend should always return these fields, but this protects against edge cases
 function normalizeTasksData(tasks) {
   if (!Array.isArray(tasks) || tasks.length === 0) {
     return tasks || [];
@@ -115,27 +143,14 @@ function normalizeTasksData(tasks) {
         return task;
       }
 
-      const normalized = { ...task };
-
-      // Set default hosting if missing (edge case: legacy data or missing field)
-      if (normalized.hosting === undefined || normalized.hosting === null) {
-        normalized.hosting = HOSTING_NO;
+      if (task.hosting === undefined || task.hosting === null) {
+        return { ...task, hosting: HOSTING_NO };
       }
 
-      // Set default deadline_timestamp if deadline exists but timestamp doesn't (legacy data only)
-      // NOTE: This is a migration helper for old data. New tasks should always have deadline_timestamp
-      // when deadline is set. Using task.id is incorrect but necessary for legacy compatibility.
-      // For new tasks, deadline_timestamp should be set to Date.now() when deadline is defined.
-      if (normalized.deadline && !normalized.deadline_timestamp) {
-        const deadlineHours = parseDeadlineHours(normalized.deadline);
-        if (deadlineHours && normalized.id) {
-          // Legacy data: use task.id as approximation (not ideal, but better than null)
-          // This only applies to old data without deadline_timestamp
-          normalized.deadline_timestamp = normalized.id;
-        }
-      }
+      // Backend now always provides deadline_timestamp when deadline exists
+      // Legacy data without timestamp will have null, which is handled by display logic
 
-      return normalized;
+      return task;
     });
   } catch (error) {
     console.error('[Normalize] Erro ao normalizar dados:', error);

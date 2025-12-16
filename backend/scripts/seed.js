@@ -13,10 +13,19 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
 
   console.log('Connected to database for seeding');
 
-  // Create default user
-  const email = 'vinicius@example.com';
-  const password = 'admin123';
-  const name = 'Vinícius Freitas';
+  // Create default user - use environment variables for security
+  const email = process.env.SEED_EMAIL || 'vinicius@example.com';
+  const password = process.env.SEED_PASSWORD;
+  const name = process.env.SEED_NAME || 'Vinícius Freitas';
+
+  // Require password to be set via environment variable
+  if (!password) {
+    console.error('ERROR: SEED_PASSWORD environment variable is required!');
+    console.error('Set SEED_PASSWORD in your environment variables or .env file.');
+    console.error('Example: SEED_PASSWORD=your-secure-password npm run seed');
+    db.close();
+    process.exit(1);
+  }
 
   // Check if user already exists
   db.get('SELECT id FROM users WHERE email = ?', [email], async (err, user) => {
@@ -38,8 +47,8 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
 
     // Insert user
     db.run(
-      'INSERT INTO users (email, name, password_hash) VALUES (?, ?, ?)',
-      [email, name, passwordHash],
+      'INSERT INTO users (email, username, name, password_hash) VALUES (?, ?, ?, ?)',
+      [email, email.split('@')[0], name, passwordHash],
       function (err) {
         if (err) {
           console.error('Error creating user:', err);
@@ -49,6 +58,7 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
 
         console.log('✅ Default user created successfully!');
         console.log(`   Email: ${email}`);
+        console.log(`   Username: ${email.split('@')[0]}`);
         console.log(`   Password: ${password}`);
         db.close();
         process.exit(0);

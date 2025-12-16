@@ -22,16 +22,31 @@ function getHostingDisplayText(hosting) {
 }
 
 function calculateFinancialMetrics(tasks) {
-  const paidTasks = tasks.filter(t =>
-    t.payment_status === PAYMENT_STATUS_PAID || t.payment_status === PAYMENT_STATUS_PARTIAL
-  );
-  const pendingTasks = tasks.filter(t => t.payment_status === PAYMENT_STATUS_PENDING);
+  let totalRevenue = 0;
+  let pendingRevenue = 0;
+  let paidCount = 0;
+  let pendingCount = 0;
+  let hostingActiveCount = 0;
 
-  const totalRevenue = paidTasks.reduce((sum, t) => sum + (parseFloat(t.price) || 0), 0);
-  const pendingRevenue = pendingTasks.reduce((sum, t) => sum + (parseFloat(t.price) || 0), 0);
+  tasks.forEach(task => {
+    const isPaid = task.payment_status === PAYMENT_STATUS_PAID || task.payment_status === PAYMENT_STATUS_PARTIAL;
+    const isPending = task.payment_status === PAYMENT_STATUS_PENDING;
+    const price = parseFloat(task.price) || 0;
 
-  const hostingActive = tasks.filter(t => t.col_id === 3 && t.hosting === HOSTING_YES);
-  const hostingRevenue = hostingActive.length * HOSTING_PRICE_EUR;
+    if (isPaid) {
+      paidCount++;
+      totalRevenue += price;
+    } else if (isPending) {
+      pendingCount++;
+      pendingRevenue += price;
+    }
+
+    if (task.col_id === 3 && task.hosting === HOSTING_YES) {
+      hostingActiveCount++;
+    }
+  });
+
+  const hostingRevenue = hostingActiveCount * HOSTING_PRICE_EUR;
 
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
@@ -47,11 +62,11 @@ function calculateFinancialMetrics(tasks) {
     totalRevenue,
     pendingRevenue,
     hostingRevenue,
-    hostingActive: hostingActive.length,
+    hostingActive: hostingActiveCount,
     currentMonthRevenue,
     revenueChange,
-    pendingCount: pendingTasks.length,
-    paidCount: paidTasks.length
+    pendingCount,
+    paidCount
   };
 }
 
@@ -131,6 +146,7 @@ function renderFinancial() {
     DOM.searchInput.placeholder = 'Buscar projeto financeiro... (/)';
   }
 
+  const metrics = AppState.getCachedMetrics(() => calculateDashboardMetrics());
   const financialMetrics = calculateFinancialMetrics(tasks);
 
   DOM.financialContainer.innerHTML = `
@@ -262,7 +278,7 @@ function renderProjectsTable(tasks, showNoResults = false) {
       }
     });
     row.innerHTML = `
-      <td><strong>${task.client}</strong></td>
+      <td><strong>${escapeHtml(task.client)}</strong></td>
       <td>${formattedPrice}</td>
       <td>${paymentStatus}</td>
       <td>${hosting}</td>

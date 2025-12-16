@@ -40,6 +40,7 @@ const NotificationManager = {
     };
 
     closeBtn.addEventListener('click', closeNotification);
+    notification._closeHandler = closeNotification;
 
     this.container.appendChild(notification);
 
@@ -66,6 +67,10 @@ const NotificationManager = {
 
     setTimeout(() => {
       if (notification.parentNode) {
+        const closeBtn = notification.querySelector('.notification-close');
+        if (closeBtn && notification._closeHandler) {
+          closeBtn.removeEventListener('click', notification._closeHandler);
+        }
         notification.parentNode.removeChild(notification);
       }
     }, 300);

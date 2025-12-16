@@ -34,8 +34,12 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  scrollbar-width: none;
-  /* Firefox */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+*::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
 }
 
 .skip-link {
@@ -162,8 +166,9 @@ body {
   color: var(--text-main);
 }
 
-.nav-btn:focus {
-  outline: none;
+.nav-btn:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
 }
 
 /* Header */
@@ -247,11 +252,12 @@ body {
 
 .search-btn:hover {
   border-color: var(--border-strong);
-  color: white;
+  color: var(--text-main);
 }
 
-.search-btn:focus {
-  outline: none;
+.search-btn:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .search-input {
@@ -323,8 +329,9 @@ body {
   color: var(--text-main);
 }
 
-.export-icon-btn:focus {
-  outline: none;
+.export-icon-btn:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .export-icon-btn i {
@@ -351,8 +358,9 @@ body {
   color: var(--text-main);
 }
 
-.theme-toggle:focus {
-  outline: none;
+.theme-toggle:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .theme-toggle-icon {
@@ -380,8 +388,9 @@ body {
   background-color: var(--primary-hover);
 }
 
-.btn-primary:focus {
-  outline: none;
+.btn-primary:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .board-container {
@@ -414,6 +423,9 @@ body {
 .col-header {
   margin-bottom: 1rem;
   padding: 0 0.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .col-title {
@@ -422,6 +434,12 @@ body {
   text-transform: uppercase;
   color: var(--text-muted);
   letter-spacing: 0.05em;
+}
+
+.col-count {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
 }
 
 .col-body {
@@ -452,8 +470,9 @@ body {
   border-color: var(--border-strong);
 }
 
-.card:focus {
-  outline: none;
+.card:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .card-dragging {
@@ -714,7 +733,11 @@ body {
 
 .form-input:focus {
   border-color: var(--primary);
-  outline: none;
+}
+
+.form-input:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .modal-footer {
@@ -741,8 +764,9 @@ body {
   color: var(--text-main);
 }
 
-.btn-text:focus {
-  outline: none;
+.btn-text:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .btn-danger {
@@ -761,8 +785,9 @@ body {
   opacity: 0.8;
 }
 
-.btn-danger:focus {
-  outline: none;
+.btn-danger:focus-visible {
+  outline: 3px solid var(--danger);
+  outline-offset: 2px;
 }
 
 .nav-container {
@@ -808,6 +833,11 @@ body {
 
 .avatar:hover {
   transform: scale(1.05);
+}
+
+.avatar:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .user-dropdown {
@@ -905,6 +935,11 @@ body {
 .dropdown-item:hover {
   background-color: var(--bg-main);
   color: var(--danger);
+}
+
+.dropdown-item:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .dropdown-item i {
@@ -1365,8 +1400,12 @@ body {
   font-weight: 500;
   border-radius: 4px;
   cursor: pointer;
-  transition: all 0.15s;
-  outline: none;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.chart-toggle-btn:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .chart-toggle-btn:hover {
@@ -1402,7 +1441,7 @@ body {
   border-radius: 4px 4px 0 0;
   min-height: 8px;
   position: relative;
-  transition: all 0.2s;
+  transition: background-color 0.2s, transform 0.2s;
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -1680,15 +1719,15 @@ body {
 }
 
 .mrr-projection-fill.orange {
-  background-color: #f97316;
+  background-color: var(--warning);
 }
 
 .mrr-projection-fill.red {
-  background-color: #dc2626;
+  background-color: var(--danger);
 }
 
 .mrr-projection-fill.green {
-  background-color: #16a34a;
+  background-color: var(--success);
 }
 
 .mrr-projection-hint {
@@ -1780,7 +1819,7 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background-color 0.15s, transform 0.15s, box-shadow 0.15s;
   flex-shrink: 0;
   text-decoration: none;
   box-shadow: 0 2px 4px rgba(37, 211, 102, 0.3);
@@ -1894,8 +1933,6 @@ body {
     max-height: calc(100vh - 450px);
   }
 }
-
-
 
 .financial-table {
   width: 100%;
@@ -2040,7 +2077,11 @@ body {
   flex-shrink: 0;
   width: 24px;
   height: 24px;
-  outline: none;
+}
+
+.notification-close:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .notification-close:hover {

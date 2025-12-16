@@ -1,16 +1,16 @@
-// API Service Layer - VibeWeb OS
-// Grug Rule: Base URL no topo do mesmo arquivo (Localidade de Comportamento)
-// All API configuration in one place - easy to change for production
+const isFileProtocol = window.location.protocol === 'file:';
+const isLocalhost = window.location.hostname === 'localhost' ||
+                    window.location.hostname === '127.0.0.1' ||
+                    window.location.hostname === '' ||
+                    isFileProtocol;
+const API_BASE_URL = isLocalhost ? 'http://localhost:3000' : '';
 
-// API Configuration
-// In production, nginx proxies /api to backend, so use relative path
-// In development, use full URL
-const API_BASE_URL = window.location.hostname === 'localhost'
-  ? 'http://localhost:3000'
-  : '';
+if (isFileProtocol) {
+  console.warn('[API] Acesso via file:// detectado. Para melhor compatibilidade, use um servidor HTTP local:\n  npx serve .\n  ou\n  python -m http.server 8080');
+}
 const TOKEN_STORAGE_KEY = 'vibeTasks_token';
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Generic API request wrapper
 async function apiRequest(method, endpoint, data = null, requiresAuth = true) {
   const url = `${API_BASE_URL}${endpoint}`;
   const options = {
@@ -32,28 +32,42 @@ async function apiRequest(method, endpoint, data = null, requiresAuth = true) {
     options.body = JSON.stringify(data);
   }
 
-  // Timeout: 10 segundos
+  // Timeout: 5 segundos (better UX - faster feedback)
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
   options.signal = controller.signal;
 
   try {
+    // Log request details in development for debugging
+    if (isLocalhost) {
+      console.log('[API] Request:', { method, url, hasData: !!data });
+    }
+
     const response = await fetch(url, options);
     clearTimeout(timeoutId);
 
     // Parse JSON response (handle invalid JSON)
     let result;
     try {
-      const text = await response.text();
-      result = text ? JSON.parse(text) : {};
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        result = await response.json();
+      } else {
+        const text = await response.text();
+        if (text.trim().startsWith('<')) {
+          throw new Error(`Server returned HTML instead of JSON (${response.status}): ${response.statusText}`);
+        }
+        result = text ? JSON.parse(text) : {};
+      }
     } catch (parseError) {
-      console.error('[API] JSON parse error:', parseError, 'Response:', text?.substring(0, 200));
-      throw new Error(`Resposta inválida do servidor: ${response.status} ${response.statusText}`);
+      console.error('[API] JSON parse error:', parseError);
+      const errorMessage = parseError.message || `Resposta inválida do servidor: ${response.status} ${response.statusText}`;
+      throw new Error(errorMessage);
     }
 
     if (!response.ok) {
-      // Handle 401 - logout automatically
-      if (response.status === 401) {
+      // Handle 401 - but only for authenticated routes, not for login
+      if (response.status === 401 && requiresAuth) {
         localStorage.removeItem(TOKEN_STORAGE_KEY);
         localStorage.removeItem('vibeTasks_auth');
         // Try to call logout if available (may not be in scope yet)
@@ -69,6 +83,7 @@ async function apiRequest(method, endpoint, data = null, requiresAuth = true) {
         throw new Error('Sessão expirada. Por favor, faça login novamente.');
       }
 
+      // For login endpoint, show the actual error message from backend
       throw new Error(result.error || `Erro ${response.status}: ${response.statusText}`);
     }
 
@@ -80,21 +95,47 @@ async function apiRequest(method, endpoint, data = null, requiresAuth = true) {
       throw new Error('Timeout: A requisição demorou muito para responder');
     }
 
+    // Log full error for debugging
+    console.error('[API] Network error:', {
+      error: error.message,
+      name: error.name,
+      url: url,
+      method: method,
+      isLocalhost: isLocalhost,
+      hostname: window.location.hostname,
+      protocol: window.location.protocol,
+      port: window.location.port
+    });
+
+    // More specific error message based on error type
+    if (error.message.includes('Failed to fetch') ||
+        error.message.includes('NetworkError') ||
+        error.name === 'TypeError') {
+      if (isLocalhost) {
+        throw new Error('Não foi possível conectar ao servidor. Verifique se o backend está rodando na porta 3000 (http://localhost:3000)');
+      } else {
+        throw new Error('Erro de rede. Verifique sua conexão e se o servidor está acessível.');
+      }
+    }
+
     // Preserve original error message if it exists
     if (error.message) {
       throw error;
     }
 
-    // Log full error for debugging, but throw user-friendly message
-    console.error('[API] Network error:', error);
     throw new Error('Erro de rede. Verifique sua conexão.');
   }
 }
 
 // API methods
 const api = {
-  async login(email, password) {
-    const result = await apiRequest('POST', '/api/auth/login', { email, password }, false);
+  async login(emailOrUsername, password) {
+    const isEmail = emailOrUsername.includes('@') && EMAIL_REGEX.test(emailOrUsername);
+    const payload = isEmail
+      ? { email: emailOrUsername, password }
+      : { username: emailOrUsername, password };
+
+    const result = await apiRequest('POST', '/api/auth/login', payload, false);
 
     if (result.success && result.data.token) {
       localStorage.setItem(TOKEN_STORAGE_KEY, result.data.token);
@@ -108,7 +149,6 @@ const api = {
       const result = await apiRequest('GET', '/api/auth/me');
       return result.data.user;
     } catch (error) {
-      // If token is invalid, remove it
       localStorage.removeItem(TOKEN_STORAGE_KEY);
       return null;
     }

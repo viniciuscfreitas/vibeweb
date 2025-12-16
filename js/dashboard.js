@@ -27,7 +27,7 @@ function renderDashboardHeader(metrics) {
 }
 
 function renderDashboard() {
-  const metrics = calculateDashboardMetrics();
+  const metrics = AppState.getCachedMetrics(() => calculateDashboardMetrics());
   const tasks = AppState.getTasks();
 
   renderMRRCard(metrics);
@@ -75,7 +75,7 @@ function renderMRRCard(metrics) {
         <div class="mrr-projection-gap">${formatCurrency(metrics.gap10k)}</div>
       </div>
       <div class="mrr-projection-bar">
-        <div class="mrr-projection-fill ${mrrPercent10k >= 100 ? 'green' : 'orange'}" 
+        <div class="mrr-projection-fill ${mrrPercent10k >= 100 ? 'green' : 'orange'}"
              style="width: ${mrrPercent10k}%">
         </div>
       </div>
@@ -114,10 +114,10 @@ function renderStatsCards(metrics) {
   ];
 
   DOM.statsGrid.innerHTML = stats.map(stat => `
-    <div class="stat-card" id="${stat.id}" ${stat.clickable ? 'style="cursor: pointer;"' : ''}>
+    <div class="stat-card" id="${stat.id}" ${stat.clickable ? 'role="button" tabindex="0" aria-label="${stat.label}: ${stat.value}. Clique para filtrar." style="cursor: pointer;"' : 'role="region" aria-label="${stat.label}: ${stat.value}"'}>
       <div class="stat-card-header">
         <span class="stat-card-label">${stat.label}</span>
-        <div class="stat-card-icon ${stat.iconClass}">
+        <div class="stat-card-icon ${stat.iconClass}" aria-hidden="true">
           <i class="fa-solid ${stat.icon}"></i>
         </div>
       </div>
@@ -128,11 +128,23 @@ function renderStatsCards(metrics) {
   const activeJobsCard = document.getElementById('stat-active-jobs');
   if (activeJobsCard) {
     activeJobsCard.addEventListener('click', filterKanbanByActiveJobs);
+    activeJobsCard.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        filterKanbanByActiveJobs();
+      }
+    });
   }
 
   const pendingPaymentsCard = document.getElementById('stat-pending-payments');
   if (pendingPaymentsCard) {
     pendingPaymentsCard.addEventListener('click', filterKanbanByPendingPayments);
+    pendingPaymentsCard.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        filterKanbanByPendingPayments();
+      }
+    });
   }
 }
 
@@ -174,6 +186,16 @@ function renderRevenueChart(monthlyRevenueData, view = 'history') {
   }).join('');
 
   DOM.revenueChart.innerHTML = maxValueLine + chartBars;
+
+  // Update accessible description for screen readers
+  const descriptionEl = document.getElementById('revenueChartDescription');
+  if (descriptionEl) {
+    const chartData = monthlyRevenueData.map(month => {
+      return `${month.label}: ${formatCurrency(month.value)}`;
+    }).join(', ');
+    const viewType = view === 'history' ? 'histórica' : 'projetada';
+    descriptionEl.textContent = `Gráfico de barras de receita mensal ${viewType}. ${chartData}`;
+  }
 
   const legendElement = document.getElementById('chartLegendText');
   if (legendElement) {
@@ -257,7 +279,7 @@ function renderPieChart(distribution) {
       const isClickable = columnId !== undefined;
 
       return `
-        <div class="pie-legend-item ${isClickable ? 'pie-legend-clickable' : ''}" 
+        <div class="pie-legend-item ${isClickable ? 'pie-legend-clickable' : ''}"
              ${isClickable ? `onclick="filterKanbanByStatus(${columnId})"` : ''}
              style="cursor: ${isClickable ? 'pointer' : 'default'};">
           <div class="pie-legend-color" style="background: ${colors[index] || colors[0]};"></div>
@@ -349,13 +371,13 @@ function renderUrgentProjects(urgentProjects) {
 
     item.innerHTML = `
       <div class="urgent-item-content">
-        <div class="urgent-item-title">${project.client}</div>
+        <div class="urgent-item-title">${escapeHtml(project.client)}</div>
         <div class="urgent-item-time" style="color: ${isOverdue ? 'var(--danger)' : 'var(--text-muted)'};">
-          ${timeDisplay}
+          ${escapeHtml(timeDisplay)}
         </div>
       </div>
       ${whatsappUrl ? `
-        <a href="${whatsappUrl}" target="_blank" class="wa-button" onclick="event.stopPropagation();">
+        <a href="${escapeHtml(whatsappUrl)}" target="_blank" class="wa-button" onclick="event.stopPropagation();">
           <i class="fa-brands fa-whatsapp"></i>
         </a>
       ` : ''}

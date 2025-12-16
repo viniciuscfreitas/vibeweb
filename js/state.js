@@ -1,7 +1,3 @@
-// Global State Management
-// Grug Rule: Keep state simple, avoid complex abstractions
-// This is a simple object - no need for Redux/Vuex complexity
-// State is local to this module, accessed via getters/setters
 const AppState = {
   tasks: [],
   draggedTaskId: null,
@@ -11,14 +7,35 @@ const AppState = {
   filterByCustomType: null,
   isLoading: false,
   error: null,
+  _metricsCache: null,
+  _tasksHash: null,
 
   setTasks(newTasks) {
     this.tasks = newTasks;
+    const taskIds = newTasks.map(t => t.id).join(',');
+    const newHash = newTasks.length + '-' + (taskIds.length > 0 ? taskIds : 'empty');
+    if (this._tasksHash !== newHash) {
+      this._metricsCache = null;
+      this._tasksHash = newHash;
+    }
     this.log('State updated', { taskCount: newTasks.length });
   },
 
   getTasks() {
     return this.tasks;
+  },
+
+  getCachedMetrics(calculator) {
+    if (this._metricsCache) {
+      return this._metricsCache;
+    }
+    this._metricsCache = calculator();
+    return this._metricsCache;
+  },
+
+  clearMetricsCache() {
+    this._metricsCache = null;
+    this._tasksHash = null;
   },
 
   setLoading(loading) {

@@ -1,7 +1,7 @@
 // Backend Server - VibeWeb OS
-// Grug Rule: Tudo em um arquivo primeiro. Separar apenas se >300 linhas.
-// Current: ~839 lines - approaching limit but still manageable
-// If grows further, consider: routes/auth.js, routes/tasks.js, keep server.js for setup only
+// Grug Rule: Separated routes into modules for better organization
+// Routes: routes/auth.js, routes/tasks.js
+// server.js: setup, middleware, and initialization only
 
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
@@ -12,12 +12,13 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? null : 'dev-secret-change-in-production');
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
-// Security: JWT_SECRET obrigatório em produção
-if (NODE_ENV === 'production' && !process.env.JWT_SECRET) {
-  console.error('ERROR: JWT_SECRET environment variable is required in production!');
+// Security: JWT_SECRET is required - no fallback to prevent accidental use of dev secret
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error('ERROR: JWT_SECRET environment variable is required!');
+  console.error('Set JWT_SECRET in your environment variables or .env file.');
   process.exit(1);
 }
 
@@ -34,11 +35,15 @@ const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutos
 const MAX_LOGIN_ATTEMPTS = 5;
 
 // Middleware
+// CORS: Allow all origins in development (including file:// protocol)
+// In production, restrict to specific origin
 app.use(cors({
   origin: NODE_ENV === 'production'
     ? process.env.CORS_ORIGIN || 'http://localhost:8080'
-    : '*',
-  credentials: true
+    : true, // Allow all origins in development (including file://)
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json({ limit: '10mb' }));
@@ -75,6 +80,7 @@ function initDatabase() {
             CREATE TABLE IF NOT EXISTS users (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               email TEXT UNIQUE NOT NULL,
+              username TEXT UNIQUE,
               name TEXT NOT NULL,
               password_hash TEXT NOT NULL,
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -86,6 +92,37 @@ function initDatabase() {
               reject(err);
               return;
             }
+
+            // Add username column if table already exists (migration)
+            // Check if column exists first to avoid errors
+            db.all(`PRAGMA table_info(users)`, (err, columns) => {
+              if (err) {
+                console.error('Error checking table info:', err);
+                return;
+              }
+
+              // Check if username column already exists
+              // PRAGMA table_info returns an array of column objects
+              const hasUsernameColumn = Array.isArray(columns) && columns.some(col => col.name === 'username');
+
+              if (!hasUsernameColumn) {
+                db.run(`ALTER TABLE users ADD COLUMN username TEXT`, (err) => {
+                  if (err) {
+                    console.error('Error adding username column:', err);
+                  } else {
+                    // Create unique index on username if column was added
+                    db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL`, (err) => {
+                      if (err) console.error('Error creating username index:', err);
+                    });
+                  }
+                });
+              } else {
+                // Column already exists - just ensure index exists
+                db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL`, (err) => {
+                  if (err) console.error('Error creating username index:', err);
+                });
+              }
+            });
           });
 
           // Index for users email
@@ -206,623 +243,12 @@ function sanitizeString(str, maxLength = 255) {
   return str.trim().substring(0, maxLength).replace(/[\x00-\x1F\x7F]/g, '');
 }
 
-// Auth Routes
-app.post('/api/auth/login', async (req, res) => {
-  try {
-    // Validate request body exists
-    if (!req.body || typeof req.body !== 'object') {
-      return res.status(400).json({ success: false, error: 'Corpo da requisição inválido' });
-    }
-
-    const { email, password } = req.body;
-
-    // Rate limiting
-    const clientIp = req.ip || req.headers['x-forwarded-for']?.split(',')[0] || req.connection.remoteAddress || 'unknown';
-    if (!checkRateLimit(clientIp)) {
-      return res.status(429).json({
-        success: false,
-        error: 'Muitas tentativas. Tente novamente em 15 minutos.'
-      });
-    }
-
-    // Validation
-    if (!email || !password) {
-      return res.status(400).json({ success: false, error: 'Email e senha são obrigatórios' });
-    }
-
-    const emailTrimmed = sanitizeString(email.toLowerCase(), 255);
-    if (!validateEmail(emailTrimmed)) {
-      return res.status(400).json({ success: false, error: 'Email inválido' });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({ success: false, error: 'Senha deve ter no mínimo 6 caracteres' });
-    }
-
-    // Find user (prepared statement)
-    db.get('SELECT * FROM users WHERE email = ?', [emailTrimmed], async (err, user) => {
-      if (err) {
-        console.error('[Login] Database error:', {
-          error: err.message,
-          email: emailTrimmed,
-          stack: NODE_ENV === 'development' ? err.stack : undefined
-        });
-        return res.status(500).json({
-          success: false,
-          error: NODE_ENV === 'production' ? 'Erro interno do servidor' : err.message
-        });
-      }
-
-      // Timing attack prevention: sempre executar bcrypt.compare
-      // Use dummy hash if user doesn't exist to prevent timing attacks
-      // Attacker can't determine if user exists by response time
-      const passwordHash = user ? user.password_hash : '$2b$10$dummyhashfordummyuserpreventingtimingattacks';
-      const isValid = await bcrypt.compare(password, passwordHash);
-
-      if (!user || !isValid) {
-        return res.status(401).json({ success: false, error: 'Email ou senha incorretos' });
-      }
-
-      // Generate JWT
-      const token = jwt.sign(
-        { userId: user.id, email: user.email },
-        JWT_SECRET,
-        { expiresIn: '7d' }
-      );
-
-      res.json({
-        success: true,
-        data: {
-          user: {
-            id: user.id,
-            name: user.name,
-            email: user.email
-          },
-          token
-        }
-      });
-    });
-  } catch (error) {
-    console.error('[Login] Unexpected error:', {
-      error: error.message,
-      stack: NODE_ENV === 'development' ? error.stack : undefined
-    });
-    res.status(500).json({
-      success: false,
-      error: NODE_ENV === 'production' ? 'Erro interno do servidor' : error.message
-    });
-  }
-});
-
-app.get('/api/auth/me', authenticateToken, (req, res) => {
-  try {
-    db.get('SELECT id, name, email, created_at FROM users WHERE id = ?', [req.user.id], (err, user) => {
-      if (err) {
-        console.error('Database error:', err);
-        return res.status(500).json({
-          success: false,
-          error: NODE_ENV === 'production' ? 'Erro interno do servidor' : err.message
-        });
-      }
-
-      if (!user) {
-        return res.status(404).json({ success: false, error: 'Usuário não encontrado' });
-      }
-
-      res.json({
-        success: true,
-        data: { user }
-      });
-    });
-  } catch (error) {
-    console.error('Get user error:', error);
-    res.status(500).json({
-      success: false,
-      error: NODE_ENV === 'production' ? 'Erro interno do servidor' : error.message
-    });
-  }
-});
-
-// Tasks Routes
-app.get('/api/tasks', authenticateToken, (req, res) => {
-  try {
-    db.all(
-      'SELECT * FROM tasks WHERE user_id = ? ORDER BY col_id, order_position',
-      [req.user.id],
-      (err, tasks) => {
-        if (err) {
-          console.error('Database error:', err);
-          return res.status(500).json({
-            success: false,
-            error: NODE_ENV === 'production' ? 'Erro interno do servidor' : err.message
-          });
-        }
-
-        res.json({
-          success: true,
-          data: tasks || []
-        });
-      }
-    );
-  } catch (error) {
-    console.error('Get tasks error:', error);
-    res.status(500).json({
-      success: false,
-      error: NODE_ENV === 'production' ? 'Erro interno do servidor' : error.message
-    });
-  }
-});
-
-app.get('/api/tasks/:id', authenticateToken, (req, res) => {
-  try {
-    const taskId = parseInt(req.params.id);
-    if (isNaN(taskId)) {
-      return res.status(400).json({ success: false, error: 'ID inválido' });
-    }
-
-    db.get(
-      'SELECT * FROM tasks WHERE id = ? AND user_id = ?',
-      [taskId, req.user.id],
-      (err, task) => {
-        if (err) {
-          console.error('Database error:', err);
-          return res.status(500).json({
-            success: false,
-            error: NODE_ENV === 'production' ? 'Erro interno do servidor' : err.message
-          });
-        }
-
-        if (!task) {
-          return res.status(404).json({ success: false, error: 'Recurso não encontrado' });
-        }
-
-        res.json({
-          success: true,
-          data: task
-        });
-      }
-    );
-  } catch (error) {
-    console.error('Get task error:', error);
-    res.status(500).json({
-      success: false,
-      error: NODE_ENV === 'production' ? 'Erro interno do servidor' : error.message
-    });
-  }
-});
-
-app.post('/api/tasks', authenticateToken, (req, res) => {
-  try {
-    // Validate request body exists
-    if (!req.body || typeof req.body !== 'object') {
-      return res.status(400).json({ success: false, error: 'Corpo da requisição inválido' });
-    }
-
-    const {
-      client,
-      contact,
-      type,
-      stack,
-      domain,
-      description,
-      price,
-      // Accept both snake_case (preferred) and camelCase (for compatibility)
-      payment_status,
-      paymentStatus,
-      deadline,
-      deadline_timestamp,
-      deadlineTimestamp,
-      hosting,
-      col_id,
-      colId,
-      order_position,
-      order
-    } = req.body;
-
-    // Validation
-    const clientSanitized = sanitizeString(client, 255);
-    if (!clientSanitized) {
-      return res.status(400).json({ success: false, error: 'Nome do cliente é obrigatório' });
-    }
-
-    const priceNum = parseFloat(price);
-    if (isNaN(priceNum) || priceNum < 0 || priceNum > 999999.99) {
-      return res.status(400).json({ success: false, error: 'Preço deve ser um número positivo válido' });
-    }
-
-    // Prefer snake_case, fallback to camelCase for compatibility
-    const colIdNum = parseInt(col_id !== undefined ? col_id : colId);
-    if (isNaN(colIdNum) || colIdNum < 0 || colIdNum > 3) {
-      return res.status(400).json({ success: false, error: 'col_id/colId deve ser entre 0 e 3' });
-    }
-
-    const orderNum = (order_position !== undefined && order_position !== null)
-      ? parseInt(order_position)
-      : (order !== undefined && order !== null ? parseInt(order) : 0);
-    if (isNaN(orderNum) || orderNum < 0) {
-      return res.status(400).json({ success: false, error: 'order_position/order deve ser >= 0' });
-    }
-
-    // Validate domain if provided
-    const domainSanitized = domain ? sanitizeString(domain, 255) : null;
-    if (domainSanitized) {
-      const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i;
-      const simpleDomainPattern = /^([\da-z\.-]+)\.([a-z\.]{2,6})$/i;
-      if (!urlPattern.test(domainSanitized) && !simpleDomainPattern.test(domainSanitized)) {
-        return res.status(400).json({ success: false, error: 'Formato de URL/domínio inválido' });
-      }
-    }
-
-    // Validate contact if provided
-    const contactSanitized = contact ? sanitizeString(contact, 255) : null;
-    if (contactSanitized) {
-      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      const contactPattern = /^[@]?[\w\-\.]+$/;
-      if (!emailPattern.test(contactSanitized) && !contactPattern.test(contactSanitized)) {
-        return res.status(400).json({ success: false, error: 'Formato de contato inválido. Use email ou @username' });
-      }
-    }
-
-    // Generate ID if not provided or if exists
-    let taskId = req.body.id !== undefined && req.body.id !== null
-      ? parseInt(req.body.id)
-      : Date.now();
-    if (isNaN(taskId)) {
-      taskId = Date.now();
-    }
-
-    // Check if ID exists
-    db.get('SELECT id FROM tasks WHERE id = ?', [taskId], (err, existing) => {
-      if (err) {
-        console.error('Database error:', err);
-        return res.status(500).json({
-          success: false,
-          error: NODE_ENV === 'production' ? 'Erro interno do servidor' : err.message
-        });
-      }
-
-      if (existing) {
-        taskId = Date.now();
-      }
-
-      const descriptionSanitized = description ? sanitizeString(description, 5000) : null;
-
-      db.run(
-        `INSERT INTO tasks (
-          id, user_id, client, contact, type, stack, domain, description,
-          price, payment_status, deadline, deadline_timestamp, hosting,
-          col_id, order_position
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          taskId,
-          req.user.id,
-          clientSanitized,
-          contactSanitized,
-          type || null,
-          stack ? sanitizeString(stack, 255) : null,
-          domainSanitized,
-          descriptionSanitized,
-          priceNum,
-          payment_status || paymentStatus || 'Pendente',
-          deadline || null,
-          deadline_timestamp || deadlineTimestamp || null,
-          hosting || 'nao',
-          colIdNum,
-          orderNum
-        ],
-        function (err) {
-          if (err) {
-            console.error('Database error:', err);
-            return res.status(500).json({
-              success: false,
-              error: NODE_ENV === 'production' ? 'Erro interno do servidor' : err.message
-            });
-          }
-
-          db.get('SELECT * FROM tasks WHERE id = ?', [taskId], (err, task) => {
-            if (err) {
-              console.error('Database error:', err);
-              return res.status(500).json({
-                success: false,
-                error: NODE_ENV === 'production' ? 'Erro interno do servidor' : err.message
-              });
-            }
-
-            res.status(201).json({
-              success: true,
-              data: task
-            });
-          });
-        }
-      );
-    });
-  } catch (error) {
-    console.error('Create task error:', error);
-    res.status(500).json({
-      success: false,
-      error: NODE_ENV === 'production' ? 'Erro interno do servidor' : error.message
-    });
-  }
-});
-
-app.put('/api/tasks/:id', authenticateToken, (req, res) => {
-  try {
-    const taskId = parseInt(req.params.id);
-    if (isNaN(taskId)) {
-      return res.status(400).json({ success: false, error: 'ID inválido' });
-    }
-
-    // Verify ownership first
-    db.get('SELECT * FROM tasks WHERE id = ? AND user_id = ?', [taskId, req.user.id], (err, existing) => {
-      if (err) {
-        console.error('Database error:', err);
-        return res.status(500).json({
-          success: false,
-          error: NODE_ENV === 'production' ? 'Erro interno do servidor' : err.message
-        });
-      }
-
-      if (!existing) {
-        return res.status(404).json({ success: false, error: 'Recurso não encontrado' });
-      }
-
-      // Validate request body exists
-      if (!req.body || typeof req.body !== 'object') {
-        return res.status(400).json({ success: false, error: 'Corpo da requisição inválido' });
-      }
-
-      const {
-        client,
-        contact,
-        type,
-        stack,
-        domain,
-        description,
-        price,
-        // Accept both snake_case (preferred) and camelCase (for compatibility)
-        payment_status,
-        paymentStatus,
-        deadline,
-        deadline_timestamp,
-        deadlineTimestamp,
-        hosting,
-        col_id,
-        colId,
-        order_position,
-        order
-      } = req.body;
-
-      // Validation
-      const clientSanitized = sanitizeString(client, 255);
-      if (!clientSanitized) {
-        return res.status(400).json({ success: false, error: 'Nome do cliente é obrigatório' });
-      }
-
-      const priceNum = parseFloat(price);
-      if (isNaN(priceNum) || priceNum < 0 || priceNum > 999999.99) {
-        return res.status(400).json({ success: false, error: 'Preço deve ser um número positivo válido' });
-      }
-
-      // Prefer snake_case, fallback to camelCase for compatibility
-      const colIdNum = parseInt(col_id !== undefined ? col_id : colId);
-      if (isNaN(colIdNum) || colIdNum < 0 || colIdNum > 3) {
-        return res.status(400).json({ success: false, error: 'col_id/colId deve ser entre 0 e 3' });
-      }
-
-      const orderNum = (order_position !== undefined && order_position !== null)
-        ? parseInt(order_position)
-        : (order !== undefined && order !== null
-          ? parseInt(order)
-          : (existing.order_position || 0));
-      if (isNaN(orderNum) || orderNum < 0) {
-        return res.status(400).json({ success: false, error: 'order_position/order deve ser >= 0' });
-      }
-
-      // Validate domain if provided
-      const domainSanitized = domain ? sanitizeString(domain, 255) : null;
-      if (domainSanitized) {
-        const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i;
-        const simpleDomainPattern = /^([\da-z\.-]+)\.([a-z\.]{2,6})$/i;
-        if (!urlPattern.test(domainSanitized) && !simpleDomainPattern.test(domainSanitized)) {
-          return res.status(400).json({ success: false, error: 'Formato de URL/domínio inválido' });
-        }
-      }
-
-      // Validate contact if provided
-      const contactSanitized = contact ? sanitizeString(contact, 255) : null;
-      if (contactSanitized) {
-        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const contactPattern = /^[@]?[\w\-\.]+$/;
-        if (!emailPattern.test(contactSanitized) && !contactPattern.test(contactSanitized)) {
-          return res.status(400).json({ success: false, error: 'Formato de contato inválido. Use email ou @username' });
-        }
-      }
-
-      const descriptionSanitized = description ? sanitizeString(description, 5000) : null;
-
-      // Preserve deadline_timestamp if deadline hasn't changed
-      // Accept both snake_case and camelCase
-      let finalDeadlineTimestamp = deadline_timestamp || deadlineTimestamp;
-      if (deadline === existing.deadline && existing.deadline_timestamp) {
-        finalDeadlineTimestamp = existing.deadline_timestamp;
-      }
-
-      db.run(
-        `UPDATE tasks SET
-          client = ?, contact = ?, type = ?, stack = ?, domain = ?, description = ?,
-          price = ?, payment_status = ?, deadline = ?, deadline_timestamp = ?, hosting = ?,
-          col_id = ?, order_position = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ? AND user_id = ?`,
-        [
-          clientSanitized,
-          contactSanitized,
-          type || null,
-          stack ? sanitizeString(stack, 255) : null,
-          domainSanitized,
-          descriptionSanitized,
-          priceNum,
-          payment_status || paymentStatus || existing.payment_status,
-          deadline || null,
-          finalDeadlineTimestamp || null,
-          hosting || existing.hosting,
-          colIdNum,
-          orderNum,
-          taskId,
-          req.user.id
-        ],
-        function (err) {
-          if (err) {
-            console.error('Database error:', err);
-            return res.status(500).json({
-              success: false,
-              error: NODE_ENV === 'production' ? 'Erro interno do servidor' : err.message
-            });
-          }
-
-          db.get('SELECT * FROM tasks WHERE id = ?', [taskId], (err, task) => {
-            if (err) {
-              console.error('Database error:', err);
-              return res.status(500).json({
-                success: false,
-                error: NODE_ENV === 'production' ? 'Erro interno do servidor' : err.message
-              });
-            }
-
-            res.json({
-              success: true,
-              data: task
-            });
-          });
-        }
-      );
-    });
-  } catch (error) {
-    console.error('Update task error:', error);
-    res.status(500).json({
-      success: false,
-      error: NODE_ENV === 'production' ? 'Erro interno do servidor' : error.message
-    });
-  }
-});
-
-app.delete('/api/tasks/:id', authenticateToken, (req, res) => {
-  try {
-    const taskId = parseInt(req.params.id);
-    if (isNaN(taskId)) {
-      return res.status(400).json({ success: false, error: 'ID inválido' });
-    }
-
-    db.run(
-      'DELETE FROM tasks WHERE id = ? AND user_id = ?',
-      [taskId, req.user.id],
-      function (err) {
-        if (err) {
-          console.error('Database error:', err);
-          return res.status(500).json({
-            success: false,
-            error: NODE_ENV === 'production' ? 'Erro interno do servidor' : err.message
-          });
-        }
-
-        if (this.changes === 0) {
-          return res.status(404).json({ success: false, error: 'Recurso não encontrado' });
-        }
-
-        res.json({
-          success: true,
-          data: { message: 'Task deletada com sucesso' }
-        });
-      }
-    );
-  } catch (error) {
-    console.error('Delete task error:', error);
-    res.status(500).json({
-      success: false,
-      error: NODE_ENV === 'production' ? 'Erro interno do servidor' : error.message
-    });
-  }
-});
-
-app.patch('/api/tasks/:id/move', authenticateToken, (req, res) => {
-  try {
-    const taskId = parseInt(req.params.id);
-    if (isNaN(taskId)) {
-      return res.status(400).json({ success: false, error: 'ID inválido' });
-    }
-
-    // Validate request body exists
-    if (!req.body || typeof req.body !== 'object') {
-      return res.status(400).json({ success: false, error: 'Corpo da requisição inválido' });
-    }
-
-    // Accept both snake_case (preferred) and camelCase (for compatibility)
-    const { col_id, colId, order_position, order } = req.body;
-
-    // Prefer snake_case, fallback to camelCase
-    const colIdNum = parseInt(col_id !== undefined ? col_id : colId);
-    if (isNaN(colIdNum) || colIdNum < 0 || colIdNum > 3) {
-      return res.status(400).json({ success: false, error: 'col_id/colId deve ser entre 0 e 3' });
-    }
-
-    const orderNum = parseInt(order_position !== undefined ? order_position : order);
-    if (isNaN(orderNum) || orderNum < 0) {
-      return res.status(400).json({ success: false, error: 'order_position/order deve ser >= 0' });
-    }
-
-    // Verify ownership
-    db.get('SELECT * FROM tasks WHERE id = ? AND user_id = ?', [taskId, req.user.id], (err, task) => {
-      if (err) {
-        console.error('Database error:', err);
-        return res.status(500).json({
-          success: false,
-          error: NODE_ENV === 'production' ? 'Erro interno do servidor' : err.message
-        });
-      }
-
-      if (!task) {
-        return res.status(404).json({ success: false, error: 'Recurso não encontrado' });
-      }
-
-      // Update task position
-      db.run(
-        'UPDATE tasks SET col_id = ?, order_position = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?',
-        [colIdNum, orderNum, taskId, req.user.id],
-        function (err) {
-          if (err) {
-            console.error('Database error:', err);
-            return res.status(500).json({
-              success: false,
-              error: NODE_ENV === 'production' ? 'Erro interno do servidor' : err.message
-            });
-          }
-
-          db.get('SELECT * FROM tasks WHERE id = ?', [taskId], (err, updatedTask) => {
-            if (err) {
-              console.error('Database error:', err);
-              return res.status(500).json({
-                success: false,
-                error: NODE_ENV === 'production' ? 'Erro interno do servidor' : err.message
-              });
-            }
-
-            res.json({
-              success: true,
-              data: updatedTask
-            });
-          });
-        }
-      );
-    });
-  } catch (error) {
-    console.error('Move task error:', error);
-    res.status(500).json({
-      success: false,
-      error: NODE_ENV === 'production' ? 'Erro interno do servidor' : error.message
-    });
-  }
-});
-
-// Error handler (must be last middleware)
+// Routes - will be mounted after database initialization
+const createAuthRoutes = require('./routes/auth');
+const createTasksRoutes = require('./routes/tasks');
+
+// Error handler (must be last middleware) - will be registered after routes
+function setupErrorHandlers() {
 app.use((err, req, res, next) => {
   // Log error with context
   console.error('[Error Handler]', {
@@ -851,10 +277,56 @@ app.use((req, res) => {
     error: 'Rota não encontrada'
   });
 });
+}
+
+// Graceful shutdown handler
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, closing database...');
+  if (db) {
+    db.close((err) => {
+      if (err) console.error('Error closing database:', err);
+      process.exit(0);
+    });
+  } else {
+    process.exit(0);
+  }
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, closing database...');
+  if (db) {
+    db.close((err) => {
+      if (err) console.error('Error closing database:', err);
+      process.exit(0);
+    });
+  } else {
+    process.exit(0);
+  }
+});
 
 // Start server
 initDatabase()
   .then(() => {
+    // Mount routes after database is initialized (db is now available)
+    // Auth routes: login (no auth), /me (requires auth)
+    // Grug Rule: Group related parameters into config object
+    app.use('/api/auth', createAuthRoutes({
+      db,
+      JWT_SECRET,
+      NODE_ENV,
+      checkRateLimit,
+      validateEmail,
+      sanitizeString,
+      authenticateToken
+    }));
+
+    // Tasks routes require authentication - apply middleware before router
+    app.use('/api/tasks', authenticateToken);
+    app.use('/api/tasks', createTasksRoutes(db, NODE_ENV, sanitizeString));
+
+    // Error handlers must be registered after all routes
+    setupErrorHandlers();
+
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
       console.log(`Environment: ${NODE_ENV}`);
