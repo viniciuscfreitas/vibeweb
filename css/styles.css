@@ -1491,6 +1491,76 @@ html[data-authenticated="true"] #appContainer.hidden {
   margin-bottom: 0.75rem;
 }
 
+.expand-btn {
+  width: 32px;
+  height: 32px;
+  background-color: var(--bg-main);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background-color 0.15s;
+  outline: none;
+  flex-shrink: 0;
+}
+
+.expand-btn:hover {
+  border-color: var(--border-strong);
+  color: var(--text-main);
+  background-color: var(--bg-shell);
+}
+
+.expand-btn:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.expand-btn i {
+  font-size: 0.75rem;
+  transition: transform 0.2s;
+}
+
+.dashboard-card.expanded {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  max-width: 100vw;
+  max-height: 100vh;
+  z-index: 1000;
+  border-radius: 0;
+  padding: 1.5rem;
+  overflow-y: auto;
+  background-color: var(--bg-card);
+}
+
+.dashboard-card.expanded .dashboard-card-header {
+  position: sticky;
+  top: 0;
+  background-color: var(--bg-card);
+  padding: 1rem 0;
+  margin-bottom: 1rem;
+  z-index: 10;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.dashboard-card.expanded .urgent-list,
+.dashboard-card.expanded .activity-list {
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+.dashboard-card.expanded .urgent-item,
+.dashboard-card.expanded .activity-item {
+  padding: 1rem;
+}
+
 .chart-toggle {
   display: flex;
   gap: 0.5rem;

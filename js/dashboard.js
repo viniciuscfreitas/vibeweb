@@ -64,6 +64,8 @@ async function renderDashboard() {
       console.error('[Dashboard] Error loading activities:', error);
       renderRecentActivities([]);
     }
+
+    setupExpandButtons();
   } finally {
     renderDashboardInProgress = false;
 
@@ -73,6 +75,7 @@ async function renderDashboard() {
     }
   }
 }
+
 
 function renderMRRCard(metrics) {
   if (!metrics || !DOM.statsGrid) return;
@@ -368,6 +371,8 @@ function renderUrgentProjects(urgentProjects) {
   if (!DOM.urgentList) return;
 
   const urgentProjectsList = urgentProjects || [];
+  const cards = getCachedCardElements();
+  const isExpanded = cards.urgentCard && cards.urgentCard.classList.contains('expanded');
 
   if (urgentProjectsList.length === 0) {
     DOM.urgentList.innerHTML = `
@@ -379,30 +384,35 @@ function renderUrgentProjects(urgentProjects) {
     return;
   }
 
-  DOM.urgentList.innerHTML = '';
-
   const currentTimestamp = Date.now();
-  const topUrgentProjects = urgentProjectsList.slice(0, 5);
+  const projectsToShow = isExpanded ? urgentProjectsList : urgentProjectsList.slice(0, 5);
+  const fragment = document.createDocumentFragment();
 
-  topUrgentProjects.forEach(project => {
+  projectsToShow.forEach(project => {
     const { display: timeDisplay, isOverdue } = calculateUrgentProjectTimeDisplay(project, currentTimestamp);
     const whatsappUrl = buildWhatsAppUrl(project.contact);
+    const escapedClient = escapeHtml(project.client);
+    const escapedTime = escapeHtml(timeDisplay);
+    const colorStyle = isOverdue ? 'var(--danger)' : 'var(--text-muted)';
+    const ariaLabel = isOverdue
+      ? `Projeto urgente: ${escapedClient}, ${escapedTime}, vencido`
+      : `Projeto urgente: ${escapedClient}, ${escapedTime}`;
 
     const item = document.createElement('div');
     item.className = 'urgent-item';
     item.setAttribute('role', 'button');
     item.setAttribute('tabindex', '0');
-    item.setAttribute('aria-label', `Projeto urgente: ${project.client}, ${timeDisplay}`);
+    item.setAttribute('aria-label', ariaLabel);
+
     if (isOverdue) {
       item.style.borderLeft = '3px solid var(--danger)';
-      item.setAttribute('aria-label', `${item.getAttribute('aria-label')}, vencido`);
     }
 
     item.innerHTML = `
       <div class="urgent-item-content">
-        <div class="urgent-item-title">${escapeHtml(project.client)}</div>
-        <div class="urgent-item-time" style="color: ${isOverdue ? 'var(--danger)' : 'var(--text-muted)'};">
-          ${escapeHtml(timeDisplay)}
+        <div class="urgent-item-title">${escapedClient}</div>
+        <div class="urgent-item-time" style="color: ${colorStyle};">
+          ${escapedTime}
         </div>
       </div>
       ${whatsappUrl ? `
@@ -419,8 +429,12 @@ function renderUrgentProjects(urgentProjects) {
         openModal(project);
       }
     });
-    DOM.urgentList.appendChild(item);
+
+    fragment.appendChild(item);
   });
+
+  DOM.urgentList.innerHTML = '';
+  DOM.urgentList.appendChild(fragment);
 }
 
 function renderRecentActivities(activities) {
@@ -440,30 +454,34 @@ function renderRecentActivities(activities) {
     return;
   }
 
-  DOM.activityList.innerHTML = '';
-
   const currentTime = Date.now();
+  const tasks = AppState.getTasks();
+  const fragment = document.createDocumentFragment();
 
   activitiesList.forEach(activity => {
     const activityDate = activity.createdAt;
     const timeDisplay = activityDate ? getTimeAgo(activityDate, currentTime) : (activity.time || 'Agora');
+    const userInfo = activity.userName ? ` por ${activity.userName}` : '';
+    const escapedUserName = activity.userName ? escapeHtml(activity.userName) : '';
+    const escapedText = escapeHtml(activity.text);
+    const escapedInitials = activity.userInitials ? escapeHtml(activity.userInitials) : '';
+    const escapedAvatarUrl = activity.userAvatarUrl ? escapeHtml(activity.userAvatarUrl) : '';
 
     const item = document.createElement('div');
     item.className = 'activity-item';
     item.style.cursor = 'pointer';
     item.setAttribute('role', 'button');
     item.setAttribute('tabindex', '0');
-    const userInfo = activity.userName ? ` por ${activity.userName}` : '';
-    item.setAttribute('aria-label', `Atividade: ${activity.text}${userInfo}, ${timeDisplay}`);
+    item.setAttribute('aria-label', `Atividade: ${escapedText}${userInfo}, ${timeDisplay}`);
 
     const userBadgeHtml = activity.userName && activity.userInitials
       ? activity.userAvatarUrl
-        ? `<div class="activity-user-badge" title="${escapeHtml(activity.userName)}" style="background-image: url('${escapeHtml(activity.userAvatarUrl)}'); background-size: cover; background-position: center; background-color: transparent; color: transparent;">${escapeHtml(activity.userInitials)}</div>`
-        : `<div class="activity-user-badge" title="${escapeHtml(activity.userName)}">${escapeHtml(activity.userInitials)}</div>`
+        ? `<div class="activity-user-badge" title="${escapedUserName}" style="background-image: url('${escapedAvatarUrl}'); background-size: cover; background-position: center; background-color: transparent; color: transparent;">${escapedInitials}</div>`
+        : `<div class="activity-user-badge" title="${escapedUserName}">${escapedInitials}</div>`
       : '';
 
     const userInfoHtml = activity.userName
-      ? `<span class="activity-user-info"> por ${escapeHtml(activity.userName)}</span>`
+      ? `<span class="activity-user-info"> por ${escapedUserName}</span>`
       : '';
 
     item.innerHTML = `
@@ -471,32 +489,30 @@ function renderRecentActivities(activities) {
         <i class="fa-solid ${activity.icon}"></i>
       </div>
       <div class="activity-item-content">
-        <div class="activity-item-text">${activity.text}${userInfoHtml}</div>
+        <div class="activity-item-text">${escapedText}${userInfoHtml}</div>
         <div class="activity-item-time">${timeDisplay}</div>
       </div>
       ${userBadgeHtml}
     `;
 
-    item.addEventListener('click', () => {
-      const tasks = AppState.getTasks();
-      const task = tasks.find(t => t.id === activity.taskId);
-      if (task) {
-        openModal(task);
-      }
-    });
-    item.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        const tasks = AppState.getTasks();
-        const task = tasks.find(t => t.id === activity.taskId);
-        if (task) {
+    const taskId = activity.taskId;
+    const task = tasks.find(t => t.id === taskId);
+
+    if (task) {
+      item.addEventListener('click', () => openModal(task));
+      item.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
           openModal(task);
         }
-      }
-    });
+      });
+    }
 
-    DOM.activityList.appendChild(item);
+    fragment.appendChild(item);
   });
+
+  DOM.activityList.innerHTML = '';
+  DOM.activityList.appendChild(fragment);
 }
 
 function exportDashboardData() {
@@ -544,4 +560,197 @@ function exportDashboardData() {
   ].join('\n');
 
   downloadCSV(csv, `vibeos-dashboard-${new Date().toISOString().split('T')[0]}.csv`);
+}
+
+let _expandedActivitiesCache = null;
+let _expandedActivitiesCacheTime = null;
+const EXPANDED_ACTIVITIES_CACHE_MS = 60000;
+
+let _cachedCardElements = {
+  urgentCard: null,
+  activityCard: null,
+  expandUrgentBtn: null,
+  expandActivityBtn: null
+};
+
+let _cachedApiBaseUrl = null;
+
+function getCachedCardElements() {
+  if (!_cachedCardElements.urgentCard) {
+    _cachedCardElements.urgentCard = document.getElementById('urgentCard');
+    _cachedCardElements.activityCard = document.getElementById('activityCard');
+    _cachedCardElements.expandUrgentBtn = document.getElementById('expandUrgentBtn');
+    _cachedCardElements.expandActivityBtn = document.getElementById('expandActivityBtn');
+  }
+  return _cachedCardElements;
+}
+
+function clearCardElementsCache() {
+  _cachedCardElements = {
+    urgentCard: null,
+    activityCard: null,
+    expandUrgentBtn: null,
+    expandActivityBtn: null
+  };
+}
+
+function isAnyCardExpanded() {
+  const cards = getCachedCardElements();
+  const urgentExpanded = cards.urgentCard && cards.urgentCard.classList.contains('expanded');
+  const activityExpanded = cards.activityCard && cards.activityCard.classList.contains('expanded');
+  return urgentExpanded || activityExpanded;
+}
+
+function updateBodyOverflow() {
+  if (isAnyCardExpanded()) {
+    document.body.style.overflow = 'hidden';
+  } else {
+    document.body.style.overflow = '';
+  }
+}
+
+function getCachedApiBaseUrl() {
+  if (!_cachedApiBaseUrl) {
+    _cachedApiBaseUrl = getApiBaseUrl();
+  }
+  return _cachedApiBaseUrl;
+}
+
+const ACTION_TYPE_ICONS = {
+  'create': 'fa-plus-circle',
+  'move': 'fa-arrows-left-right',
+  'update': 'fa-edit',
+  'delete': 'fa-trash'
+};
+
+function transformActivityFromApi(activity) {
+  const activityDate = parseTaskDate(activity.created_at);
+  if (!activityDate) return null;
+
+  const icon = ACTION_TYPE_ICONS[activity.action_type] || 'fa-file-invoice';
+  const userName = activity.user_name || 'Usuário';
+  const userInitials = getInitials(userName);
+  const escapedDescription = escapeHtml(activity.action_description || '');
+  const apiBaseUrl = getCachedApiBaseUrl();
+  const userAvatarUrl = activity.user_avatar_url
+    ? (activity.user_avatar_url.startsWith('http') ? activity.user_avatar_url : `${apiBaseUrl}${activity.user_avatar_url}`)
+    : null;
+
+  return {
+    text: escapedDescription,
+    createdAt: activityDate,
+    icon: icon,
+    taskId: activity.task_id,
+    userName: userName,
+    userInitials: userInitials,
+    userAvatarUrl: userAvatarUrl
+  };
+}
+
+async function loadAllActivities(useCache = true) {
+  if (useCache && _expandedActivitiesCache && _expandedActivitiesCacheTime) {
+    const age = Date.now() - _expandedActivitiesCacheTime;
+    if (age < EXPANDED_ACTIVITIES_CACHE_MS) {
+      return _expandedActivitiesCache;
+    }
+  }
+
+  const allActivities = await api.getActivities(100);
+  if (allActivities && Array.isArray(allActivities) && allActivities.length > 0) {
+    const activities = allActivities
+      .map(transformActivityFromApi)
+      .filter(activity => activity !== null);
+
+    if (activities.length > 0) {
+      _expandedActivitiesCache = activities;
+      _expandedActivitiesCacheTime = Date.now();
+      return activities;
+    }
+  }
+
+  return null;
+}
+
+function setupExpandButtons() {
+  const cards = getCachedCardElements();
+
+  if (cards.expandUrgentBtn && cards.urgentCard) {
+    cards.expandUrgentBtn.removeEventListener('click', toggleUrgentExpand);
+    cards.expandUrgentBtn.addEventListener('click', toggleUrgentExpand);
+  }
+
+  if (cards.expandActivityBtn && cards.activityCard) {
+    cards.expandActivityBtn.removeEventListener('click', toggleActivityExpand);
+    cards.expandActivityBtn.addEventListener('click', toggleActivityExpand);
+  }
+}
+
+function toggleCardExpand(cardId, btnId, sectionName, onExpand, onCollapse) {
+  const cards = getCachedCardElements();
+  const card = cardId === 'urgentCard' ? cards.urgentCard : cards.activityCard;
+  const btn = btnId === 'expandUrgentBtn' ? cards.expandUrgentBtn : cards.expandActivityBtn;
+  const icon = btn.querySelector('i');
+
+  if (!card || !btn) return;
+
+  const isExpanded = card.classList.contains('expanded');
+
+  if (isExpanded) {
+    card.classList.remove('expanded');
+    updateBodyOverflow();
+    icon.className = 'fa-solid fa-expand';
+    btn.setAttribute('aria-label', `Expandir lista de ${sectionName}`);
+    btn.setAttribute('title', 'Expandir');
+    onCollapse();
+  } else {
+    card.classList.add('expanded');
+    updateBodyOverflow();
+    icon.className = 'fa-solid fa-compress';
+    btn.setAttribute('aria-label', `Recolher lista de ${sectionName}`);
+    btn.setAttribute('title', 'Recolher');
+    onExpand();
+  }
+}
+
+function toggleUrgentExpand() {
+  const metrics = AppState.getCachedMetrics(() => calculateDashboardMetrics());
+  const urgentProjects = metrics.urgentProjects || [];
+
+  toggleCardExpand(
+    'urgentCard',
+    'expandUrgentBtn',
+    'urgentes',
+    () => renderUrgentProjects(urgentProjects),
+    () => renderUrgentProjects(urgentProjects)
+  );
+}
+
+async function toggleActivityExpand() {
+  toggleCardExpand(
+    'activityCard',
+    'expandActivityBtn',
+    'atividades',
+    async () => {
+      try {
+        const activities = await loadAllActivities(true);
+        if (activities && activities.length > 0) {
+          renderRecentActivities(activities);
+        } else {
+          const tasks = AppState.getTasks();
+          const fallbackActivities = await generateRecentActivities(tasks, true);
+          renderRecentActivities(fallbackActivities || []);
+        }
+      } catch (error) {
+        console.error('[Dashboard] Error loading expanded activities:', error);
+        const tasks = AppState.getTasks();
+        const fallbackActivities = await generateRecentActivities(tasks, true);
+        renderRecentActivities(fallbackActivities || []);
+      }
+    },
+    async () => {
+      const tasks = AppState.getTasks();
+      const activities = await generateRecentActivities(tasks, true);
+      renderRecentActivities(activities || []);
+    }
+  );
 }
