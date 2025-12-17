@@ -1,9 +1,16 @@
 // Forms and Modal Logic
 
-const URL_PATTERN = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i;
-const SIMPLE_DOMAIN_PATTERN = /^([\da-z\.-]+)\.([a-z\.]{2,6})$/i;
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const CONTACT_PATTERN = /^[@]?[\w\-\.]+$/;
+if (typeof window.URL_PATTERN === 'undefined') {
+  window.URL_PATTERN = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i;
+  window.SIMPLE_DOMAIN_PATTERN = /^([\da-z\.-]+)\.([a-z\.]{2,6})$/i;
+  window.EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  window.CONTACT_PATTERN = /^[@]?[\w\-\.]+$/;
+}
+
+var URL_PATTERN = window.URL_PATTERN;
+var SIMPLE_DOMAIN_PATTERN = window.SIMPLE_DOMAIN_PATTERN;
+var EMAIL_PATTERN = window.EMAIL_PATTERN;
+var CONTACT_PATTERN = window.CONTACT_PATTERN;
 
 function openModal(task = null) {
   if (!DOM.modalOverlay || !DOM.modalTitle || !DOM.btnDelete) return;
@@ -553,4 +560,11 @@ function deleteItem() {
       NotificationManager.error(errorMessage);
     }
   });
+}
+
+if (typeof window.openModal === 'undefined') {
+  window.openModal = openModal;
+}
+if (typeof window.setupPasteHandler === 'undefined') {
+  window.setupPasteHandler = setupPasteHandler;
 }
