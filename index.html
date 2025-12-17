@@ -447,6 +447,45 @@
               </div>
             </div>
           </div>
+          <div>
+            <h3 class="form-section-title">Perfil</h3>
+            <div class="form-grid">
+              <div class="form-group col-span-2">
+                <label for="profileAvatar">Foto de Perfil</label>
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                  <div class="avatar" id="profileAvatarPreview" style="width: 80px; height: 80px; font-size: 2rem;"></div>
+                  <div style="flex: 1;">
+                    <input type="file" class="form-input" id="profileAvatar" accept="image/*" style="padding: 0.5rem;">
+                    <div class="form-hint">Formatos aceitos: JPG, PNG, GIF (máx. 2MB)</div>
+                  </div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="profileName">Nome</label>
+                <input type="text" class="form-input" id="profileName" placeholder="Seu nome" maxlength="100"
+                  aria-required="true" aria-invalid="false" aria-describedby="errorProfileName">
+                <div class="form-error" id="errorProfileName" role="alert" aria-live="polite"></div>
+              </div>
+              <div class="form-group">
+                <label for="profileEmail">Email</label>
+                <input type="email" class="form-input" id="profileEmail" placeholder="seu@email.com" maxlength="255"
+                  aria-required="true" aria-invalid="false" aria-describedby="errorProfileEmail">
+                <div class="form-error" id="errorProfileEmail" role="alert" aria-live="polite"></div>
+              </div>
+              <div class="form-group">
+                <label for="profileCurrentPassword">Senha Atual</label>
+                <input type="password" class="form-input" id="profileCurrentPassword" placeholder="Digite sua senha atual"
+                  aria-describedby="errorProfilePassword">
+                <div class="form-error" id="errorProfilePassword" role="alert" aria-live="polite"></div>
+              </div>
+              <div class="form-group">
+                <label for="profileNewPassword">Nova Senha</label>
+                <input type="password" class="form-input" id="profileNewPassword" placeholder="Digite a nova senha"
+                  minlength="6" maxlength="128" aria-describedby="errorProfileNewPassword">
+                <div class="form-error" id="errorProfileNewPassword" role="alert" aria-live="polite"></div>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="modal-footer">
           <div class="form-actions">

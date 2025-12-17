@@ -52,6 +52,9 @@ const PIE_CHART_RADIUS = 70;
 const DEADLINE_UNDEFINED = 'A Definir';
 const DEADLINE_OVERDUE = 'Vencido';
 
+// Email validation
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 // Storage Keys
 const THEME_STORAGE_KEY = 'vibeTasks_theme';
 const SETTINGS_STORAGE_KEY = 'vibeTasks_settings';

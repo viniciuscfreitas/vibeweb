@@ -248,5 +248,15 @@ const api = {
     const endpoint = `/api/tasks/activities/recent${queryString ? `?${queryString}` : ''}`;
     const result = await apiRequest('GET', endpoint);
     return result.data;
+  },
+
+  async updateProfile(name, email) {
+    const result = await apiRequest('PUT', '/api/auth/profile', { name, email });
+    return result.data.user;
+  },
+
+  async updatePassword(currentPassword, newPassword) {
+    const result = await apiRequest('PUT', '/api/auth/password', { currentPassword, newPassword });
+    return result;
   }
 };

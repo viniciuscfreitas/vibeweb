@@ -47,6 +47,16 @@ const DOM = {
   settingsShowUrgent: null,
   settingsUrgentHours: null,
   btnClearCache: null,
+  profileAvatar: null,
+  profileAvatarPreview: null,
+  profileName: null,
+  profileEmail: null,
+  profileCurrentPassword: null,
+  profileNewPassword: null,
+  errorProfileName: null,
+  errorProfileEmail: null,
+  errorProfilePassword: null,
+  errorProfileNewPassword: null,
 
   init() {
     this.boardGrid = document.getElementById('boardGrid');
@@ -96,5 +106,15 @@ const DOM = {
     this.settingsShowUrgent = document.getElementById('settingsShowUrgent');
     this.settingsUrgentHours = document.getElementById('settingsUrgentHours');
     this.btnClearCache = document.getElementById('btnClearCache');
+    this.profileAvatar = document.getElementById('profileAvatar');
+    this.profileAvatarPreview = document.getElementById('profileAvatarPreview');
+    this.profileName = document.getElementById('profileName');
+    this.profileEmail = document.getElementById('profileEmail');
+    this.profileCurrentPassword = document.getElementById('profileCurrentPassword');
+    this.profileNewPassword = document.getElementById('profileNewPassword');
+    this.errorProfileName = document.getElementById('errorProfileName');
+    this.errorProfileEmail = document.getElementById('errorProfileEmail');
+    this.errorProfilePassword = document.getElementById('errorProfilePassword');
+    this.errorProfileNewPassword = document.getElementById('errorProfileNewPassword');
   }
 };

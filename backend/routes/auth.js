@@ -193,6 +193,132 @@ function createAuthRoutes(config) {
     }
   });
 
+  // Update profile route (name, email)
+  router.put('/profile', authenticateToken, (req, res) => {
+    try {
+      if (!req.body || typeof req.body !== 'object') {
+        return res.status(400).json({ success: false, error: 'Corpo da requisição inválido' });
+      }
+
+      const { name, email } = req.body;
+      const updates = [];
+      const values = [];
+
+      if (name !== undefined) {
+        const nameTrimmed = sanitizeString(name, 255);
+        if (!nameTrimmed || nameTrimmed.length < 2 || nameTrimmed.length > 100) {
+          return res.status(400).json({ success: false, error: 'Nome deve ter entre 2 e 100 caracteres' });
+        }
+        updates.push('name = ?');
+        values.push(nameTrimmed);
+      }
+
+      if (email !== undefined) {
+        const emailTrimmed = sanitizeString(email.toLowerCase(), 255);
+        if (!validateEmail(emailTrimmed)) {
+          return res.status(400).json({ success: false, error: 'Email inválido' });
+        }
+
+        db.get('SELECT id FROM users WHERE email = ? AND id != ?', [emailTrimmed, req.user.id], (err, existing) => {
+          if (err) {
+            console.error('[UpdateProfile] Database error checking email:', err);
+            return res.status(500).json({ success: false, error: 'Erro ao verificar email' });
+          }
+          if (existing) {
+            return res.status(400).json({ success: false, error: 'Email já está em uso' });
+          }
+
+          updates.push('email = ?');
+          values.push(emailTrimmed);
+
+          values.push(req.user.id);
+          const updateQuery = `UPDATE users SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+          db.run(updateQuery, values, function(err) {
+            if (err) {
+              console.error('[UpdateProfile] Database error:', err);
+              return res.status(500).json({ success: false, error: 'Erro ao atualizar perfil' });
+            }
+
+            db.get(QUERY_USER_BY_ID, [req.user.id], (err, user) => {
+              if (err || !user) {
+                return res.status(500).json({ success: false, error: 'Erro ao buscar usuário atualizado' });
+              }
+              res.json({ success: true, data: { user } });
+            });
+          });
+        });
+        return;
+      }
+
+      if (updates.length === 0) {
+        return res.status(400).json({ success: false, error: 'Nenhum campo para atualizar' });
+      }
+
+      values.push(req.user.id);
+      const updateQuery = `UPDATE users SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+      db.run(updateQuery, values, function(err) {
+        if (err) {
+          console.error('[UpdateProfile] Database error:', err);
+          return res.status(500).json({ success: false, error: 'Erro ao atualizar perfil' });
+        }
+
+        db.get(QUERY_USER_BY_ID, [req.user.id], (err, user) => {
+          if (err || !user) {
+            return res.status(500).json({ success: false, error: 'Erro ao buscar usuário atualizado' });
+          }
+          res.json({ success: true, data: { user } });
+        });
+      });
+    } catch (error) {
+      console.error('[UpdateProfile] Unexpected error:', error);
+      res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+    }
+  });
+
+  // Update password route
+  router.put('/password', authenticateToken, async (req, res) => {
+    try {
+      if (!req.body || typeof req.body !== 'object') {
+        return res.status(400).json({ success: false, error: 'Corpo da requisição inválido' });
+      }
+
+      const { currentPassword, newPassword } = req.body;
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ success: false, error: 'Senha atual e nova senha são obrigatórias' });
+      }
+
+      if (newPassword.length < 6 || newPassword.length > 128) {
+        return res.status(400).json({ success: false, error: 'Nova senha deve ter entre 6 e 128 caracteres' });
+      }
+
+      db.get('SELECT password_hash FROM users WHERE id = ?', [req.user.id], async (err, user) => {
+        if (err || !user) {
+          return res.status(500).json({ success: false, error: 'Erro ao buscar usuário' });
+        }
+
+        const isValid = await bcrypt.compare(currentPassword, user.password_hash);
+        if (!isValid) {
+          return res.status(401).json({ success: false, error: 'Senha atual incorreta' });
+        }
+
+        const newPasswordHash = await bcrypt.hash(newPassword, 10);
+        db.run('UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+          [newPasswordHash, req.user.id], function(err) {
+          if (err) {
+            console.error('[UpdatePassword] Database error:', err);
+            return res.status(500).json({ success: false, error: 'Erro ao atualizar senha' });
+          }
+
+          res.json({ success: true, message: 'Senha atualizada com sucesso' });
+        });
+      });
+    } catch (error) {
+      console.error('[UpdatePassword] Unexpected error:', error);
+      res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+    }
+  });
+
   return router;
 }
 

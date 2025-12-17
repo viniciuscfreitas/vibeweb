@@ -184,7 +184,14 @@ function saveSettings(settings) {
   }
 }
 
-function loadSettingsIntoForm() {
+function clearAvatarPreview() {
+  if (!DOM.profileAvatarPreview) return;
+  DOM.profileAvatarPreview.style.backgroundImage = '';
+  DOM.profileAvatarPreview.style.backgroundSize = '';
+  DOM.profileAvatarPreview.style.backgroundPosition = '';
+}
+
+async function loadSettingsIntoForm() {
   const settings = getSettings();
   if (DOM.settingsHostingPrice) DOM.settingsHostingPrice.value = settings.hostingPrice || '';
   if (DOM.settingsDefaultTicket) DOM.settingsDefaultTicket.value = settings.defaultTicket || '';
@@ -193,6 +200,29 @@ function loadSettingsIntoForm() {
   if (DOM.settingsEnableCache) DOM.settingsEnableCache.checked = settings.enableCache !== false;
   if (DOM.settingsShowUrgent) DOM.settingsShowUrgent.checked = settings.showUrgent !== false;
   if (DOM.settingsUrgentHours) DOM.settingsUrgentHours.value = settings.urgentHours || URGENT_HOURS_48;
+
+  const saved = localStorage.getItem('vibeTasks_auth');
+  let user = null;
+  if (saved) {
+    try {
+      user = JSON.parse(saved);
+    } catch (e) {
+      user = await getCurrentUser();
+    }
+  } else {
+    user = await getCurrentUser();
+  }
+
+  if (user) {
+    if (DOM.profileName) DOM.profileName.value = user.name || '';
+    if (DOM.profileEmail) DOM.profileEmail.value = user.email || '';
+    if (DOM.profileAvatarPreview) {
+      DOM.profileAvatarPreview.textContent = getInitials(user.name);
+      clearAvatarPreview();
+    }
+    if (DOM.profileCurrentPassword) DOM.profileCurrentPassword.value = '';
+    if (DOM.profileNewPassword) DOM.profileNewPassword.value = '';
+  }
 }
 
 function getSettingsFromForm() {
@@ -212,9 +242,9 @@ function getSettingsFromForm() {
   };
 }
 
-function openSettingsModal() {
+async function openSettingsModal() {
   if (!DOM.settingsModalOverlay) return;
-  loadSettingsIntoForm();
+  await loadSettingsIntoForm();
   DOM.settingsModalOverlay.classList.remove('hidden');
   DOM.settingsModalOverlay.classList.add('open');
   DOM.settingsModalOverlay.setAttribute('aria-hidden', 'false');
@@ -224,6 +254,26 @@ function openSettingsModal() {
 
 function closeSettingsModal() {
   if (!DOM.settingsModalOverlay) return;
+
+  if (DOM.profileAvatar) {
+    DOM.profileAvatar.value = '';
+  }
+
+  if (DOM.profileAvatarPreview) {
+    const saved = localStorage.getItem('vibeTasks_auth');
+    if (saved) {
+      try {
+        const user = JSON.parse(saved);
+        if (user?.name) {
+          DOM.profileAvatarPreview.textContent = getInitials(user.name);
+          clearAvatarPreview();
+        }
+      } catch (e) {
+        // Silent fail
+      }
+    }
+  }
+
   DOM.settingsModalOverlay.classList.add('hidden');
   DOM.settingsModalOverlay.classList.remove('open');
   DOM.settingsModalOverlay.setAttribute('aria-hidden', 'true');
@@ -231,7 +281,7 @@ function closeSettingsModal() {
   announceToScreenReader('Modal de configurações fechado');
 }
 
-function saveSettingsFromForm() {
+async function saveSettingsFromForm() {
   const settings = getSettingsFromForm();
 
   if (settings.hostingPrice <= 0 || settings.hostingPrice > 10000) {
@@ -254,11 +304,73 @@ function saveSettingsFromForm() {
     return;
   }
 
+  let profileUpdated = false;
+  const nameRaw = DOM.profileName?.value.trim() || '';
+  const emailRaw = DOM.profileEmail?.value.trim() || '';
+  const hasName = nameRaw.length > 0;
+  const hasEmail = emailRaw.length > 0;
+
+  if (hasName || hasEmail) {
+    if (hasName && (nameRaw.length < 2 || nameRaw.length > 100)) {
+      NotificationManager.error('Nome deve ter entre 2 e 100 caracteres');
+      return;
+    }
+
+    if (hasEmail && !EMAIL_REGEX.test(emailRaw)) {
+      NotificationManager.error('Email inválido');
+      return;
+    }
+
+    try {
+      const updatedUser = await api.updateProfile(
+        hasName ? nameRaw : undefined,
+        hasEmail ? emailRaw : undefined
+      );
+      if (updatedUser) {
+        setCurrentUser(updatedUser);
+        await renderUserAvatar(updatedUser);
+        profileUpdated = true;
+      }
+    } catch (error) {
+      NotificationManager.error(error.message || 'Erro ao atualizar perfil');
+      return;
+    }
+  }
+
+  const currentPassword = DOM.profileCurrentPassword?.value || '';
+  const newPassword = DOM.profileNewPassword?.value || '';
+
+  if (currentPassword || newPassword) {
+    if (!currentPassword || !newPassword) {
+      NotificationManager.error('Para alterar a senha, preencha ambos os campos');
+      return;
+    }
+
+    if (newPassword.length < 6 || newPassword.length > 128) {
+      NotificationManager.error('Nova senha deve ter entre 6 e 128 caracteres');
+      return;
+    }
+
+    try {
+      await api.updatePassword(currentPassword, newPassword);
+      DOM.profileCurrentPassword.value = '';
+      DOM.profileNewPassword.value = '';
+      NotificationManager.success('Senha atualizada com sucesso');
+    } catch (error) {
+      NotificationManager.error(error.message || 'Erro ao atualizar senha');
+      return;
+    }
+  }
+
   if (saveSettings(settings)) {
     closeSettingsModal();
     closeUserDropdown();
     AppState.log('Settings applied', settings);
-    NotificationManager.success('Configurações salvas com sucesso');
+    if (profileUpdated) {
+      NotificationManager.success('Configurações e perfil atualizados com sucesso');
+    } else {
+      NotificationManager.success('Configurações salvas com sucesso');
+    }
     if (DOM.dashboardContainer && DOM.dashboardContainer.classList.contains('active')) {
       renderDashboard();
     } else if (DOM.financialContainer && DOM.financialContainer.classList.contains('active')) {
@@ -880,7 +992,55 @@ function setupEventListeners() {
     btnSaveSettings.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      saveSettingsFromForm();
+      saveSettingsFromForm().catch(err => console.error('Error in saveSettingsFromForm:', err));
+    });
+  }
+
+  if (DOM.profileAvatar) {
+    DOM.profileAvatar.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      if (file.size > 2 * 1024 * 1024) {
+        NotificationManager.error('Arquivo muito grande. Máximo 2MB');
+        e.target.value = '';
+        return;
+      }
+
+      if (!file.type.startsWith('image/')) {
+        NotificationManager.error('Apenas imagens são permitidas');
+        e.target.value = '';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (DOM.profileAvatarPreview) {
+          DOM.profileAvatarPreview.style.backgroundImage = `url(${event.target.result})`;
+          DOM.profileAvatarPreview.style.backgroundSize = 'cover';
+          DOM.profileAvatarPreview.style.backgroundPosition = 'center';
+          DOM.profileAvatarPreview.textContent = '';
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  if (DOM.profileName) {
+    DOM.profileName.addEventListener('input', () => {
+      if (DOM.errorProfileName) {
+        DOM.errorProfileName.classList.remove('show');
+        DOM.errorProfileName.textContent = '';
+      }
+    });
+  }
+
+  if (DOM.profileEmail) {
+    DOM.profileEmail.addEventListener('input', () => {
+      if (DOM.errorProfileEmail) {
+        DOM.errorProfileEmail.classList.remove('show');
+        DOM.errorProfileEmail.textContent = '';
+      }
     });
   }
 
@@ -912,8 +1072,8 @@ function setupEventListeners() {
   }
 }
 
-async function renderUserAvatar() {
-  const user = await getCurrentUser();
+async function renderUserAvatar(userParam = null) {
+  const user = userParam || await getCurrentUser();
   if (!user) return;
 
   const avatar = document.getElementById('userAvatar');
@@ -925,14 +1085,13 @@ async function renderUserAvatar() {
   const dropdownTheme = document.getElementById('dropdownTheme');
   const dropdownLogout = document.getElementById('dropdownLogout');
 
+  const initials = getInitials(user.name);
   if (avatar) {
-    const initials = getInitials(user.name);
     avatar.textContent = initials;
     avatar.title = user.name;
   }
 
   if (dropdownAvatar) {
-    const initials = getInitials(user.name);
     dropdownAvatar.textContent = initials;
   }
 
