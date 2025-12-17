@@ -453,7 +453,7 @@ function renderRecentActivities(activities) {
 
     const userBadgeHtml = activity.userName && activity.userInitials
       ? activity.userAvatarUrl
-        ? `<div class="activity-user-badge" title="${escapeHtml(activity.userName)}" style="background-image: url('${escapeHtml(activity.userAvatarUrl)}'); background-size: cover; background-position: center; color: transparent;">${escapeHtml(activity.userInitials)}</div>`
+        ? `<div class="activity-user-badge" title="${escapeHtml(activity.userName)}" style="background-image: url('${escapeHtml(activity.userAvatarUrl)}'); background-size: cover; background-position: center; background-color: transparent; color: transparent;">${escapeHtml(activity.userInitials)}</div>`
         : `<div class="activity-user-badge" title="${escapeHtml(activity.userName)}">${escapeHtml(activity.userInitials)}</div>`
       : '';
 
