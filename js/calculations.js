@@ -1,13 +1,17 @@
 function calculateMRR(tasks) {
+  const settings = getSettings();
   const liveTasks = tasks.filter(t => t.col_id === 3 && t.hosting === HOSTING_YES);
-  return liveTasks.length * HOSTING_PRICE_EUR;
+  return liveTasks.length * settings.hostingPrice;
 }
 
-function calculateMRRGaps(mrr) {
+function calculateMRRGaps(mrr, hostingPrice) {
   const gap10k = Math.max(0, TARGET_MRR_10K - mrr);
   const gap20k = Math.max(0, TARGET_MRR_20K - mrr);
-  const upsellsNeeded10k = Math.ceil(gap10k / HOSTING_PRICE_EUR);
-  const upsellsNeeded20k = Math.ceil(gap20k / HOSTING_PRICE_EUR);
+  if (hostingPrice <= 0) {
+    return { gap10k, gap20k, upsellsNeeded10k: 0, upsellsNeeded20k: 0 };
+  }
+  const upsellsNeeded10k = Math.ceil(gap10k / hostingPrice);
+  const upsellsNeeded20k = Math.ceil(gap20k / hostingPrice);
   return { gap10k, gap20k, upsellsNeeded10k, upsellsNeeded20k };
 }
 
@@ -47,7 +51,12 @@ function calculateProjectCountsByStatus(tasks) {
   return { discoveryCount, agreementCount, buildCount, liveCount, activeProjects };
 }
 
-function isTaskUrgent(task, now) {
+function isTaskUrgent(task, now, urgentHours = null) {
+  if (urgentHours === null) {
+    urgentHours = getSettings().urgentHours;
+  }
+  const urgentHoursMs = urgentHours * MS_PER_HOUR;
+
   const isInBuildWithoutDeadline = task.col_id === 2 && (!task.deadline || task.deadline === DEADLINE_UNDEFINED);
   if (isInBuildWithoutDeadline) return true;
 
@@ -64,10 +73,10 @@ function isTaskUrgent(task, now) {
 
   const deadlineTimestamp = task.deadline_timestamp + (deadlineHours * MS_PER_HOUR);
   const timeRemaining = deadlineTimestamp - now;
-  const isWithin48Hours = timeRemaining > 0 && timeRemaining <= URGENT_HOURS_48_MS;
+  const isWithinUrgentHours = timeRemaining > 0 && timeRemaining <= urgentHoursMs;
   const isOverdue = timeRemaining <= 0;
 
-  return isWithin48Hours || isOverdue;
+  return isWithinUrgentHours || isOverdue;
 }
 
 function compareUrgentProjects(projectA, projectB, now) {
@@ -110,13 +119,16 @@ function compareUrgentProjects(projectA, projectB, now) {
 
 function calculateUrgentProjects(tasks) {
   const now = Date.now();
+  const settings = getSettings();
+  const urgentHours = settings.urgentHours;
   return tasks
-    .filter(task => isTaskUrgent(task, now))
+    .filter(task => isTaskUrgent(task, now, urgentHours))
     .sort((a, b) => compareUrgentProjects(a, b, now));
 }
 
 function calculateDashboardMetrics() {
   const tasks = AppState.getTasks();
+  const settings = getSettings();
   const now = Date.now();
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
@@ -141,7 +153,7 @@ function calculateDashboardMetrics() {
     }
 
     if (colId === 3 && task.hosting === HOSTING_YES) {
-      mrr += HOSTING_PRICE_EUR;
+      mrr += settings.hostingPrice;
     }
 
     const isPaid = task.payment_status === PAYMENT_STATUS_PAID || task.payment_status === PAYMENT_STATUS_PARTIAL;
@@ -175,7 +187,7 @@ function calculateDashboardMetrics() {
     }
   });
 
-  const mrrGaps = calculateMRRGaps(mrr);
+  const mrrGaps = calculateMRRGaps(mrr, settings.hostingPrice);
   const lastMonthInfo = getLastMonthInfo(currentMonth, currentYear);
 
   const currentMonthKey = `${currentYear}-${currentMonth}`;
@@ -264,7 +276,7 @@ function calculateAverageTicketFromRecentTasks(recentTasks) {
   );
 
   if (paidRecentTasks.length === 0) {
-    return DEFAULT_AVERAGE_TICKET;
+    return getSettings().defaultTicket;
   }
 
   const totalPaidRevenue = paidRecentTasks.reduce((sum, task) => {
@@ -314,7 +326,8 @@ function calculateProjectedRevenue(tasks, monthsCount = 12) {
     }
   }
 
-  const monthlyRecurringRevenue = liveProjectsWithHostingCount * HOSTING_PRICE_EUR;
+  const settings = getSettings();
+  const monthlyRecurringRevenue = liveProjectsWithHostingCount * settings.hostingPrice;
 
   if (liveProjectsWithHostingCount === 0 && paidTasksCount === 0) {
     for (let monthsAhead = 1; monthsAhead <= monthsCount; monthsAhead++) {

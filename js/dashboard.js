@@ -6,7 +6,8 @@ function renderDashboardHeader(metrics) {
   if (!DOM.headerInfo || !metrics) return;
 
   const gap = Math.max(0, TARGET_MRR_10K - (metrics.mrr || 0));
-  const upsellsNeeded = Math.ceil(gap / HOSTING_PRICE_EUR);
+  const settings = getSettings();
+  const upsellsNeeded = Math.ceil(gap / settings.hostingPrice);
 
   DOM.headerInfo.innerHTML = `
     <div class="header-stat">
@@ -358,7 +359,8 @@ function buildWhatsAppUrl(contact) {
   if (!contact) return null;
   const whatsappNumber = contact.replace(/[@\s]/g, '').replace(/[^\d]/g, '');
   if (!whatsappNumber) return null;
-  const message = encodeURIComponent(`Ei, site pronto? Ativa hosting €${HOSTING_PRICE_EUR}/mês?`);
+  const settings = getSettings();
+  const message = encodeURIComponent(`Ei, site pronto? Ativa hosting €${settings.hostingPrice}/mês?`);
   return `https://wa.me/${whatsappNumber}?text=${message}`;
 }
 
@@ -522,7 +524,7 @@ function exportDashboardData() {
     'Métrica,Valor',
     `MRR,€${metrics.mrr.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
     `Meta €10k (Gap),€${Math.max(0, TARGET_MRR_10K - metrics.mrr).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-    `Upsells Necessários,${Math.ceil(Math.max(0, TARGET_MRR_10K - metrics.mrr) / HOSTING_PRICE_EUR)}`,
+    `Upsells Necessários,${Math.ceil(Math.max(0, TARGET_MRR_10K - metrics.mrr) / getSettings().hostingPrice)}`,
     `Receita do Mês,€${monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
     `Ticket Médio,€${averageTicket.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
     `Total Faturado,€${totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,

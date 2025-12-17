@@ -1321,6 +1321,14 @@ html[data-authenticated="true"] #appContainer.hidden {
   display: block;
 }
 
+.form-hint {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+  display: block;
+  line-height: 1.4;
+}
+
 .form-group {
   position: relative;
 }

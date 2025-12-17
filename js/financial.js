@@ -46,7 +46,8 @@ function calculateFinancialMetrics(tasks) {
     }
   });
 
-  const hostingRevenue = hostingActiveCount * HOSTING_PRICE_EUR;
+  const settings = getSettings();
+  const hostingRevenue = hostingActiveCount * settings.hostingPrice;
 
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();

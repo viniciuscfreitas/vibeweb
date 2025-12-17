@@ -119,6 +119,10 @@
             </div>
             <div class="dropdown-divider"></div>
             <div class="dropdown-menu">
+              <button class="dropdown-item" id="dropdownSettings">
+                <i class="fa-solid fa-gear"></i>
+                <span>Configurações</span>
+              </button>
               <button class="dropdown-item" id="dropdownTheme">
                 <i class="fa-solid fa-moon" id="dropdownThemeIcon"></i>
                 <span id="dropdownThemeText">Tema Escuro</span>
@@ -352,6 +356,103 @@
             <button type="button" class="btn-text" id="btnCancel"
               aria-label="Cancelar e fechar formulário">Cancelar</button>
             <button type="button" class="btn-primary" id="btnSave" aria-label="Salvar projeto">Salvar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- SETTINGS MODAL -->
+    <div class="modal-overlay" id="settingsModalOverlay" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle"
+      aria-describedby="settingsModalDescription" aria-hidden="true">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <div class="modal-subtitle">
+              <i class="fa-solid fa-gear"></i> Configurações do Sistema
+            </div>
+            <h2 class="modal-title" id="settingsModalTitle">Configurações</h2>
+            <p class="sr-only" id="settingsModalDescription">Configurações importantes do sistema. Use Tab para navegar entre campos, Esc para cancelar.</p>
+          </div>
+          <button type="button" class="btn-text" id="btnCloseSettingsModal" aria-label="Fechar configurações"><i
+              class="fa-solid fa-xmark close-icon"></i></button>
+        </div>
+        <div class="modal-body">
+          <div>
+            <h3 class="form-section-title">Financeiro</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="settingsHostingPrice">Preço de Hospedagem (€/mês)</label>
+                <input type="number" class="form-input" id="settingsHostingPrice" placeholder="29" min="0" step="0.01"
+                  aria-label="Preço mensal de hospedagem">
+                <div class="form-hint">Valor padrão usado para cálculos de MRR</div>
+              </div>
+              <div class="form-group">
+                <label for="settingsDefaultTicket">Ticket Médio Padrão (€)</label>
+                <input type="number" class="form-input" id="settingsDefaultTicket" placeholder="1500" min="0" step="0.01"
+                  aria-label="Valor médio padrão de projetos">
+                <div class="form-hint">Usado quando não há dados suficientes</div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <h3 class="form-section-title">Interface</h3>
+            <div class="form-grid">
+              <div class="form-group col-span-2">
+                <label for="settingsAutoUpdate" class="checkbox-label">
+                  <input type="checkbox" id="settingsAutoUpdate" class="checkbox-input" checked>
+                  <span>Atualização Automática</span>
+                </label>
+                <div class="form-hint">Atualiza dados automaticamente a cada minuto quando a página está visível</div>
+              </div>
+              <div class="form-group">
+                <label for="settingsSearchDebounce">Tempo de Busca (ms)</label>
+                <input type="number" class="form-input" id="settingsSearchDebounce" placeholder="200" min="0" step="50"
+                  aria-label="Tempo de espera antes de executar busca">
+                <div class="form-hint">Delay antes de executar a busca ao digitar</div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <h3 class="form-section-title">Dados</h3>
+            <div class="form-grid">
+              <div class="form-group col-span-2">
+                <label for="settingsEnableCache" class="checkbox-label">
+                  <input type="checkbox" id="settingsEnableCache" class="checkbox-input" checked>
+                  <span>Habilitar Cache de Métricas</span>
+                </label>
+                <div class="form-hint">Melhora performance ao manter métricas em cache</div>
+              </div>
+              <div class="form-group col-span-2">
+                <button type="button" class="btn-secondary" id="btnClearCache" aria-label="Limpar cache">
+                  <i class="fa-solid fa-trash"></i> Limpar Cache
+                </button>
+                <div class="form-hint">Remove todos os dados em cache e força recálculo</div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <h3 class="form-section-title">Notificações</h3>
+            <div class="form-grid">
+              <div class="form-group col-span-2">
+                <label for="settingsShowUrgent" class="checkbox-label">
+                  <input type="checkbox" id="settingsShowUrgent" class="checkbox-input" checked>
+                  <span>Mostrar Alertas de Urgência</span>
+                </label>
+                <div class="form-hint">Destaca projetos com prazo de 48h ou menos</div>
+              </div>
+              <div class="form-group">
+                <label for="settingsUrgentHours">Horas para Urgência</label>
+                <input type="number" class="form-input" id="settingsUrgentHours" placeholder="48" min="1" step="1"
+                  aria-label="Número de horas para considerar urgente">
+                <div class="form-hint">Projetos com menos horas serão marcados como urgentes</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <div class="form-actions">
+            <button type="button" class="btn-text" id="btnCancelSettings"
+              aria-label="Cancelar e fechar configurações">Cancelar</button>
+            <button type="button" class="btn-primary" id="btnSaveSettings" aria-label="Salvar configurações">Salvar</button>
           </div>
         </div>
       </div>

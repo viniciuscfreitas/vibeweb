@@ -38,6 +38,15 @@ const DOM = {
   headerInfo: null,
   btnNewProject: null,
   pieChartLegend: null,
+  settingsModalOverlay: null,
+  settingsHostingPrice: null,
+  settingsDefaultTicket: null,
+  settingsAutoUpdate: null,
+  settingsSearchDebounce: null,
+  settingsEnableCache: null,
+  settingsShowUrgent: null,
+  settingsUrgentHours: null,
+  btnClearCache: null,
 
   init() {
     this.boardGrid = document.getElementById('boardGrid');
@@ -78,5 +87,14 @@ const DOM = {
     this.headerInfo = document.getElementById('headerInfo');
     this.btnNewProject = document.getElementById('btnNewProject');
     this.pieChartLegend = document.getElementById('pieChartLegend');
+    this.settingsModalOverlay = document.getElementById('settingsModalOverlay');
+    this.settingsHostingPrice = document.getElementById('settingsHostingPrice');
+    this.settingsDefaultTicket = document.getElementById('settingsDefaultTicket');
+    this.settingsAutoUpdate = document.getElementById('settingsAutoUpdate');
+    this.settingsSearchDebounce = document.getElementById('settingsSearchDebounce');
+    this.settingsEnableCache = document.getElementById('settingsEnableCache');
+    this.settingsShowUrgent = document.getElementById('settingsShowUrgent');
+    this.settingsUrgentHours = document.getElementById('settingsUrgentHours');
+    this.btnClearCache = document.getElementById('btnClearCache');
   }
 };

@@ -54,6 +54,7 @@ const DEADLINE_OVERDUE = 'Vencido';
 
 // Storage Keys
 const THEME_STORAGE_KEY = 'vibeTasks_theme';
+const SETTINGS_STORAGE_KEY = 'vibeTasks_settings';
 
 // Kanban Pipeline - Business Rules
 // Column IDs must match backend database (col_id values)

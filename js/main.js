@@ -133,6 +133,149 @@ function initTheme() {
   setTheme(theme);
 }
 
+let _settingsCache = null;
+let _settingsCacheKey = null;
+
+function getDefaultSettings() {
+  return {
+    hostingPrice: HOSTING_PRICE_EUR,
+    defaultTicket: DEFAULT_AVERAGE_TICKET,
+    autoUpdate: true,
+    searchDebounce: SEARCH_DEBOUNCE_MS,
+    enableCache: true,
+    showUrgent: true,
+    urgentHours: URGENT_HOURS_48
+  };
+}
+
+function getSettings() {
+  try {
+    const saved = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (saved === _settingsCacheKey && _settingsCache) {
+      return _settingsCache;
+    }
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      const settings = { ...getDefaultSettings(), ...parsed };
+      _settingsCache = settings;
+      _settingsCacheKey = saved;
+      return settings;
+    }
+  } catch (e) {
+    console.error('[Settings] Erro ao carregar configurações:', e);
+  }
+  const defaultSettings = getDefaultSettings();
+  _settingsCache = defaultSettings;
+  _settingsCacheKey = null;
+  return defaultSettings;
+}
+
+function saveSettings(settings) {
+  try {
+    const serialized = JSON.stringify(settings);
+    localStorage.setItem(SETTINGS_STORAGE_KEY, serialized);
+    _settingsCache = settings;
+    _settingsCacheKey = serialized;
+    AppState.log('Settings saved', settings);
+    return true;
+  } catch (e) {
+    console.error('[Settings] Erro ao salvar configurações:', e);
+    return false;
+  }
+}
+
+function loadSettingsIntoForm() {
+  const settings = getSettings();
+  if (DOM.settingsHostingPrice) DOM.settingsHostingPrice.value = settings.hostingPrice || '';
+  if (DOM.settingsDefaultTicket) DOM.settingsDefaultTicket.value = settings.defaultTicket || '';
+  if (DOM.settingsAutoUpdate) DOM.settingsAutoUpdate.checked = settings.autoUpdate !== false;
+  if (DOM.settingsSearchDebounce) DOM.settingsSearchDebounce.value = settings.searchDebounce || SEARCH_DEBOUNCE_MS;
+  if (DOM.settingsEnableCache) DOM.settingsEnableCache.checked = settings.enableCache !== false;
+  if (DOM.settingsShowUrgent) DOM.settingsShowUrgent.checked = settings.showUrgent !== false;
+  if (DOM.settingsUrgentHours) DOM.settingsUrgentHours.value = settings.urgentHours || URGENT_HOURS_48;
+}
+
+function getSettingsFromForm() {
+  const hostingPriceRaw = DOM.settingsHostingPrice ? parseFloat(DOM.settingsHostingPrice.value) : NaN;
+  const defaultTicketRaw = DOM.settingsDefaultTicket ? parseFloat(DOM.settingsDefaultTicket.value) : NaN;
+  const searchDebounceRaw = DOM.settingsSearchDebounce ? parseInt(DOM.settingsSearchDebounce.value, 10) : NaN;
+  const urgentHoursRaw = DOM.settingsUrgentHours ? parseInt(DOM.settingsUrgentHours.value, 10) : NaN;
+
+  return {
+    hostingPrice: !isNaN(hostingPriceRaw) && hostingPriceRaw >= 0 ? hostingPriceRaw : HOSTING_PRICE_EUR,
+    defaultTicket: !isNaN(defaultTicketRaw) && defaultTicketRaw >= 0 ? defaultTicketRaw : DEFAULT_AVERAGE_TICKET,
+    autoUpdate: DOM.settingsAutoUpdate ? DOM.settingsAutoUpdate.checked : true,
+    searchDebounce: !isNaN(searchDebounceRaw) && searchDebounceRaw >= 0 ? searchDebounceRaw : SEARCH_DEBOUNCE_MS,
+    enableCache: DOM.settingsEnableCache ? DOM.settingsEnableCache.checked : true,
+    showUrgent: DOM.settingsShowUrgent ? DOM.settingsShowUrgent.checked : true,
+    urgentHours: !isNaN(urgentHoursRaw) && urgentHoursRaw >= 1 ? urgentHoursRaw : URGENT_HOURS_48
+  };
+}
+
+function openSettingsModal() {
+  if (!DOM.settingsModalOverlay) return;
+  loadSettingsIntoForm();
+  DOM.settingsModalOverlay.classList.remove('hidden');
+  DOM.settingsModalOverlay.classList.add('open');
+  DOM.settingsModalOverlay.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+  announceToScreenReader('Modal de configurações aberto');
+}
+
+function closeSettingsModal() {
+  if (!DOM.settingsModalOverlay) return;
+  DOM.settingsModalOverlay.classList.add('hidden');
+  DOM.settingsModalOverlay.classList.remove('open');
+  DOM.settingsModalOverlay.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+  announceToScreenReader('Modal de configurações fechado');
+}
+
+function saveSettingsFromForm() {
+  const settings = getSettingsFromForm();
+
+  if (settings.hostingPrice <= 0 || settings.hostingPrice > 10000) {
+    NotificationManager.error('Preço de hospedagem deve estar entre 0.01 e 10000');
+    return;
+  }
+
+  if (settings.defaultTicket < 0 || settings.defaultTicket > 100000) {
+    NotificationManager.error('Ticket médio deve estar entre 0 e 100000');
+    return;
+  }
+
+  if (settings.urgentHours < 1 || settings.urgentHours > 720) {
+    NotificationManager.error('Horas de urgência devem estar entre 1 e 720');
+    return;
+  }
+
+  if (settings.searchDebounce < 0 || settings.searchDebounce > 5000) {
+    NotificationManager.error('Tempo de busca deve estar entre 0 e 5000ms');
+    return;
+  }
+
+  if (saveSettings(settings)) {
+    closeSettingsModal();
+    closeUserDropdown();
+    AppState.log('Settings applied', settings);
+    NotificationManager.success('Configurações salvas com sucesso');
+    if (DOM.dashboardContainer && DOM.dashboardContainer.classList.contains('active')) {
+      renderDashboard();
+    } else if (DOM.financialContainer && DOM.financialContainer.classList.contains('active')) {
+      renderFinancial();
+    }
+  } else {
+    NotificationManager.error('Erro ao salvar configurações');
+  }
+}
+
+function clearCache() {
+  AppState.clearMetricsCache();
+  AppState.clearActivitiesCache();
+  NotificationManager.success('Cache limpo com sucesso');
+  AppState.log('Cache cleared');
+}
+
 function expandSearch() {
   if (!DOM.searchContainer || !DOM.searchInput) return;
   DOM.searchContainer.classList.add('expanded');
@@ -159,6 +302,7 @@ function handleSearch() {
   }
 
   // Default Kanban search
+  const settings = getSettings();
   if (AppState.searchTimeout) {
     clearTimeout(AppState.searchTimeout);
   }
@@ -166,7 +310,7 @@ function handleSearch() {
     renderBoard();
     updateHeaderStats();
     AppState.log('Search executed');
-  }, SEARCH_DEBOUNCE_MS);
+  }, settings.searchDebounce);
 }
 
 function fadeContainer(container, isFadeIn) {
@@ -522,28 +666,38 @@ function setupEventListeners() {
   document.addEventListener('keydown', (e) => {
     const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName);
 
+    if (e.key === 'Escape') {
+      if (DOM.settingsModalOverlay && DOM.settingsModalOverlay.classList.contains('open')) {
+        e.preventDefault();
+        closeSettingsModal();
+        return;
+      }
+      if (DOM.modalOverlay && DOM.modalOverlay.classList.contains('open')) {
+        if (isInput) {
+          closeModal();
+          return;
+        }
+      }
+    }
+
     if (isInput) {
-      if (e.key === 'Enter' && e.ctrlKey && DOM.modalOverlay.classList.contains('open')) {
+      if (e.key === 'Enter' && e.ctrlKey && DOM.modalOverlay && DOM.modalOverlay.classList.contains('open')) {
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
         saveForm().catch(err => console.error('Error in saveForm:', err));
         return false;
       }
-      if (e.key === 'Escape' && DOM.modalOverlay.classList.contains('open')) {
-        closeModal();
-        return;
-      }
     }
 
-    if (e.key === '/' && !DOM.modalOverlay.classList.contains('open') && e.target !== DOM.searchInput) {
+    if (e.key === '/' && !DOM.modalOverlay.classList.contains('open') && !DOM.settingsModalOverlay.classList.contains('open') && e.target !== DOM.searchInput) {
       e.preventDefault();
       expandSearch();
     }
 
     const isNewProjectKey = e.key === 'n' || e.key === 'N';
     const isCtrlKeyPressed = e.ctrlKey;
-    const isModalClosed = !DOM.modalOverlay.classList.contains('open');
+    const isModalClosed = !DOM.modalOverlay.classList.contains('open') && !DOM.settingsModalOverlay.classList.contains('open');
     const shouldOpenNewProject = isNewProjectKey && isCtrlKeyPressed && isModalClosed;
 
     if (shouldOpenNewProject) {
@@ -703,6 +857,50 @@ function setupEventListeners() {
     DOM.modalOverlay.addEventListener('click', handleModalOverlayClick);
   }
 
+  const btnCloseSettingsModal = document.getElementById('btnCloseSettingsModal');
+  if (btnCloseSettingsModal) {
+    btnCloseSettingsModal.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeSettingsModal();
+    });
+  }
+
+  const btnCancelSettings = document.getElementById('btnCancelSettings');
+  if (btnCancelSettings) {
+    btnCancelSettings.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeSettingsModal();
+    });
+  }
+
+  const btnSaveSettings = document.getElementById('btnSaveSettings');
+  if (btnSaveSettings) {
+    btnSaveSettings.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      saveSettingsFromForm();
+    });
+  }
+
+  if (DOM.btnClearCache) {
+    DOM.btnClearCache.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      clearCache();
+    });
+  }
+
+  if (DOM.settingsModalOverlay) {
+    DOM.settingsModalOverlay.addEventListener('click', (e) => {
+      if (e.target === DOM.settingsModalOverlay) {
+        e.preventDefault();
+        closeSettingsModal();
+      }
+    });
+  }
+
   DOM.formClient.addEventListener('input', () => clearFormError('client'));
   DOM.formContact.addEventListener('input', () => clearFormError('contact'));
   DOM.formDomain.addEventListener('input', () => clearFormError('domain'));
@@ -723,6 +921,7 @@ async function renderUserAvatar() {
   const userDropdown = document.getElementById('userDropdown');
   const dropdownAvatar = document.getElementById('dropdownAvatar');
   const dropdownName = document.getElementById('dropdownName');
+  const dropdownSettings = document.getElementById('dropdownSettings');
   const dropdownTheme = document.getElementById('dropdownTheme');
   const dropdownLogout = document.getElementById('dropdownLogout');
 
@@ -747,6 +946,20 @@ async function renderUserAvatar() {
       avatar.removeEventListener('click', toggleUserDropdown);
       avatar.addEventListener('click', toggleUserDropdown);
     }
+  }
+
+  if (dropdownSettings) {
+    const oldSettingsHandler = dropdownSettings._settingsClickHandler;
+    if (oldSettingsHandler) {
+      dropdownSettings.removeEventListener('click', oldSettingsHandler);
+    }
+    const settingsClickHandler = (e) => {
+      e.stopPropagation();
+      closeUserDropdown();
+      openSettingsModal();
+    };
+    dropdownSettings._settingsClickHandler = settingsClickHandler;
+    dropdownSettings.addEventListener('click', settingsClickHandler);
   }
 
   if (dropdownTheme) {
