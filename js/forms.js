@@ -573,28 +573,21 @@ async function saveForm() {
       closeModal();
     } else {
       // Create new task
-      let maxOrder = -1;
-      tasks.forEach(t => {
-        if (t.col_id === DISCOVERY_COLUMN_ID) {
-          const order = t.order_position || 0;
-          if (order > maxOrder) maxOrder = order;
-        }
-      });
+      const discoveryTasks = tasks.filter(t => t.col_id === DISCOVERY_COLUMN_ID);
+      const maxOrder = discoveryTasks.length > 0
+        ? Math.max(...discoveryTasks.map(t => t.order_position || 0))
+        : -1;
       const newOrder = maxOrder + 1;
 
       const hours = parseDeadlineHours(formData.deadline);
       const deadline_timestamp = hours ? Date.now() : null;
 
-      formData.col_id = DISCOVERY_COLUMN_ID; // Use snake_case consistently
-      formData.order_position = newOrder; // Use snake_case consistently
+      formData.col_id = DISCOVERY_COLUMN_ID;
+      formData.order_position = newOrder;
       formData.deadline_timestamp = deadline_timestamp;
 
       const newTaskFromServer = await api.createTask(formData);
-
-      // Normalize task to ensure defaults
       const normalizedNewTask = normalizeTasksData([newTaskFromServer])[0];
-
-      // Update local state
       const updatedTasks = [...tasks, normalizedNewTask];
       AppState.setTasks(updatedTasks);
       AppState.log('Task created', { taskId: normalizedNewTask.id });
@@ -602,28 +595,7 @@ async function saveForm() {
       clearFormDraft();
       clearFormErrors();
       AppState.currentTaskId = null;
-
-      requestAnimationFrame(() => {
-        resetFormToDefaults();
-
-        if (DOM.modalTitle) DOM.modalTitle.innerText = 'Novo Projeto';
-        if (DOM.btnDelete) DOM.btnDelete.style.display = 'none';
-        if (DOM.btnGeneratePDF) {
-          DOM.btnGeneratePDF.style.display = 'none';
-          DOM.btnGeneratePDF.classList.add('hidden');
-        }
-
-        const currentPath = window.location.pathname;
-        if (currentPath !== '/projetos/novo') {
-          window.history.pushState({ view: 'projects', taskId: 'new' }, '', '/projetos/novo');
-        }
-
-        requestAnimationFrame(() => {
-          if (DOM.formClient) {
-            DOM.formClient.focus();
-          }
-        });
-      });
+      closeModal();
     }
 
     renderBoard();
@@ -634,7 +606,6 @@ async function saveForm() {
       renderFinancial();
     }
   } catch (error) {
-    // Log full error for debugging
     console.error('[Forms] Error saving task:', {
       error: error.message,
       stack: error.stack,

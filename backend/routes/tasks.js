@@ -83,6 +83,61 @@ function logActivity(db, userId, taskId, actionType, actionDescription, oldData 
 function createTasksRoutes(db, NODE_ENV, sanitizeString) {
   const router = require('express').Router();
 
+  router.get('/activities/recent', (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit) || 50;
+      const taskIdParam = req.query.task_id;
+      let taskId = null;
+
+      if (taskIdParam) {
+        taskId = parseInt(taskIdParam);
+        if (isNaN(taskId)) {
+          return res.status(400).json({ success: false, error: 'task_id inválido' });
+        }
+      }
+
+      const params = [];
+      let query = `
+        SELECT
+          al.task_id,
+          al.action_type,
+          al.action_description,
+          al.created_at,
+          u.name as user_name
+        FROM activity_log al
+        LEFT JOIN users u ON al.user_id = u.id
+      `;
+
+      if (taskId !== null) {
+        query += ' WHERE al.task_id = ?';
+        params.push(taskId);
+      }
+
+      query += ' ORDER BY al.created_at DESC LIMIT ?';
+      params.push(limit);
+
+      db.all(query, params, (err, activities) => {
+        if (err) {
+          return sendDbError(res, err, NODE_ENV, 'GetActivities');
+        }
+
+        res.json({
+          success: true,
+          data: activities || []
+        });
+      });
+    } catch (error) {
+      console.error('[GetActivities] Unexpected error:', {
+        error: error.message,
+        stack: NODE_ENV === 'development' ? error.stack : undefined
+      });
+      res.status(500).json({
+        success: false,
+        error: NODE_ENV === 'production' ? 'Erro interno do servidor' : error.message
+      });
+    }
+  });
+
   // Get all tasks (shared across all users - team collaboration)
   router.get('/', (req, res) => {
     try {
@@ -953,63 +1008,6 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString) {
       console.error('[DeleteSubtask] Unexpected error:', {
         error: error.message,
         subtaskId: req.params.id,
-        stack: NODE_ENV === 'development' ? error.stack : undefined
-      });
-      res.status(500).json({
-        success: false,
-        error: NODE_ENV === 'production' ? 'Erro interno do servidor' : error.message
-      });
-    }
-  });
-
-  router.get('/activities/recent', (req, res) => {
-    try {
-      const limit = parseInt(req.query.limit) || 50;
-      const taskIdParam = req.query.task_id;
-      let taskId = null;
-
-      if (taskIdParam) {
-        taskId = parseInt(taskIdParam);
-        if (isNaN(taskId)) {
-          return res.status(400).json({ success: false, error: 'task_id inválido' });
-        }
-      }
-
-      let query = `
-        SELECT
-          al.task_id,
-          al.action_type,
-          al.action_description,
-          al.created_at,
-          u.name as user_name,
-          t.client as task_client
-        FROM activity_log al
-        LEFT JOIN users u ON al.user_id = u.id
-        LEFT JOIN tasks t ON al.task_id = t.id
-      `;
-
-      const params = [];
-      if (taskId !== null) {
-        query += ' WHERE al.task_id = ?';
-        params.push(taskId);
-      }
-
-      query += ' ORDER BY al.created_at DESC LIMIT ?';
-      params.push(limit);
-
-      db.all(query, params, (err, activities) => {
-        if (err) {
-          return sendDbError(res, err, NODE_ENV, 'GetActivities');
-        }
-
-        res.json({
-          success: true,
-          data: activities || []
-        });
-      });
-    } catch (error) {
-      console.error('[GetActivities] Unexpected error:', {
-        error: error.message,
         stack: NODE_ENV === 'development' ? error.stack : undefined
       });
       res.status(500).json({
