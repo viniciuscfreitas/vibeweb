@@ -76,7 +76,6 @@ async function renderDashboard() {
   }
 }
 
-
 function renderMRRCard(metrics) {
   if (!metrics || !DOM.statsGrid) return;
 
@@ -371,8 +370,8 @@ function renderUrgentProjects(urgentProjects) {
   if (!DOM.urgentList) return;
 
   const urgentProjectsList = urgentProjects || [];
-  const cards = getCachedCardElements();
-  const isExpanded = cards.urgentCard && cards.urgentCard.classList.contains('expanded');
+  const elements = getExpandElements();
+  const isExpanded = elements.urgentCard && elements.urgentCard.classList.contains('expanded');
 
   if (urgentProjectsList.length === 0) {
     DOM.urgentList.innerHTML = `
@@ -403,7 +402,6 @@ function renderUrgentProjects(urgentProjects) {
     item.setAttribute('role', 'button');
     item.setAttribute('tabindex', '0');
     item.setAttribute('aria-label', ariaLabel);
-
     if (isOverdue) {
       item.style.borderLeft = '3px solid var(--danger)';
     }
@@ -429,7 +427,6 @@ function renderUrgentProjects(urgentProjects) {
         openModal(project);
       }
     });
-
     fragment.appendChild(item);
   });
 
@@ -466,6 +463,8 @@ function renderRecentActivities(activities) {
     const escapedText = escapeHtml(activity.text);
     const escapedInitials = activity.userInitials ? escapeHtml(activity.userInitials) : '';
     const escapedAvatarUrl = activity.userAvatarUrl ? escapeHtml(activity.userAvatarUrl) : '';
+    const taskId = activity.taskId;
+    const task = tasks.find(t => t.id === taskId);
 
     const item = document.createElement('div');
     item.className = 'activity-item';
@@ -494,9 +493,6 @@ function renderRecentActivities(activities) {
       </div>
       ${userBadgeHtml}
     `;
-
-    const taskId = activity.taskId;
-    const task = tasks.find(t => t.id === taskId);
 
     if (task) {
       item.addEventListener('click', () => openModal(task));
@@ -562,195 +558,123 @@ function exportDashboardData() {
   downloadCSV(csv, `vibeos-dashboard-${new Date().toISOString().split('T')[0]}.csv`);
 }
 
-let _expandedActivitiesCache = null;
-let _expandedActivitiesCacheTime = null;
-const EXPANDED_ACTIVITIES_CACHE_MS = 60000;
-
-let _cachedCardElements = {
+let _cachedExpandElements = {
   urgentCard: null,
   activityCard: null,
   expandUrgentBtn: null,
   expandActivityBtn: null
 };
 
-let _cachedApiBaseUrl = null;
-
-function getCachedCardElements() {
-  if (!_cachedCardElements.urgentCard) {
-    _cachedCardElements.urgentCard = document.getElementById('urgentCard');
-    _cachedCardElements.activityCard = document.getElementById('activityCard');
-    _cachedCardElements.expandUrgentBtn = document.getElementById('expandUrgentBtn');
-    _cachedCardElements.expandActivityBtn = document.getElementById('expandActivityBtn');
+function getExpandElements() {
+  if (!_cachedExpandElements.urgentCard) {
+    _cachedExpandElements.urgentCard = document.getElementById('urgentCard');
+    _cachedExpandElements.activityCard = document.getElementById('activityCard');
+    _cachedExpandElements.expandUrgentBtn = document.getElementById('expandUrgentBtn');
+    _cachedExpandElements.expandActivityBtn = document.getElementById('expandActivityBtn');
   }
-  return _cachedCardElements;
-}
-
-function clearCardElementsCache() {
-  _cachedCardElements = {
-    urgentCard: null,
-    activityCard: null,
-    expandUrgentBtn: null,
-    expandActivityBtn: null
-  };
-}
-
-function isAnyCardExpanded() {
-  const cards = getCachedCardElements();
-  const urgentExpanded = cards.urgentCard && cards.urgentCard.classList.contains('expanded');
-  const activityExpanded = cards.activityCard && cards.activityCard.classList.contains('expanded');
-  return urgentExpanded || activityExpanded;
-}
-
-function updateBodyOverflow() {
-  if (isAnyCardExpanded()) {
-    document.body.style.overflow = 'hidden';
-  } else {
-    document.body.style.overflow = '';
-  }
-}
-
-function getCachedApiBaseUrl() {
-  if (!_cachedApiBaseUrl) {
-    _cachedApiBaseUrl = getApiBaseUrl();
-  }
-  return _cachedApiBaseUrl;
-}
-
-const ACTION_TYPE_ICONS = {
-  'create': 'fa-plus-circle',
-  'move': 'fa-arrows-left-right',
-  'update': 'fa-edit',
-  'delete': 'fa-trash'
-};
-
-function transformActivityFromApi(activity) {
-  const activityDate = parseTaskDate(activity.created_at);
-  if (!activityDate) return null;
-
-  const icon = ACTION_TYPE_ICONS[activity.action_type] || 'fa-file-invoice';
-  const userName = activity.user_name || 'Usuário';
-  const userInitials = getInitials(userName);
-  const escapedDescription = escapeHtml(activity.action_description || '');
-  const apiBaseUrl = getCachedApiBaseUrl();
-  const userAvatarUrl = activity.user_avatar_url
-    ? (activity.user_avatar_url.startsWith('http') ? activity.user_avatar_url : `${apiBaseUrl}${activity.user_avatar_url}`)
-    : null;
-
-  return {
-    text: escapedDescription,
-    createdAt: activityDate,
-    icon: icon,
-    taskId: activity.task_id,
-    userName: userName,
-    userInitials: userInitials,
-    userAvatarUrl: userAvatarUrl
-  };
-}
-
-async function loadAllActivities(useCache = true) {
-  if (useCache && _expandedActivitiesCache && _expandedActivitiesCacheTime) {
-    const age = Date.now() - _expandedActivitiesCacheTime;
-    if (age < EXPANDED_ACTIVITIES_CACHE_MS) {
-      return _expandedActivitiesCache;
-    }
-  }
-
-  const allActivities = await api.getActivities(100);
-  if (allActivities && Array.isArray(allActivities) && allActivities.length > 0) {
-    const activities = allActivities
-      .map(transformActivityFromApi)
-      .filter(activity => activity !== null);
-
-    if (activities.length > 0) {
-      _expandedActivitiesCache = activities;
-      _expandedActivitiesCacheTime = Date.now();
-      return activities;
-    }
-  }
-
-  return null;
+  return _cachedExpandElements;
 }
 
 function setupExpandButtons() {
-  const cards = getCachedCardElements();
+  const elements = getExpandElements();
 
-  if (cards.expandUrgentBtn && cards.urgentCard) {
-    cards.expandUrgentBtn.removeEventListener('click', toggleUrgentExpand);
-    cards.expandUrgentBtn.addEventListener('click', toggleUrgentExpand);
+  if (elements.expandUrgentBtn) {
+    elements.expandUrgentBtn.removeEventListener('click', toggleUrgentExpand);
+    elements.expandUrgentBtn.addEventListener('click', toggleUrgentExpand);
   }
 
-  if (cards.expandActivityBtn && cards.activityCard) {
-    cards.expandActivityBtn.removeEventListener('click', toggleActivityExpand);
-    cards.expandActivityBtn.addEventListener('click', toggleActivityExpand);
-  }
-}
-
-function toggleCardExpand(cardId, btnId, sectionName, onExpand, onCollapse) {
-  const cards = getCachedCardElements();
-  const card = cardId === 'urgentCard' ? cards.urgentCard : cards.activityCard;
-  const btn = btnId === 'expandUrgentBtn' ? cards.expandUrgentBtn : cards.expandActivityBtn;
-  const icon = btn.querySelector('i');
-
-  if (!card || !btn) return;
-
-  const isExpanded = card.classList.contains('expanded');
-
-  if (isExpanded) {
-    card.classList.remove('expanded');
-    updateBodyOverflow();
-    icon.className = 'fa-solid fa-expand';
-    btn.setAttribute('aria-label', `Expandir lista de ${sectionName}`);
-    btn.setAttribute('title', 'Expandir');
-    onCollapse();
-  } else {
-    card.classList.add('expanded');
-    updateBodyOverflow();
-    icon.className = 'fa-solid fa-compress';
-    btn.setAttribute('aria-label', `Recolher lista de ${sectionName}`);
-    btn.setAttribute('title', 'Recolher');
-    onExpand();
+  if (elements.expandActivityBtn) {
+    elements.expandActivityBtn.removeEventListener('click', toggleActivityExpand);
+    elements.expandActivityBtn.addEventListener('click', toggleActivityExpand);
   }
 }
 
 function toggleUrgentExpand() {
-  const metrics = AppState.getCachedMetrics(() => calculateDashboardMetrics());
-  const urgentProjects = metrics.urgentProjects || [];
+  const elements = getExpandElements();
+  const urgentCard = elements.urgentCard;
+  const expandBtn = elements.expandUrgentBtn;
+  const expandIcon = expandBtn.querySelector('i');
 
-  toggleCardExpand(
-    'urgentCard',
-    'expandUrgentBtn',
-    'urgentes',
-    () => renderUrgentProjects(urgentProjects),
-    () => renderUrgentProjects(urgentProjects)
-  );
+  if (!urgentCard || !expandBtn) return;
+
+  const isExpanded = urgentCard.classList.contains('expanded');
+
+  if (isExpanded) {
+    urgentCard.classList.remove('expanded');
+    expandIcon.className = 'fa-solid fa-expand';
+    expandBtn.setAttribute('aria-label', 'Expandir lista de urgentes');
+    expandBtn.setAttribute('title', 'Expandir');
+  } else {
+    urgentCard.classList.add('expanded');
+    expandIcon.className = 'fa-solid fa-compress';
+    expandBtn.setAttribute('aria-label', 'Recolher lista de urgentes');
+    expandBtn.setAttribute('title', 'Recolher');
+  }
+
+  const metrics = AppState.getCachedMetrics(() => calculateDashboardMetrics());
+  renderUrgentProjects(metrics.urgentProjects || []);
 }
 
 async function toggleActivityExpand() {
-  toggleCardExpand(
-    'activityCard',
-    'expandActivityBtn',
-    'atividades',
-    async () => {
-      try {
-        const activities = await loadAllActivities(true);
-        if (activities && activities.length > 0) {
-          renderRecentActivities(activities);
-        } else {
-          const tasks = AppState.getTasks();
-          const fallbackActivities = await generateRecentActivities(tasks, true);
-          renderRecentActivities(fallbackActivities || []);
-        }
-      } catch (error) {
-        console.error('[Dashboard] Error loading expanded activities:', error);
-        const tasks = AppState.getTasks();
-        const fallbackActivities = await generateRecentActivities(tasks, true);
-        renderRecentActivities(fallbackActivities || []);
-      }
-    },
-    async () => {
+  const elements = getExpandElements();
+  const activityCard = elements.activityCard;
+  const expandBtn = elements.expandActivityBtn;
+  const expandIcon = expandBtn.querySelector('i');
+
+  if (!activityCard || !expandBtn) return;
+
+  const isExpanded = activityCard.classList.contains('expanded');
+
+  if (isExpanded) {
+    activityCard.classList.remove('expanded');
+    expandIcon.className = 'fa-solid fa-expand';
+    expandBtn.setAttribute('aria-label', 'Expandir lista de atividades');
+    expandBtn.setAttribute('title', 'Expandir');
+
+    const tasks = AppState.getTasks();
+    const activities = await generateRecentActivities(tasks, true);
+    renderRecentActivities(activities || []);
+  } else {
+    activityCard.classList.add('expanded');
+    expandIcon.className = 'fa-solid fa-compress';
+    expandBtn.setAttribute('aria-label', 'Recolher lista de atividades');
+    expandBtn.setAttribute('title', 'Recolher');
+
+    const allActivities = await api.getActivities(100);
+    if (allActivities && Array.isArray(allActivities) && allActivities.length > 0) {
+      const activities = [];
+      const apiBaseUrl = getApiBaseUrl();
+      const iconMap = {
+        'create': 'fa-plus-circle',
+        'move': 'fa-arrows-left-right',
+        'update': 'fa-edit',
+        'delete': 'fa-trash'
+      };
+
+      allActivities.forEach(activity => {
+        const activityDate = parseTaskDate(activity.created_at);
+        if (!activityDate) return;
+
+        const userName = activity.user_name || 'Usuário';
+        const userAvatarUrl = activity.user_avatar_url
+          ? (activity.user_avatar_url.startsWith('http') ? activity.user_avatar_url : `${apiBaseUrl}${activity.user_avatar_url}`)
+          : null;
+
+        activities.push({
+          text: escapeHtml(activity.action_description || ''),
+          createdAt: activityDate,
+          icon: iconMap[activity.action_type] || 'fa-file-invoice',
+          taskId: activity.task_id,
+          userName: userName,
+          userInitials: getInitials(userName),
+          userAvatarUrl: userAvatarUrl
+        });
+      });
+      renderRecentActivities(activities);
+    } else {
       const tasks = AppState.getTasks();
       const activities = await generateRecentActivities(tasks, true);
       renderRecentActivities(activities || []);
     }
-  );
+  }
 }
