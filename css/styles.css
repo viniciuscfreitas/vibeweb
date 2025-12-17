@@ -1498,12 +1498,7 @@ html[data-authenticated="true"] #appContainer.hidden {
   border: none;
   border-radius: 8px;
   padding: 1rem;
-  transform-origin: center center;
-}
-
-.dashboard-card.animating {
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: transform, opacity;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .dashboard-card-header {
@@ -1559,40 +1554,6 @@ html[data-authenticated="true"] #appContainer.hidden {
   overflow-y: auto;
   background-color: var(--bg-card);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-  opacity: 1;
-  transform: scale(1);
-  animation: expandCard 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-
-.dashboard-card.expanded.animating {
-  will-change: transform, opacity;
-}
-
-@keyframes expandCard {
-  from {
-    opacity: 0;
-    transform: scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.dashboard-card.collapsing {
-  animation: collapseCard 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  will-change: transform, opacity;
-}
-
-@keyframes collapseCard {
-  from {
-    opacity: 1;
-    transform: scale(1);
-  }
-  to {
-    opacity: 0.95;
-    transform: scale(0.98);
-  }
 }
 
 .dashboard-card.expanded .dashboard-card-header {
@@ -1610,23 +1571,6 @@ html[data-authenticated="true"] #appContainer.hidden {
 .dashboard-card.expanded .activity-list {
   max-height: calc(100% - 80px);
   overflow-y: auto;
-}
-
-.dashboard-card.expanded.animating .urgent-list,
-.dashboard-card.expanded.animating .activity-list {
-  animation: fadeInList 0.3s cubic-bezier(0.4, 0, 0.2, 1) 0.1s forwards;
-  will-change: transform, opacity;
-}
-
-@keyframes fadeInList {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .dashboard-card.expanded .urgent-item,

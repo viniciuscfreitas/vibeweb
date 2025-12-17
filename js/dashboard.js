@@ -579,10 +579,6 @@ function getExpandElements() {
   return _cachedExpandElements;
 }
 
-function removeAnimationClasses(card) {
-  card.classList.remove('animating', 'collapsing');
-}
-
 function setupExpandButtons() {
   const elements = getExpandElements();
 
@@ -606,22 +602,20 @@ function toggleUrgentExpand() {
   if (!urgentCard || !expandBtn || !expandIcon) return;
 
   const isExpanded = urgentCard.classList.contains('expanded');
-
   const metrics = AppState.getCachedMetrics(() => calculateDashboardMetrics());
 
   if (isExpanded) {
-    urgentCard.classList.add('collapsing');
-    urgentCard.classList.remove('expanded', 'animating');
+    urgentCard.classList.remove('expanded');
     expandIcon.className = 'fa-solid fa-expand';
     expandBtn.setAttribute('aria-label', 'Expandir lista de urgentes');
     expandBtn.setAttribute('title', 'Expandir');
-    setTimeout(() => removeAnimationClasses(urgentCard), 250);
   } else {
-    urgentCard.classList.add('expanded', 'animating');
+    requestAnimationFrame(() => {
+      urgentCard.classList.add('expanded');
+    });
     expandIcon.className = 'fa-solid fa-compress';
     expandBtn.setAttribute('aria-label', 'Recolher lista de urgentes');
     expandBtn.setAttribute('title', 'Recolher');
-    setTimeout(() => removeAnimationClasses(urgentCard), 300);
   }
 
   renderUrgentProjects(metrics.urgentProjects || []);
@@ -638,24 +632,21 @@ async function toggleActivityExpand() {
   const isExpanded = activityCard.classList.contains('expanded');
 
   if (isExpanded) {
-    activityCard.classList.add('collapsing');
-    activityCard.classList.remove('expanded', 'animating');
+    activityCard.classList.remove('expanded');
     expandIcon.className = 'fa-solid fa-expand';
     expandBtn.setAttribute('aria-label', 'Expandir lista de atividades');
     expandBtn.setAttribute('title', 'Expandir');
-
-    setTimeout(() => removeAnimationClasses(activityCard), 250);
 
     const tasks = AppState.getTasks();
     const activities = await generateRecentActivities(tasks, true);
     renderRecentActivities(activities || []);
   } else {
-    activityCard.classList.add('expanded', 'animating');
+    requestAnimationFrame(() => {
+      activityCard.classList.add('expanded');
+    });
     expandIcon.className = 'fa-solid fa-compress';
     expandBtn.setAttribute('aria-label', 'Recolher lista de atividades');
     expandBtn.setAttribute('title', 'Recolher');
-
-    setTimeout(() => removeAnimationClasses(activityCard), 300);
 
     const allActivities = await api.getActivities(100);
     if (allActivities && Array.isArray(allActivities) && allActivities.length > 0) {
