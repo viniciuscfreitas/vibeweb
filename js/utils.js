@@ -112,32 +112,48 @@ function calculateRevenueChange(currentRevenue, lastRevenue) {
 
 function getTimeAgo(date) {
   if (!date || !(date instanceof Date)) {
-    return 'agora';
+    return 'Agora';
   }
 
   const now = Date.now();
   const diff = now - date.getTime();
 
-  // Handle negative diff (date in future due to timezone issues) or very recent (< 1 min)
-  if (diff < 0 || diff < MS_PER_MINUTE) {
-    return 'agora';
+  if (diff < 0) {
+    return 'Agora';
+  }
+
+  if (diff < MS_PER_MINUTE) {
+    return 'Agora';
+  }
+
+  const days = Math.floor(diff / MS_PER_DAY);
+
+  if (days >= 365) {
+    const years = Math.floor(days / 365);
+    return years === 1 ? '1 ano atrás' : `${years} anos atrás`;
+  }
+
+  if (days >= 30) {
+    const months = Math.floor(days / 30);
+    return months === 1 ? '1 mês atrás' : `${months} meses atrás`;
+  }
+
+  if (days >= 7) {
+    const weeks = Math.floor(days / 7);
+    return weeks === 1 ? '1 semana atrás' : `${weeks} semanas atrás`;
+  }
+
+  if (days >= 1) {
+    return days === 1 ? '1 dia atrás' : `${days} dias atrás`;
+  }
+
+  const hours = Math.floor(diff / MS_PER_HOUR);
+  if (hours >= 1) {
+    return hours === 1 ? '1 hora atrás' : `${hours} horas atrás`;
   }
 
   const minutes = Math.floor(diff / MS_PER_MINUTE);
-  const hours = Math.floor(diff / MS_PER_HOUR);
-  const days = Math.floor(diff / MS_PER_DAY);
-
-  // Check larger units first to avoid incorrect display (e.g., 90 minutes should show as hours)
-  if (days >= 7) {
-    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
-  }
-  if (hours >= 24) {
-    return `${days}d atrás`;
-  }
-  if (hours >= 1) {
-    return `${hours}h atrás`;
-  }
-  return `${minutes}m atrás`;
+  return minutes === 1 ? '1 minuto atrás' : `${minutes} minutos atrás`;
 }
 
 // Normalize task data from backend - ensure defaults for edge cases
