@@ -356,6 +356,8 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString) {
         }
 
         const descriptionSanitized = description ? sanitizeString(description, 5000) : null;
+        const assetsLinkSanitized = assets_link ? sanitizeString(assets_link, 2000) : null;
+        const publicUuidSanitized = public_uuid ? sanitizeString(public_uuid, 100) : null;
 
         // Calculate deadline_timestamp if deadline changed
         let finalDeadlineTimestamp = deadline_timestamp;
@@ -374,7 +376,7 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString) {
           `UPDATE tasks SET
             client = ?, contact = ?, type = ?, stack = ?, domain = ?, description = ?,
             price = ?, payment_status = ?, deadline = ?, deadline_timestamp = ?, hosting = ?,
-            col_id = ?, order_position = ?, is_recurring = ?, updated_at = CURRENT_TIMESTAMP
+            col_id = ?, order_position = ?, is_recurring = ?, assets_link = ?, public_uuid = ?, updated_at = CURRENT_TIMESTAMP
           WHERE id = ?`,
           [
             clientSanitized,
@@ -391,6 +393,8 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString) {
             colIdNum,
             orderNum,
             is_recurring !== undefined ? (is_recurring === 1 || is_recurring === true ? 1 : 0) : (existing.is_recurring || 0),
+            assetsLinkSanitized !== null ? assetsLinkSanitized : existing.assets_link,
+            publicUuidSanitized !== null ? publicUuidSanitized : existing.public_uuid,
             taskId
           ],
           function (err) {
@@ -414,7 +418,8 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString) {
               col_id: colIdNum,
               order_position: orderNum,
               is_recurring: is_recurring !== undefined ? (is_recurring === 1 || is_recurring === true ? 1 : 0) : (existing.is_recurring || 0),
-              assets_link: assetsLinkSanitized,
+              assets_link: assetsLinkSanitized !== null ? assetsLinkSanitized : existing.assets_link,
+              public_uuid: publicUuidSanitized !== null ? publicUuidSanitized : existing.public_uuid,
               updated_at: new Date().toISOString().replace('T', ' ').substring(0, 19)
             };
 
