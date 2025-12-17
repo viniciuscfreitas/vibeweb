@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="description" content="Painel de gerenciamento de projetos e ordens de serviço - VibeWeb OS">
   <meta name="theme-color" content="#ffffff">
   <meta name="referrer" content="no-referrer-when-downgrade">
@@ -44,6 +44,76 @@
       } catch (e) {
         // localStorage might not be available in some contexts
       }
+    })();
+
+    (function() {
+      const ua = window.navigator.userAgent;
+      const isIOS = /iPad|iPhone|iPod/.test(ua);
+      const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS|OPiOS/.test(ua);
+      const isSafariIOS = isIOS && isSafari;
+
+      if (!isSafariIOS) {
+        return;
+      }
+
+      let styleElement = null;
+      let lastMobileState = null;
+      let resizeTimeout = null;
+
+      function forceMobileLayout() {
+        const width = window.innerWidth || document.documentElement.clientWidth;
+        const isMobile = width <= 767;
+
+        if (isMobile === lastMobileState) {
+          return;
+        }
+
+        lastMobileState = isMobile;
+
+        const htmlEl = document.documentElement;
+
+        if (isMobile) {
+          htmlEl.classList.add('safari-mobile');
+
+          if (!styleElement) {
+            styleElement = document.createElement('style');
+            styleElement.id = 'safari-mobile-fix';
+            styleElement.textContent = `
+              .safari-mobile .bottom-nav { display: flex !important; }
+              .safari-mobile .sidebar { display: none !important; }
+              .safari-mobile .board-grid { flex-direction: column !important; min-width: unset !important; }
+              .safari-mobile .column { width: 100% !important; min-width: unset !important; }
+              .safari-mobile .main-content { padding-bottom: var(--bottom-nav-height) !important; }
+              .safari-mobile .dashboard-container,
+              .safari-mobile .financial-container { padding-bottom: calc(var(--bottom-nav-height) + 1rem) !important; }
+              .safari-mobile .header { padding: 0 1rem !important; height: 56px !important; }
+              .safari-mobile .board-container { padding: 1rem !important; }
+              .safari-mobile .btn-primary#btnNewProject { display: none !important; }
+            `;
+            document.head.appendChild(styleElement);
+          }
+        } else {
+          htmlEl.classList.remove('safari-mobile');
+        }
+      }
+
+      function throttledForceMobileLayout() {
+        if (resizeTimeout) {
+          clearTimeout(resizeTimeout);
+        }
+        resizeTimeout = setTimeout(forceMobileLayout, 150);
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', forceMobileLayout);
+      } else {
+        forceMobileLayout();
+      }
+
+      window.addEventListener('resize', throttledForceMobileLayout, { passive: true });
+      window.addEventListener('orientationchange', function() {
+        setTimeout(forceMobileLayout, 200);
+      }, { passive: true });
     })();
   </script>
 </head>
