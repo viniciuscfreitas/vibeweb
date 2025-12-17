@@ -1,5 +1,36 @@
 // Main Initialization and Event Listeners
 
+function getViewFromUrl(path = null) {
+  const currentPath = path || window.location.pathname;
+  if (currentPath === '/login' || currentPath.endsWith('/login')) {
+    return 'login';
+  }
+  if (currentPath === '/dashboard' || currentPath.endsWith('/dashboard')) {
+    return 'dashboard';
+  }
+  if (currentPath === '/financeiro' || currentPath.endsWith('/financeiro')) {
+    return 'financial';
+  }
+  return 'projects';
+}
+
+function updateUrl(view, currentPath = null) {
+  const path = currentPath || window.location.pathname;
+  let newPath = '/';
+
+  if (view === 'login') {
+    newPath = '/login';
+  } else if (view === 'dashboard') {
+    newPath = '/dashboard';
+  } else if (view === 'financial') {
+    newPath = '/financeiro';
+  }
+
+  if (path !== newPath) {
+    window.history.pushState({ view }, '', newPath);
+  }
+}
+
 function getCurrentTheme() {
   const saved = localStorage.getItem(THEME_STORAGE_KEY);
   return saved || 'light';
@@ -253,10 +284,12 @@ function updateViewContent(state) {
   }
 }
 
-function switchView(view) {
+function switchView(view, currentPath = null) {
   if (!DOM.boardContainer || !DOM.dashboardContainer || !DOM.financialContainer) return;
+  if (view === 'login') return;
 
   const state = determineViewState(view);
+  const path = currentPath || window.location.pathname;
 
   // Handle animated transitions for major view changes
   if (state.isSwitchingToDashboard) {
@@ -273,6 +306,7 @@ function switchView(view) {
 
   updateNavButtons(state.isProjects, state.isDashboard, state.isFinancial);
   updateAriaHiddenForViews();
+  updateUrl(view, path);
 
   // Announce view change to screen readers
   if (state.isDashboard) {
@@ -367,6 +401,18 @@ function setupEventListeners() {
         switchView('financial');
       }
     });
+  });
+
+  window.addEventListener('popstate', (e) => {
+    const currentPath = window.location.pathname;
+    const view = e.state?.view || getViewFromUrl(currentPath);
+    if (view === 'login' && isAuthenticated()) {
+      window.location.pathname = '/';
+      return;
+    }
+    if (view !== 'login') {
+      switchView(view, currentPath);
+    }
   });
 
   document.addEventListener('keydown', (e) => {
@@ -662,9 +708,13 @@ async function initApp() {
 
   initTheme();
   await renderUserAvatar();
-  renderBoard();
-  updateHeader('projects');
   setupEventListeners();
+
+  const currentPath = window.location.pathname;
+  const initialView = getViewFromUrl(currentPath);
+  if (initialView !== 'login') {
+    switchView(initialView, currentPath);
+  }
 
   let updateInterval = null;
 
@@ -724,7 +774,15 @@ function initAuth() {
   const appContainer = document.getElementById('appContainer');
   const btnLogout = document.getElementById('btnLogout');
 
+  const currentPath = window.location.pathname;
+  const viewFromUrl = getViewFromUrl(currentPath);
+
   if (isAuthenticated()) {
+    if (viewFromUrl === 'login') {
+      window.location.pathname = '/';
+      return;
+    }
+
     if (loginOverlay) {
       loginOverlay.classList.add('hidden');
       loginOverlay.classList.remove('fade-out', 'fade-in');
@@ -739,6 +797,12 @@ function initAuth() {
     initApp();
     return;
   }
+
+  if (viewFromUrl !== 'login') {
+    sessionStorage.setItem('redirectAfterLogin', currentPath);
+    updateUrl('login', currentPath);
+  }
+
   if (loginOverlay) {
     loginOverlay.classList.remove('hidden', 'fade-out');
     loginOverlay.classList.remove('fade-in');
@@ -825,7 +889,15 @@ function initAuth() {
             }
 
             clearFormCredentials();
-            initApp();
+
+            const savedPath = sessionStorage.getItem('redirectAfterLogin');
+            sessionStorage.removeItem('redirectAfterLogin');
+
+            if (savedPath && savedPath !== '/login') {
+              window.location.pathname = savedPath;
+            } else {
+              window.location.pathname = '/';
+            }
           }, 400);
         } else {
           if (errorGeneral) {

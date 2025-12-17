@@ -79,7 +79,7 @@ function setCurrentUser(user) {
 function logout() {
   localStorage.removeItem(AUTH_STORAGE_KEY);
   localStorage.removeItem('vibeTasks_token');
-  sanitizeUrl();
+  sessionStorage.removeItem('redirectAfterLogin');
   AppState.log('User logged out');
 
   const appContainer = document.getElementById('appContainer');
@@ -107,6 +107,7 @@ function logout() {
     }
 
     clearFormCredentials();
+    window.location.pathname = '/login';
 
     const emailInput = document.getElementById('loginEmail');
     if (emailInput) {
