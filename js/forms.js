@@ -12,12 +12,92 @@ var SIMPLE_DOMAIN_PATTERN = window.SIMPLE_DOMAIN_PATTERN;
 var EMAIL_PATTERN = window.EMAIL_PATTERN;
 var CONTACT_PATTERN = window.CONTACT_PATTERN;
 
+let lastSavedFormState = null;
+
+function saveFormState() {
+  if (!DOM.formClient || !DOM.modalOverlay || !DOM.modalOverlay.classList.contains('open')) return;
+
+  const formState = {
+    client: DOM.formClient.value || '',
+    contact: DOM.formContact?.value || '',
+    type: DOM.formType?.value || '',
+    stack: DOM.formStack?.value || '',
+    domain: DOM.formDomain?.value || '',
+    description: DOM.formDesc?.value || '',
+    price: DOM.formPrice?.value || '',
+    payment: DOM.formPayment?.value || '',
+    deadline: DOM.formDeadline?.value || '',
+    hosting: DOM.formHosting?.value || '',
+    recurring: DOM.formRecurring?.checked || false,
+    public: DOM.formPublic?.checked || false,
+    assetsLink: DOM.formAssetsLink?.value || ''
+  };
+
+  const formStateJson = JSON.stringify(formState);
+  if (formStateJson === lastSavedFormState) return;
+
+  const hasData = Object.values(formState).some(val => val !== '' && val !== false);
+  if (hasData) {
+    sessionStorage.setItem('formDraft', formStateJson);
+    lastSavedFormState = formStateJson;
+  } else {
+    lastSavedFormState = null;
+  }
+}
+
+function restoreFormState() {
+  try {
+    const saved = sessionStorage.getItem('formDraft');
+    if (!saved) return false;
+
+    const formState = JSON.parse(saved);
+    if (!formState) return false;
+
+    if (DOM.formClient) DOM.formClient.value = formState.client || '';
+    if (DOM.formContact) DOM.formContact.value = formState.contact || '';
+    if (DOM.formType) DOM.formType.value = formState.type || 'Landing Essencial';
+    if (DOM.formStack) DOM.formStack.value = formState.stack || '';
+    if (DOM.formDomain) DOM.formDomain.value = formState.domain || '';
+    if (DOM.formDesc) DOM.formDesc.value = formState.description || '';
+    if (DOM.formPrice) DOM.formPrice.value = formState.price || '';
+    if (DOM.formPayment) DOM.formPayment.value = formState.payment || PAYMENT_STATUS_PENDING;
+    if (DOM.formDeadline) DOM.formDeadline.value = formState.deadline || '';
+    if (DOM.formHosting) DOM.formHosting.value = formState.hosting || 'nao';
+    if (DOM.formRecurring) DOM.formRecurring.checked = formState.recurring || false;
+    if (DOM.formPublic) DOM.formPublic.checked = formState.public || false;
+    if (DOM.formAssetsLink) DOM.formAssetsLink.value = formState.assetsLink || '';
+
+    return true;
+  } catch (e) {
+    console.error('[Forms] Error restoring form state:', e);
+    return false;
+  }
+}
+
+function clearFormDraft() {
+  sessionStorage.removeItem('formDraft');
+  lastSavedFormState = null;
+}
+
 function openModal(task = null) {
   if (!DOM.modalOverlay || !DOM.modalTitle || !DOM.btnDelete) return;
 
   const isEditingExistingTask = !!task;
   AppState.currentTaskId = isEditingExistingTask ? task.id : null;
   clearFormErrors();
+
+  const currentPath = window.location.pathname;
+  let newPath = '/projetos';
+
+  if (isEditingExistingTask && task.id) {
+    newPath = `/projetos/${task.id}`;
+  } else {
+    newPath = '/projetos/novo';
+  }
+
+  if (currentPath !== newPath) {
+    window.history.pushState({ view: 'projects', taskId: task?.id || 'new' }, '', newPath);
+  }
 
   const modalTitle = isEditingExistingTask ? `Editar #${task.id}` : 'Novo Projeto';
   const deleteButtonDisplay = isEditingExistingTask ? 'block' : 'none';
@@ -33,43 +113,61 @@ function openModal(task = null) {
   DOM.modalOverlay.setAttribute('aria-hidden', 'false');
   DOM.modalOverlay.classList.add('open');
 
-  DOM.formClient.value = task?.client || '';
-  DOM.formContact.value = task?.contact || '';
-  DOM.formType.value = task?.type || 'Landing Essencial';
-  DOM.formStack.value = task?.stack || '';
-  DOM.formDomain.value = task?.domain || '';
-  DOM.formDesc.value = task?.description || '';
-  DOM.formPrice.value = task?.price || '';
-  DOM.formPayment.value = task?.payment_status || PAYMENT_STATUS_PENDING;
-  DOM.formDeadline.value = task?.deadline || '';
+  if (isEditingExistingTask) {
+    DOM.formClient.value = task?.client || '';
+    DOM.formContact.value = task?.contact || '';
+    DOM.formType.value = task?.type || 'Landing Essencial';
+    DOM.formStack.value = task?.stack || '';
+    DOM.formDomain.value = task?.domain || '';
+    DOM.formDesc.value = task?.description || '';
+    DOM.formPrice.value = task?.price || '';
+    DOM.formPayment.value = task?.payment_status || PAYMENT_STATUS_PENDING;
+    DOM.formDeadline.value = task?.deadline || '';
 
-  const hostingValue = task?.hosting || HOSTING_NO;
-  DOM.formHosting.value = hostingValue;
+    const hostingValue = task?.hosting || HOSTING_NO;
+    DOM.formHosting.value = hostingValue;
 
-  if (DOM.formRecurring) {
-    DOM.formRecurring.checked = task?.is_recurring === 1 || task?.is_recurring === true;
-  }
+    if (DOM.formRecurring) {
+      DOM.formRecurring.checked = task?.is_recurring === 1 || task?.is_recurring === true;
+    }
 
-  if (DOM.formPublic) {
-    DOM.formPublic.checked = !!task?.public_uuid;
-  }
+    if (DOM.formPublic) {
+      DOM.formPublic.checked = !!task?.public_uuid;
+    }
 
-  if (DOM.formAssetsLink) {
-    // Parse assets_link from JSON array or string
-    let assetsDisplay = '';
-    if (task?.assets_link) {
-      try {
-        const parsed = JSON.parse(task.assets_link);
-        if (Array.isArray(parsed)) {
-          assetsDisplay = parsed.join('\n');
-        } else {
+    if (DOM.formAssetsLink) {
+      let assetsDisplay = '';
+      if (task?.assets_link) {
+        try {
+          const parsed = JSON.parse(task.assets_link);
+          if (Array.isArray(parsed)) {
+            assetsDisplay = parsed.join('\n');
+          } else {
+            assetsDisplay = task.assets_link;
+          }
+        } catch (e) {
           assetsDisplay = task.assets_link;
         }
-      } catch (e) {
-        assetsDisplay = task.assets_link;
       }
+      DOM.formAssetsLink.value = assetsDisplay;
     }
-    DOM.formAssetsLink.value = assetsDisplay;
+  } else {
+    const restored = restoreFormState();
+    if (!restored) {
+      DOM.formClient.value = '';
+      DOM.formContact.value = '';
+      DOM.formType.value = 'Landing Essencial';
+      DOM.formStack.value = '';
+      DOM.formDomain.value = '';
+      DOM.formDesc.value = '';
+      DOM.formPrice.value = '';
+      DOM.formPayment.value = PAYMENT_STATUS_PENDING;
+      DOM.formDeadline.value = '';
+      DOM.formHosting.value = HOSTING_NO;
+      if (DOM.formRecurring) DOM.formRecurring.checked = false;
+      if (DOM.formPublic) DOM.formPublic.checked = false;
+      if (DOM.formAssetsLink) DOM.formAssetsLink.value = '';
+    }
   }
 
   setTimeout(() => {
@@ -84,11 +182,22 @@ function openModal(task = null) {
 
 function closeModal() {
   if (!DOM.modalOverlay) return;
+
+  saveFormState();
+
   DOM.modalOverlay.classList.remove('open');
   DOM.modalOverlay.setAttribute('aria-hidden', 'true');
   clearFormErrors();
   AppState.currentTaskId = null;
   releaseFocusFromModal();
+
+  const currentPath = window.location.pathname;
+  if (currentPath.startsWith('/projetos/')) {
+    const basePath = '/projetos';
+    if (currentPath !== basePath) {
+      window.history.pushState({ view: 'projects' }, '', basePath);
+    }
+  }
 }
 
 let modalFocusTrap = null;
@@ -473,6 +582,7 @@ async function saveForm() {
       AppState.log('Task created', { taskId: normalizedNewTask.id });
     }
 
+    clearFormDraft();
     closeModal();
     renderBoard();
 
@@ -565,6 +675,42 @@ function deleteItem() {
 if (typeof window.openModal === 'undefined') {
   window.openModal = openModal;
 }
+if (typeof window.closeModal === 'undefined') {
+  window.closeModal = closeModal;
+}
 if (typeof window.setupPasteHandler === 'undefined') {
   window.setupPasteHandler = setupPasteHandler;
+}
+
+let formSaveTimeout = null;
+let formAutoSaveSetup = false;
+
+function setupFormAutoSave() {
+  if (!DOM.formClient || formAutoSaveSetup) return;
+  formAutoSaveSetup = true;
+
+  const formFields = [
+    DOM.formClient, DOM.formContact, DOM.formType, DOM.formStack,
+    DOM.formDomain, DOM.formDesc, DOM.formPrice, DOM.formPayment,
+    DOM.formDeadline, DOM.formHosting, DOM.formRecurring, DOM.formPublic,
+    DOM.formAssetsLink
+  ].filter(Boolean);
+
+  formFields.forEach(field => {
+    if (field.type === 'checkbox') {
+      field.addEventListener('change', () => {
+        if (formSaveTimeout) clearTimeout(formSaveTimeout);
+        formSaveTimeout = setTimeout(() => {
+          saveFormState();
+        }, 1000);
+      });
+    } else {
+      field.addEventListener('input', () => {
+        if (formSaveTimeout) clearTimeout(formSaveTimeout);
+        formSaveTimeout = setTimeout(() => {
+          saveFormState();
+        }, 1000);
+      });
+    }
+  });
 }

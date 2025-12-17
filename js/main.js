@@ -1,5 +1,38 @@
 // Main Initialization and Event Listeners
 
+let cachedPath = null;
+let cachedTaskId = null;
+let cachedIsNew = null;
+
+function getTaskIdFromUrl(path = null) {
+  const currentPath = path || window.location.pathname;
+  if (cachedPath !== currentPath) {
+    cachedPath = currentPath;
+    cachedTaskId = null;
+    cachedIsNew = null;
+  }
+  if (cachedTaskId !== undefined) {
+    return cachedTaskId;
+  }
+  const match = currentPath.match(/^\/projetos\/(\d+)$/);
+  cachedTaskId = match ? match[1] : null;
+  return cachedTaskId;
+}
+
+function isNewProjectUrl(path = null) {
+  const currentPath = path || window.location.pathname;
+  if (cachedPath !== currentPath) {
+    cachedPath = currentPath;
+    cachedTaskId = null;
+    cachedIsNew = null;
+  }
+  if (cachedIsNew !== undefined) {
+    return cachedIsNew;
+  }
+  cachedIsNew = currentPath === '/projetos/novo' || currentPath.endsWith('/projetos/novo');
+  return cachedIsNew;
+}
+
 function getViewFromUrl(path = null) {
   const currentPath = path || window.location.pathname;
   if (currentPath === '/login' || currentPath.endsWith('/login')) {
@@ -10,6 +43,12 @@ function getViewFromUrl(path = null) {
   }
   if (currentPath === '/financeiro' || currentPath.endsWith('/financeiro')) {
     return 'financial';
+  }
+  if (currentPath === '/projetos/novo' || currentPath.endsWith('/projetos/novo')) {
+    return 'projects';
+  }
+  if (getTaskIdFromUrl(currentPath)) {
+    return 'projects';
   }
   if (currentPath === '/projetos' || currentPath.endsWith('/projetos')) {
     return 'projects';
@@ -425,6 +464,29 @@ function setupEventListeners() {
     }
     if (view !== 'login') {
       switchView(view, currentPath);
+
+      const taskId = getTaskIdFromUrl(currentPath);
+      const isNew = isNewProjectUrl(currentPath);
+      const hasOpenModal = typeof window.openModal === 'function';
+      const modalIsOpen = DOM.modalOverlay?.classList.contains('open');
+
+      if (taskId && hasOpenModal) {
+        const tasks = AppState.getTasks();
+        const task = tasks.find(t => t.id.toString() === taskId);
+        if (task) {
+          setTimeout(() => {
+            window.openModal(task);
+          }, 300);
+        } else if (modalIsOpen) {
+          window.closeModal();
+        }
+      } else if (isNew && hasOpenModal) {
+        setTimeout(() => {
+          window.openModal();
+        }, 300);
+      } else if (modalIsOpen) {
+        window.closeModal();
+      }
     }
   });
 
@@ -723,10 +785,32 @@ async function initApp() {
   await renderUserAvatar();
   setupEventListeners();
 
+  if (typeof setupFormAutoSave === 'function') {
+    setupFormAutoSave();
+  }
+
   const currentPath = window.location.pathname;
   const initialView = getViewFromUrl(currentPath);
   if (initialView !== 'login') {
     switchView(initialView, currentPath);
+
+    const taskId = getTaskIdFromUrl(currentPath);
+    const isNew = isNewProjectUrl(currentPath);
+    const hasOpenModal = typeof window.openModal === 'function';
+
+    if (taskId && hasOpenModal) {
+      const tasks = AppState.getTasks();
+      const task = tasks.find(t => t.id.toString() === taskId);
+      if (task) {
+        setTimeout(() => {
+          window.openModal(task);
+        }, 300);
+      }
+    } else if (isNew && hasOpenModal) {
+      setTimeout(() => {
+        window.openModal();
+      }, 300);
+    }
   }
 
   let updateInterval = null;
