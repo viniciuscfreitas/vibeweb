@@ -16,6 +16,7 @@ services:
       - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost}
     volumes:
       - ./backend/database.db:/app/database.db
+      - ./backend/uploads:/app/uploads
     networks:
       - agencia-network
     healthcheck:
