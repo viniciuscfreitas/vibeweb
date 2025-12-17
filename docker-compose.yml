@@ -15,7 +15,7 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost}
     volumes:
-      - agencia-db:/app/database.db
+      - ./backend/database.db:/app/database.db
     networks:
       - agencia-network
     healthcheck:
@@ -42,10 +42,6 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
-
-volumes:
-  agencia-db:
-    driver: local
 
 networks:
   agencia-network:
