@@ -9,7 +9,6 @@ if (isFileProtocol) {
   console.warn('[API] Acesso via file:// detectado. Para melhor compatibilidade, use um servidor HTTP local:\n  npx serve .\n  ou\n  python -m http.server 8080');
 }
 const TOKEN_STORAGE_KEY = 'vibeTasks_token';
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 async function apiRequest(method, endpoint, data = null, requiresAuth = true) {
   const url = `${API_BASE_URL}${endpoint}`;
