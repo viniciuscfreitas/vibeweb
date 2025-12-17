@@ -568,6 +568,9 @@ async function saveForm() {
       const updatedTasks = tasks.map(t => t.id === AppState.currentTaskId ? normalizedTask : t);
       AppState.setTasks(updatedTasks);
       AppState.log('Task updated', { taskId: AppState.currentTaskId });
+
+      clearFormDraft();
+      closeModal();
     } else {
       // Create new task
       let maxOrder = -1;
@@ -621,10 +624,6 @@ async function saveForm() {
           }
         });
       });
-    } else {
-      // Update existing task - close modal normally
-      clearFormDraft();
-      closeModal();
     }
 
     renderBoard();

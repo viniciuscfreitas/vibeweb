@@ -654,7 +654,9 @@ function setupEventListeners() {
   DOM.formPrice.addEventListener('input', () => clearFormError('price'));
 
   // Setup paste handler for magic paste feature
-  setupPasteHandler();
+  if (typeof window.setupPasteHandler === 'function') {
+    window.setupPasteHandler();
+  }
 }
 
 async function renderUserAvatar() {
