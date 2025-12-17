@@ -606,7 +606,9 @@ function toggleUrgentExpand() {
 
   if (isExpanded) {
     urgentCard.classList.add('collapsing');
-    urgentCard.classList.remove('expanded');
+    requestAnimationFrame(() => {
+      urgentCard.classList.remove('expanded');
+    });
     expandIcon.className = 'fa-solid fa-expand';
     expandBtn.setAttribute('aria-label', 'Expandir lista de urgentes');
     expandBtn.setAttribute('title', 'Expandir');
@@ -635,7 +637,9 @@ async function toggleActivityExpand() {
 
   if (isExpanded) {
     activityCard.classList.add('collapsing');
-    activityCard.classList.remove('expanded');
+    requestAnimationFrame(() => {
+      activityCard.classList.remove('expanded');
+    });
     expandIcon.className = 'fa-solid fa-expand';
     expandBtn.setAttribute('aria-label', 'Expandir lista de atividades');
     expandBtn.setAttribute('title', 'Expandir');

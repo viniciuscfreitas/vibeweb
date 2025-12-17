@@ -1553,7 +1553,7 @@ html[data-authenticated="true"] #appContainer.hidden {
   overflow-y: auto;
   background-color: var(--bg-card);
   box-shadow: none;
-  animation: expandCard 0.2s ease;
+  animation: expandCard 0.2s ease forwards;
 }
 
 .dashboard-card.collapsing {
@@ -1570,7 +1570,7 @@ html[data-authenticated="true"] #appContainer.hidden {
   overflow-y: auto;
   background-color: var(--bg-card);
   box-shadow: none;
-  animation: collapseCard 0.2s ease;
+  animation: collapseCard 0.2s ease forwards;
 }
 
 @keyframes expandCard {
