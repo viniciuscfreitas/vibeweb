@@ -451,8 +451,9 @@ function updateFormProgress() {
 
     for (let i = 0; i < REQUIRED_FIELDS.length; i++) {
       const field = REQUIRED_FIELDS[i];
-      if (field.el) {
-        const value = field.el.value ? field.el.value.trim() : '';
+      const el = field.el();
+      if (el) {
+        const value = el.value ? el.value.trim() : '';
         if (value !== '') {
           filledCount++;
         }
