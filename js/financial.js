@@ -75,11 +75,11 @@ let financialSearchState = {
   lastRenderHash: null,
   isRendered: false,
   gridElement: null,
-  filterStatus: 'all', // 'all', 'paid', 'pending'
-  sortColumn: 'value', // 'client', 'value', 'status', 'hosting'
-  sortDirection: 'desc', // 'asc', 'desc'
-  cachedMetrics: null, // Cache metrics to avoid recalculation
-  tasksCache: new Map() // Cache parsed task data (dates, lowercased strings)
+  filterStatus: 'all',
+  sortColumn: 'value',
+  sortDirection: 'desc',
+  cachedMetrics: null,
+  tasksCache: new Map()
 };
 
 const paymentStatusHtml = {
@@ -163,52 +163,48 @@ function filterAndRenderProjects(searchTerm) {
     });
   }
 
-  financialSearchState.sortedTasks = null;
-  renderProjectsTable(filteredTasks, hasSearchTerm);
+  const sortedTasks = sortTasks([...filteredTasks]);
+  financialSearchState.sortedTasks = sortedTasks;
+  renderProjectsTable(sortedTasks, hasSearchTerm);
 }
+
+const STATUS_ORDER = { [PAYMENT_STATUS_PAID]: 0, [PAYMENT_STATUS_PARTIAL]: 1, [PAYMENT_STATUS_PENDING]: 2 };
+const HOSTING_ORDER = { [HOSTING_YES]: 0, [HOSTING_LATER]: 1, [HOSTING_NO]: 2 };
 
 function sortTasks(tasks) {
   if (!tasks || tasks.length === 0) return tasks;
 
   const column = financialSearchState.sortColumn;
   const direction = financialSearchState.sortDirection;
+  const isAsc = direction === 'asc';
 
-  const tasksWithSortKey = tasks.map(task => {
-    let sortKey;
+  if (column === 'client') {
+    tasks.sort((a, b) => {
+      const aKey = (a.client || '').toLowerCase();
+      const bKey = (b.client || '').toLowerCase();
+      return isAsc ? aKey.localeCompare(bKey) : bKey.localeCompare(aKey);
+    });
+  } else if (column === 'value') {
+    tasks.sort((a, b) => {
+      const aKey = parseFloat(a.price) || 0;
+      const bKey = parseFloat(b.price) || 0;
+      return isAsc ? aKey - bKey : bKey - aKey;
+    });
+  } else if (column === 'status') {
+    tasks.sort((a, b) => {
+      const aKey = STATUS_ORDER[a.payment_status] !== undefined ? STATUS_ORDER[a.payment_status] : 3;
+      const bKey = STATUS_ORDER[b.payment_status] !== undefined ? STATUS_ORDER[b.payment_status] : 3;
+      return isAsc ? aKey - bKey : bKey - aKey;
+    });
+  } else if (column === 'hosting') {
+    tasks.sort((a, b) => {
+      const aKey = HOSTING_ORDER[a.hosting] !== undefined ? HOSTING_ORDER[a.hosting] : 3;
+      const bKey = HOSTING_ORDER[b.hosting] !== undefined ? HOSTING_ORDER[b.hosting] : 3;
+      return isAsc ? aKey - bKey : bKey - aKey;
+    });
+  }
 
-    switch (column) {
-      case 'client':
-        sortKey = (task.client || '').toLowerCase();
-        break;
-      case 'value':
-        sortKey = parseFloat(task.price) || 0;
-        break;
-      case 'status':
-        const statusOrder = { [PAYMENT_STATUS_PAID]: 0, [PAYMENT_STATUS_PARTIAL]: 1, [PAYMENT_STATUS_PENDING]: 2 };
-        sortKey = statusOrder[task.payment_status] !== undefined ? statusOrder[task.payment_status] : 3;
-        break;
-      case 'hosting':
-        const hostingOrder = { [HOSTING_YES]: 0, [HOSTING_LATER]: 1, [HOSTING_NO]: 2 };
-        sortKey = hostingOrder[task.hosting] !== undefined ? hostingOrder[task.hosting] : 3;
-        break;
-      default:
-        sortKey = 0;
-    }
-
-    return { task, sortKey };
-  });
-
-  tasksWithSortKey.sort((a, b) => {
-    if (column === 'client') {
-      return direction === 'asc'
-        ? a.sortKey.localeCompare(b.sortKey)
-        : b.sortKey.localeCompare(a.sortKey);
-    } else {
-      return direction === 'asc' ? a.sortKey - b.sortKey : b.sortKey - a.sortKey;
-    }
-  });
-
-  return tasksWithSortKey.map(item => item.task);
+  return tasks;
 }
 
 function handleSort(column) {
@@ -238,7 +234,7 @@ function handleFilterStatus(status) {
   });
 }
 
-async function quickMarkAsPaid(taskId, e) {
+async function quickUpdatePaymentStatus(taskId, newStatus, e) {
   e.stopPropagation();
 
   try {
@@ -249,7 +245,8 @@ async function quickMarkAsPaid(taskId, e) {
     }
 
     const updatedTaskFromServer = await api.updateTask(taskId, {
-      payment_status: PAYMENT_STATUS_PAID
+      client: task.client,
+      payment_status: newStatus
     });
 
     if (!updatedTaskFromServer) {
@@ -269,12 +266,23 @@ async function quickMarkAsPaid(taskId, e) {
     financialSearchState.tasksCache.delete(taskId);
     financialSearchState.cachedMetrics = null;
 
-    NotificationManager.success('Pagamento marcado como pago');
+    const message = newStatus === PAYMENT_STATUS_PAID
+      ? 'Pagamento marcado como pago'
+      : 'Pagamento marcado como pendente';
+    NotificationManager.success(message);
 
     updateFinancialRow(normalizedTask);
   } catch (error) {
     NotificationManager.error('Erro ao atualizar pagamento: ' + error.message);
   }
+}
+
+async function quickMarkAsPaid(taskId, e) {
+  return quickUpdatePaymentStatus(taskId, PAYMENT_STATUS_PAID, e);
+}
+
+async function quickMarkAsPending(taskId, e) {
+  return quickUpdatePaymentStatus(taskId, PAYMENT_STATUS_PENDING, e);
 }
 
 function updateFinancialRow(updatedTask) {
@@ -288,41 +296,44 @@ function updateFinancialRow(updatedTask) {
 
   const rows = tableBody.querySelectorAll('tr');
   for (const row of rows) {
-    const btn = row.querySelector('.quick-action-btn');
-    if (btn && parseInt(btn.dataset.taskId, 10) === updatedTask.id) {
+    const rowTaskId = row.getAttribute('data-task-id');
+    if (rowTaskId && parseInt(rowTaskId, 10) === updatedTask.id) {
       const formattedPrice = formatCurrency(updatedTask.price);
       const paymentStatus = paymentStatusHtml[updatedTask.payment_status] || paymentStatusHtml[PAYMENT_STATUS_PENDING];
       const hosting = hostingHtml[updatedTask.hosting] || '';
       const isUrgent = isTaskUrgent(updatedTask);
       const canMarkAsPaid = updatedTask.payment_status === PAYMENT_STATUS_PENDING;
+      const canMarkAsPending = updatedTask.payment_status === PAYMENT_STATUS_PAID;
 
       row.className = isUrgent ? 'financial-row-urgent' : '';
       row.cells[1].innerHTML = `<span style="font-weight: 600; font-family: 'JetBrains Mono', monospace;">${formattedPrice}</span>`;
       row.cells[2].innerHTML = paymentStatus;
       row.cells[3].innerHTML = hosting;
 
+      let actionHtml = '';
       if (canMarkAsPaid) {
-        if (!row.cells[4].querySelector('.quick-action-btn')) {
-          row.cells[4].innerHTML = `
-            <button class="quick-action-btn"
-                    data-task-id="${updatedTask.id}"
-                    aria-label="Marcar como pago"
-                    title="Marcar como pago">
-              <i class="fa-solid fa-check"></i>
-            </button>
-          `;
-          const quickBtn = row.cells[4].querySelector('.quick-action-btn');
-          quickBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const taskId = parseInt(quickBtn.dataset.taskId, 10);
-            if (!isNaN(taskId)) {
-              quickMarkAsPaid(taskId, e);
-            }
-          });
-        }
-      } else {
-        row.cells[4].innerHTML = '';
+        actionHtml = `
+          <button class="quick-action-btn"
+                  data-task-id="${updatedTask.id}"
+                  data-action="paid"
+                  aria-label="Marcar como pago"
+                  title="Marcar como pago">
+            <i class="fa-solid fa-check"></i>
+          </button>
+        `;
+      } else if (canMarkAsPending) {
+        actionHtml = `
+          <button class="quick-action-btn quick-action-btn-undo"
+                  data-task-id="${updatedTask.id}"
+                  data-action="pending"
+                  aria-label="Marcar como pendente"
+                  title="Marcar como pendente">
+            <i class="fa-solid fa-undo"></i>
+          </button>
+        `;
       }
+
+      row.cells[4].innerHTML = actionHtml;
       break;
     }
   }
@@ -330,13 +341,14 @@ function updateFinancialRow(updatedTask) {
   if (mobileCards) {
     const cards = mobileCards.querySelectorAll('.financial-mobile-card');
     for (const card of cards) {
-      const btn = card.querySelector('.quick-action-btn');
-      if (btn && parseInt(btn.dataset.taskId, 10) === updatedTask.id) {
+      const cardTaskId = card.getAttribute('data-task-id');
+      if (cardTaskId && parseInt(cardTaskId, 10) === updatedTask.id) {
         const formattedPrice = formatCurrency(updatedTask.price);
         const paymentStatus = paymentStatusHtml[updatedTask.payment_status] || paymentStatusHtml[PAYMENT_STATUS_PENDING];
         const hosting = hostingHtml[updatedTask.hosting] || '';
         const isUrgent = isTaskUrgent(updatedTask);
         const canMarkAsPaid = updatedTask.payment_status === PAYMENT_STATUS_PENDING;
+        const canMarkAsPending = updatedTask.payment_status === PAYMENT_STATUS_PAID;
 
         card.className = isUrgent ? 'financial-mobile-card financial-card-urgent' : 'financial-mobile-card';
 
@@ -344,19 +356,35 @@ function updateFinancialRow(updatedTask) {
         const body = card.querySelector('.financial-mobile-card-body');
 
         if (header && body) {
+          let actionBtn = '';
+          if (canMarkAsPaid) {
+            actionBtn = `
+              <button class="quick-action-btn"
+                      data-task-id="${updatedTask.id}"
+                      data-action="paid"
+                      aria-label="Marcar como pago"
+                      title="Marcar como pago">
+                <i class="fa-solid fa-check"></i>
+              </button>
+            `;
+          } else if (canMarkAsPending) {
+            actionBtn = `
+              <button class="quick-action-btn quick-action-btn-undo"
+                      data-task-id="${updatedTask.id}"
+                      data-action="pending"
+                      aria-label="Marcar como pendente"
+                      title="Marcar como pendente">
+                <i class="fa-solid fa-undo"></i>
+              </button>
+            `;
+          }
+
           header.innerHTML = `
             <div>
               <strong>${escapeHtml(updatedTask.client)}</strong>
               ${isUrgent ? '<span class="urgent-badge"><i class="fa-solid fa-exclamation-triangle"></i></span>' : ''}
             </div>
-            ${canMarkAsPaid ? `
-              <button class="quick-action-btn"
-                      data-task-id="${updatedTask.id}"
-                      aria-label="Marcar como pago"
-                      title="Marcar como pago">
-                <i class="fa-solid fa-check"></i>
-              </button>
-            ` : ''}
+            ${actionBtn}
           `;
 
           body.innerHTML = `
@@ -373,19 +401,6 @@ function updateFinancialRow(updatedTask) {
               ${hosting || 'Não'}
             </div>
           `;
-
-          if (canMarkAsPaid) {
-            const quickBtn = header.querySelector('.quick-action-btn');
-            if (quickBtn) {
-              quickBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const taskId = parseInt(quickBtn.dataset.taskId, 10);
-                if (!isNaN(taskId)) {
-                  quickMarkAsPaid(taskId, e);
-                }
-              });
-            }
-          }
         }
         break;
       }
@@ -394,17 +409,47 @@ function updateFinancialRow(updatedTask) {
 
   if (financialSearchState.cachedMetrics) {
     const tasks = AppState.getTasks();
-    const financialMetrics = calculateFinancialMetrics(tasks);
-    financialSearchState.cachedMetrics.financialMetrics = financialMetrics;
+    const oldMetrics = financialSearchState.cachedMetrics.financialMetrics;
+    const oldTask = tasks.find(t => t.id === updatedTask.id);
 
-    const summaryCards = document.querySelectorAll('.financial-summary .stat-card');
-    if (summaryCards.length >= 4) {
-      summaryCards[0].querySelector('.stat-card-value').textContent = formatCurrency(financialMetrics.mrr);
-      summaryCards[0].querySelector('.stat-card-change span').textContent = `${financialMetrics.hostingActive} hosting ativo`;
-      summaryCards[1].querySelector('.stat-card-value').textContent = formatCurrency(financialMetrics.totalRevenue);
-      summaryCards[2].querySelector('.stat-card-value').textContent = formatCurrency(financialMetrics.currentMonthRevenue);
-      summaryCards[3].querySelector('.stat-card-value').textContent = formatCurrency(financialMetrics.pendingRevenue);
-      summaryCards[3].querySelector('.stat-card-change span').textContent = `${financialMetrics.pendingCount} projetos`;
+    let needsFullRecalc = false;
+    if (oldTask) {
+      const oldPrice = parseFloat(oldTask.price) || 0;
+      const newPrice = parseFloat(updatedTask.price) || 0;
+      const oldIsPaid = oldTask.payment_status === PAYMENT_STATUS_PAID || oldTask.payment_status === PAYMENT_STATUS_PARTIAL;
+      const newIsPaid = updatedTask.payment_status === PAYMENT_STATUS_PAID || updatedTask.payment_status === PAYMENT_STATUS_PARTIAL;
+      const oldIsPending = oldTask.payment_status === PAYMENT_STATUS_PENDING;
+      const newIsPending = updatedTask.payment_status === PAYMENT_STATUS_PENDING;
+      const oldHosting = oldTask.col_id === 3 && oldTask.hosting === HOSTING_YES;
+      const newHosting = updatedTask.col_id === 3 && updatedTask.hosting === HOSTING_YES;
+
+      if (oldIsPaid !== newIsPaid || oldIsPending !== newIsPending || oldPrice !== newPrice || oldHosting !== newHosting) {
+        needsFullRecalc = true;
+      }
+    } else {
+      needsFullRecalc = true;
+    }
+
+    if (needsFullRecalc) {
+      const financialMetrics = calculateFinancialMetrics(tasks);
+      financialSearchState.cachedMetrics.financialMetrics = financialMetrics;
+
+      const summaryCards = document.querySelectorAll('.financial-summary .stat-card');
+      if (summaryCards.length >= 4) {
+        const statValue0 = summaryCards[0].querySelector('.stat-card-value');
+        const statChange0 = summaryCards[0].querySelector('.stat-card-change span');
+        const statValue1 = summaryCards[1].querySelector('.stat-card-value');
+        const statValue2 = summaryCards[2].querySelector('.stat-card-value');
+        const statValue3 = summaryCards[3].querySelector('.stat-card-value');
+        const statChange3 = summaryCards[3].querySelector('.stat-card-change span');
+
+        if (statValue0) statValue0.textContent = formatCurrency(financialMetrics.mrr);
+        if (statChange0) statChange0.textContent = `${financialMetrics.hostingActive} hosting ativo`;
+        if (statValue1) statValue1.textContent = formatCurrency(financialMetrics.totalRevenue);
+        if (statValue2) statValue2.textContent = formatCurrency(financialMetrics.currentMonthRevenue);
+        if (statValue3) statValue3.textContent = formatCurrency(financialMetrics.pendingRevenue);
+        if (statChange3) statChange3.textContent = `${financialMetrics.pendingCount} projetos`;
+      }
     }
   }
 }
@@ -539,7 +584,6 @@ function renderFinancial() {
 
   DOM.financialContainer.innerHTML = `
     <div class="financial-grid">
-      <!-- Key Metrics Cards -->
       <div class="financial-summary">
         <div class="stat-card">
           <div class="stat-card-header">
@@ -591,7 +635,6 @@ function renderFinancial() {
         </div>
       </div>
 
-      <!-- Projects Table -->
       <div class="dashboard-card">
         <div class="dashboard-card-header">
           <h3 class="dashboard-card-title">Projetos</h3>
@@ -671,21 +714,21 @@ function renderProjectsTable(tasks, showNoResults = false) {
     return;
   }
 
-  const sortedTasks = sortTasks(tasks);
-  financialSearchState.sortedTasks = sortedTasks;
+  financialSearchState.sortedTasks = tasks;
 
   const fragment = document.createDocumentFragment();
   const mobileFragment = document.createDocumentFragment();
 
-  sortedTasks.forEach(task => {
+  tasks.forEach(task => {
     const formattedPrice = formatCurrency(task.price);
     const paymentStatus = paymentStatusHtml[task.payment_status] || paymentStatusHtml[PAYMENT_STATUS_PENDING];
     const hosting = hostingHtml[task.hosting] || '';
     const isUrgent = isTaskUrgent(task);
     const canMarkAsPaid = task.payment_status === PAYMENT_STATUS_PENDING;
+    const canMarkAsPending = task.payment_status === PAYMENT_STATUS_PAID;
 
-    // Desktop table row
     const row = document.createElement('tr');
+    row.setAttribute('data-task-id', task.id);
     if (isUrgent) {
       row.classList.add('financial-row-urgent');
     }
@@ -720,33 +763,30 @@ function renderProjectsTable(tasks, showNoResults = false) {
         ${canMarkAsPaid ? `
           <button class="quick-action-btn"
                   data-task-id="${task.id}"
+                  data-action="paid"
                   aria-label="Marcar como pago"
                   title="Marcar como pago">
             <i class="fa-solid fa-check"></i>
           </button>
         ` : ''}
+        ${canMarkAsPending ? `
+          <button class="quick-action-btn quick-action-btn-undo"
+                  data-task-id="${task.id}"
+                  data-action="pending"
+                  aria-label="Marcar como pendente"
+                  title="Marcar como pendente">
+            <i class="fa-solid fa-undo"></i>
+          </button>
+        ` : ''}
       </td>
     `;
 
-    if (canMarkAsPaid) {
-      const quickBtn = row.querySelector('.quick-action-btn');
-      if (quickBtn) {
-        quickBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const taskId = parseInt(quickBtn.dataset.taskId, 10);
-          if (!isNaN(taskId)) {
-            quickMarkAsPaid(taskId, e);
-          }
-        });
-      }
-    }
-
     fragment.appendChild(row);
 
-    // Mobile card
     if (mobileCards) {
       const card = document.createElement('div');
       card.className = 'financial-mobile-card';
+      card.setAttribute('data-task-id', task.id);
       if (isUrgent) {
         card.classList.add('financial-card-urgent');
       }
@@ -777,9 +817,19 @@ function renderProjectsTable(tasks, showNoResults = false) {
           ${canMarkAsPaid ? `
             <button class="quick-action-btn"
                     data-task-id="${task.id}"
+                    data-action="paid"
                     aria-label="Marcar como pago"
                     title="Marcar como pago">
               <i class="fa-solid fa-check"></i>
+            </button>
+          ` : ''}
+          ${canMarkAsPending ? `
+            <button class="quick-action-btn quick-action-btn-undo"
+                    data-task-id="${task.id}"
+                    data-action="pending"
+                    aria-label="Marcar como pendente"
+                    title="Marcar como pendente">
+              <i class="fa-solid fa-undo"></i>
             </button>
           ` : ''}
         </div>
@@ -799,19 +849,6 @@ function renderProjectsTable(tasks, showNoResults = false) {
         </div>
       `;
 
-      if (canMarkAsPaid) {
-        const quickBtn = card.querySelector('.quick-action-btn');
-        if (quickBtn) {
-          quickBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const taskId = parseInt(quickBtn.dataset.taskId, 10);
-            if (!isNaN(taskId)) {
-              quickMarkAsPaid(taskId, e);
-            }
-          });
-        }
-      }
-
       mobileFragment.appendChild(card);
     }
   });
@@ -822,6 +859,44 @@ function renderProjectsTable(tasks, showNoResults = false) {
   if (mobileCards) {
     mobileCards.innerHTML = '';
     mobileCards.appendChild(mobileFragment);
+  }
+
+  if (!tableBody.hasAttribute('data-delegated')) {
+    tableBody.setAttribute('data-delegated', 'true');
+    tableBody.addEventListener('click', (e) => {
+      const btn = e.target.closest('.quick-action-btn');
+      if (btn) {
+        e.stopPropagation();
+        const taskId = parseInt(btn.dataset.taskId, 10);
+        const action = btn.dataset.action;
+        if (!isNaN(taskId)) {
+          if (action === 'paid') {
+            quickMarkAsPaid(taskId, e);
+          } else if (action === 'pending') {
+            quickMarkAsPending(taskId, e);
+          }
+        }
+      }
+    });
+  }
+
+  if (mobileCards && !mobileCards.hasAttribute('data-delegated')) {
+    mobileCards.setAttribute('data-delegated', 'true');
+    mobileCards.addEventListener('click', (e) => {
+      const btn = e.target.closest('.quick-action-btn');
+      if (btn) {
+        e.stopPropagation();
+        const taskId = parseInt(btn.dataset.taskId, 10);
+        const action = btn.dataset.action;
+        if (!isNaN(taskId)) {
+          if (action === 'paid') {
+            quickMarkAsPaid(taskId, e);
+          } else if (action === 'pending') {
+            quickMarkAsPending(taskId, e);
+          }
+        }
+      }
+    });
   }
 }
 
@@ -854,37 +929,13 @@ function exportFinancialData() {
     return;
   }
 
-  if (financialSearchState.filterStatus === 'paid') {
-    tasksToExport = tasksToExport.filter(task =>
-      task.payment_status === PAYMENT_STATUS_PAID || task.payment_status === PAYMENT_STATUS_PARTIAL
-    );
-  } else if (financialSearchState.filterStatus === 'pending') {
-    tasksToExport = tasksToExport.filter(task =>
-      task.payment_status === PAYMENT_STATUS_PENDING
-    );
-  }
-
-  const searchTerm = DOM.searchInput ? DOM.searchInput.value.toLowerCase().trim() : '';
-  if (searchTerm) {
-    const searchLower = searchTerm.toLowerCase();
-    tasksToExport = tasksToExport.filter(task => {
-      const client = (task.client || '').toLowerCase();
-      const contact = (task.contact || '').toLowerCase();
-      const type = (task.type || '').toLowerCase();
-      const description = (task.description || '').toLowerCase();
-      return client.includes(searchLower) ||
-        contact.includes(searchLower) ||
-        type.includes(searchLower) ||
-        description.includes(searchLower);
-    });
-  }
-
   const allTasks = AppState.getTasks();
   const metrics = AppState.getCachedMetrics(() => calculateDashboardMetrics());
   const financialMetrics = calculateFinancialMetrics(allTasks);
   const monthlyRevenue = calculateMonthlyRevenue(allTasks, 12);
   const projectedRevenue = calculateProjectedRevenue(allTasks, 12);
 
+  const searchTerm = DOM.searchInput ? DOM.searchInput.value.toLowerCase().trim() : '';
   const filterInfo = financialSearchState.filterStatus !== 'all'
     ? ` (Filtrado: ${financialSearchState.filterStatus === 'paid' ? 'Pago' : 'Pendente'})`
     : '';

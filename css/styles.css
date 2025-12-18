@@ -2558,6 +2558,20 @@ html[data-authenticated="true"] #appContainer.hidden {
   transform: scale(0.95);
 }
 
+.quick-action-btn-undo {
+  color: var(--warning);
+}
+
+.quick-action-btn-undo:hover {
+  background-color: var(--warning);
+  color: #ffffff;
+  border-color: var(--warning);
+}
+
+.quick-action-btn-undo:focus-visible {
+  outline: 3px solid var(--warning);
+}
+
 /* Mobile Cards */
 .financial-mobile-cards {
   display: none;
