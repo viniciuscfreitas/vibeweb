@@ -1379,11 +1379,31 @@ html[data-authenticated="true"] #appContainer.hidden {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 0.5rem;
   transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   margin-top: 0.5rem;
   padding: 0.75rem 1.5rem;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  position: relative;
+}
+
+.btn-login-primary .btn-text-content {
+  display: inline-block;
+}
+
+.btn-login-primary .btn-loading-spinner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-login-primary.loading .btn-text-content {
+  opacity: 0.7;
+}
+
+.btn-login-primary.loading .btn-loading-spinner {
+  display: inline-flex;
 }
 
 .btn-login-primary:hover {

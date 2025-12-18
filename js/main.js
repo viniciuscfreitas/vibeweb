@@ -1680,15 +1680,25 @@ function initAuth() {
   }
 
   if (loginForm) {
+    const emailInput = document.getElementById('loginEmail');
+    const passwordInput = document.getElementById('loginPassword');
+    const errorGeneral = document.getElementById('errorLoginGeneral');
+    const errorEmail = document.getElementById('errorLoginEmail');
+    const errorPassword = document.getElementById('errorLoginPassword');
+    const submitButton = loginForm.querySelector('button[type="submit"]');
+    const spinner = submitButton ? submitButton.querySelector('.btn-loading-spinner') : null;
+
+    function isCredentialError(msg) {
+      return msg.includes('credenciais') || msg.includes('inválid') || msg.includes('401');
+    }
+
+    function isNetworkError(msg) {
+      return msg.includes('rede') || msg.includes('network') || msg.includes('fetch');
+    }
+
     loginForm.addEventListener('submit', (e) => {
       e.preventDefault();
       e.stopPropagation();
-
-      const emailInput = document.getElementById('loginEmail');
-      const passwordInput = document.getElementById('loginPassword');
-      const errorGeneral = document.getElementById('errorLoginGeneral');
-      const errorEmail = document.getElementById('errorLoginEmail');
-      const errorPassword = document.getElementById('errorLoginPassword');
 
       if (errorEmail) {
         errorEmail.classList.remove('show');
@@ -1715,17 +1725,60 @@ function initAuth() {
       const email = emailInput ? emailInput.value.trim() : '';
       const password = passwordInput ? passwordInput.value : '';
 
-      // Disable submit button during login
-      const submitButton = loginForm.querySelector('button[type="submit"]');
+      let hasErrors = false;
+      if (!email) {
+        if (errorEmail) {
+          errorEmail.textContent = 'Email ou usuário é obrigatório';
+          errorEmail.classList.add('show');
+        }
+        if (emailInput) {
+          emailInput.setAttribute('aria-invalid', 'true');
+          emailInput.classList.add('error');
+        }
+        hasErrors = true;
+      } else if (emailInput && !emailInput.validity.valid && email.includes('@')) {
+        if (errorEmail) {
+          errorEmail.textContent = 'Email inválido';
+          errorEmail.classList.add('show');
+        }
+        if (emailInput) {
+          emailInput.setAttribute('aria-invalid', 'true');
+          emailInput.classList.add('error');
+        }
+        hasErrors = true;
+      }
+
+      if (!password) {
+        if (errorPassword) {
+          errorPassword.textContent = 'Senha é obrigatória';
+          errorPassword.classList.add('show');
+        }
+        if (passwordInput) {
+          passwordInput.setAttribute('aria-invalid', 'true');
+          passwordInput.classList.add('error');
+        }
+        hasErrors = true;
+      }
+
+      if (hasErrors) {
+        return;
+      }
+
       if (submitButton) {
         submitButton.disabled = true;
-        submitButton.textContent = 'Entrando...';
+        submitButton.classList.add('loading');
+        if (spinner) {
+          spinner.classList.remove('hidden');
+        }
       }
 
       login(email, password).then((result) => {
         if (submitButton) {
           submitButton.disabled = false;
-          submitButton.textContent = 'Entrar';
+          submitButton.classList.remove('loading');
+          if (spinner) {
+            spinner.classList.add('hidden');
+          }
         }
 
         if (result.success) {
@@ -1765,7 +1818,10 @@ function initAuth() {
           }, 400);
         } else {
           if (errorGeneral) {
-            errorGeneral.textContent = result.message;
+            const errorMsg = result.message || 'Erro ao fazer login';
+            errorGeneral.textContent = isCredentialError(errorMsg)
+              ? 'Email/usuário ou senha incorretos'
+              : errorMsg;
             errorGeneral.classList.add('show');
           }
           if (emailInput) {
@@ -1780,10 +1836,20 @@ function initAuth() {
       }).catch((error) => {
         if (submitButton) {
           submitButton.disabled = false;
-          submitButton.textContent = 'Entrar';
+          submitButton.classList.remove('loading');
+          if (spinner) {
+            spinner.classList.add('hidden');
+          }
         }
         if (errorGeneral) {
-          errorGeneral.textContent = error.message || 'Erro ao fazer login';
+          const errorMsg = error.message || 'Erro ao fazer login';
+          if (isCredentialError(errorMsg)) {
+            errorGeneral.textContent = 'Email/usuário ou senha incorretos';
+          } else if (isNetworkError(errorMsg)) {
+            errorGeneral.textContent = 'Erro de conexão. Verifique sua internet';
+          } else {
+            errorGeneral.textContent = errorMsg;
+          }
           errorGeneral.classList.add('show');
         }
         if (emailInput) {
@@ -1797,18 +1863,46 @@ function initAuth() {
       });
     });
 
-    const emailInput = document.getElementById('loginEmail');
-    const passwordInput = document.getElementById('loginPassword');
+    function validateEmailInput(clearOnValid = true) {
+      const value = emailInput.value.trim();
 
-    if (emailInput) {
-      emailInput.addEventListener('input', () => {
+      if (value && value.includes('@') && emailInput.validity.valid === false) {
+        emailInput.setAttribute('aria-invalid', 'true');
+        emailInput.classList.add('error');
+        if (errorEmail) {
+          errorEmail.textContent = 'Email inválido';
+          errorEmail.classList.add('show');
+        }
+      } else {
         emailInput.setAttribute('aria-invalid', 'false');
         emailInput.classList.remove('error');
-        const errorEmail = document.getElementById('errorLoginEmail');
-        if (errorEmail) {
+        if (errorEmail && clearOnValid) {
           errorEmail.classList.remove('show');
           errorEmail.textContent = '';
         }
+      }
+    }
+
+    let emailValidationTimeout = null;
+    function debouncedEmailValidation(clearOnValid) {
+      if (emailValidationTimeout) {
+        clearTimeout(emailValidationTimeout);
+      }
+      emailValidationTimeout = setTimeout(() => {
+        validateEmailInput(clearOnValid);
+      }, 150);
+    }
+
+    if (emailInput) {
+      emailInput.addEventListener('input', () => {
+        debouncedEmailValidation(true);
+      });
+
+      emailInput.addEventListener('blur', () => {
+        if (emailValidationTimeout) {
+          clearTimeout(emailValidationTimeout);
+        }
+        validateEmailInput(false);
       });
     }
 
@@ -1816,7 +1910,6 @@ function initAuth() {
       passwordInput.addEventListener('input', () => {
         passwordInput.setAttribute('aria-invalid', 'false');
         passwordInput.classList.remove('error');
-        const errorPassword = document.getElementById('errorLoginPassword');
         if (errorPassword) {
           errorPassword.classList.remove('show');
           errorPassword.textContent = '';

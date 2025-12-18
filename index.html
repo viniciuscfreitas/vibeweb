@@ -169,9 +169,9 @@
         <form class="login-form" id="loginForm" method="post" novalidate aria-label="Formulário de login">
           <div class="form-group">
             <label for="loginEmail" class="sr-only">Email ou usuário</label>
-            <input type="text" class="form-input" id="loginEmail" name="email" placeholder="Email ou usuário" required
+            <input type="email" class="form-input" id="loginEmail" name="email" placeholder="Email ou usuário" required
               autocomplete="username" aria-required="true" aria-invalid="false" aria-describedby="errorLoginEmail"
-              spellcheck="false" autocapitalize="off">
+              spellcheck="false" autocapitalize="off" inputmode="email">
             <div class="form-error" id="errorLoginEmail" role="alert" aria-live="polite"></div>
           </div>
           <div class="form-group">
@@ -182,8 +182,11 @@
             <div class="form-error" id="errorLoginPassword" role="alert" aria-live="polite"></div>
           </div>
           <div class="form-error" id="errorLoginGeneral" role="alert" aria-live="assertive"></div>
-          <button type="submit" class="btn-login-primary" aria-label="Entrar no sistema">
-            Entrar
+          <button type="submit" class="btn-login-primary" aria-label="Acessar painel" id="loginSubmitBtn">
+            <span class="btn-text-content">Acessar Painel</span>
+            <span class="btn-loading-spinner hidden" aria-hidden="true">
+              <i class="fa-solid fa-spinner fa-spin"></i>
+            </span>
           </button>
         </form>
       </div>
