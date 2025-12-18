@@ -93,13 +93,20 @@
             styleElement = document.createElement('style');
             styleElement.id = 'safari-mobile-fix';
             styleElement.textContent = `
-              .safari-mobile .bottom-nav { display: flex !important; }
+              .safari-mobile .bottom-nav { 
+                display: flex !important; 
+                position: fixed !important;
+                bottom: 0 !important;
+                z-index: 9999 !important;
+                height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom)) !important;
+                padding-bottom: env(safe-area-inset-bottom) !important;
+              }
               .safari-mobile .sidebar { display: none !important; }
               .safari-mobile .board-grid { flex-direction: column !important; min-width: unset !important; }
               .safari-mobile .column { width: 100% !important; min-width: unset !important; }
-              .safari-mobile .main-content { padding-bottom: var(--bottom-nav-height) !important; }
+              .safari-mobile .main-content { padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom)) !important; }
               .safari-mobile .dashboard-container,
-              .safari-mobile .financial-container { padding-bottom: calc(var(--bottom-nav-height) + 1rem) !important; }
+              .safari-mobile .financial-container { padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + 1rem) !important; }
               .safari-mobile .header { padding: 0 1rem !important; height: 56px !important; }
               .safari-mobile .board-container { padding: 1rem !important; }
               .safari-mobile .btn-primary#btnNewProject { display: none !important; }

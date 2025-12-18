@@ -2394,17 +2394,22 @@ html[data-authenticated="true"] #appContainer.hidden {
     bottom: 0;
     left: 0;
     right: 0;
-    height: var(--bottom-nav-height);
+    min-height: var(--bottom-nav-height);
+    height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
     background-color: var(--bg-shell);
     border-top: 1px solid var(--border-subtle);
-    z-index: 30;
+    z-index: 9999;
     padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
     align-items: center;
     justify-content: space-around;
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
     will-change: transform;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
   }
 
   .bottom-nav-item {
@@ -2412,7 +2417,8 @@ html[data-authenticated="true"] #appContainer.hidden {
     align-items: center;
     justify-content: center;
     flex: 1;
-    height: 100%;
+    min-height: var(--bottom-nav-height);
+    height: var(--bottom-nav-height);
     background: transparent;
     border: none;
     color: var(--text-muted);
@@ -2422,6 +2428,7 @@ html[data-authenticated="true"] #appContainer.hidden {
     padding: 0;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+    position: relative;
   }
 
   .bottom-nav-item i {
@@ -2436,11 +2443,13 @@ html[data-authenticated="true"] #appContainer.hidden {
     flex: 0 0 auto;
     width: 56px;
     height: 56px;
+    min-height: 56px;
     border-radius: 50%;
     background-color: var(--primary);
     color: #ffffff;
     margin: 0 0.5rem;
     box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    position: relative;
   }
 
   .bottom-nav-item.central i {
@@ -2510,12 +2519,12 @@ html[data-authenticated="true"] #appContainer.hidden {
 
   /* Main Content - Padding Bottom for Bottom Nav */
   .main-content {
-    padding-bottom: var(--bottom-nav-height);
+    padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
   }
 
   .dashboard-container,
   .financial-container {
-    padding-bottom: calc(var(--bottom-nav-height) + 1rem);
+    padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + 1rem);
   }
 
   /* User Dropdown - Mobile (Bottom-up) */
@@ -2690,6 +2699,13 @@ html[data-authenticated="true"] #appContainer.hidden {
   @media (max-width: 767px), (max-device-width: 767px) {
     .bottom-nav {
       display: flex !important;
+      position: fixed !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      z-index: 9999 !important;
+      height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom)) !important;
+      padding-bottom: env(safe-area-inset-bottom) !important;
     }
 
     .sidebar {
@@ -2707,12 +2723,12 @@ html[data-authenticated="true"] #appContainer.hidden {
     }
 
     .main-content {
-      padding-bottom: var(--bottom-nav-height) !important;
+      padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom)) !important;
     }
 
     .dashboard-container,
     .financial-container {
-      padding-bottom: calc(var(--bottom-nav-height) + 1rem) !important;
+      padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + 1rem) !important;
     }
 
     .header {
