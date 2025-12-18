@@ -9,10 +9,22 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const cors = require('cors');
 const path = require('path');
+const http = require('http');
+const { Server } = require('socket.io');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
+
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: NODE_ENV === 'production'
+      ? process.env.CORS_ORIGIN || 'http://localhost:8080'
+      : true,
+    methods: ['GET', 'POST']
+  }
+});
 
 // Security: JWT_SECRET is required - no fallback to prevent accidental use of dev secret
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -594,6 +606,25 @@ process.on('SIGINT', () => {
 // Start server
 initDatabase()
   .then(() => {
+    // WebSocket authentication middleware (must be after JWT_SECRET is defined)
+    io.use((socket, next) => {
+      const token = socket.handshake.auth.token ||
+                    (socket.handshake.headers.authorization && socket.handshake.headers.authorization.split(' ')[1]);
+
+      if (!token) {
+        return next(new Error('Authentication error'));
+      }
+
+      jwt.verify(token, JWT_SECRET, (err, decoded) => {
+        if (err) {
+          return next(new Error('Authentication error'));
+        }
+        socket.userId = decoded.userId;
+        socket.userEmail = decoded.email;
+        next();
+      });
+    });
+
     // Mount routes after database is initialized (db is now available)
     // Auth routes: login (no auth), /me (requires auth)
     // Grug Rule: Group related parameters into config object
@@ -664,12 +695,12 @@ initDatabase()
 
     // Tasks routes require authentication - apply middleware before router
     app.use('/api/tasks', authenticateToken);
-    app.use('/api/tasks', createTasksRoutes(db, NODE_ENV, sanitizeString));
+    app.use('/api/tasks', createTasksRoutes(db, NODE_ENV, sanitizeString, io));
 
     // Error handlers must be registered after all routes
     setupErrorHandlers();
 
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
       console.log(`Environment: ${NODE_ENV}`);
       if (NODE_ENV !== 'production') {

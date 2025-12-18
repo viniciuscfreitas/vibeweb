@@ -1559,6 +1559,10 @@ async function initApp() {
     setupFormAutoSave();
   }
 
+  if (typeof connectWebSocket === 'function') {
+    connectWebSocket();
+  }
+
   const currentPath = window.location.pathname;
   const initialView = getViewFromUrl(currentPath);
   if (initialView !== 'login') {

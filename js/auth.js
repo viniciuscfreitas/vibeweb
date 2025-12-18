@@ -82,6 +82,10 @@ function logout() {
   sessionStorage.removeItem('redirectAfterLogin');
   AppState.log('User logged out');
 
+  if (typeof disconnectWebSocket === 'function') {
+    disconnectWebSocket();
+  }
+
   const appContainer = document.getElementById('appContainer');
   const loginOverlay = document.getElementById('loginOverlay');
 

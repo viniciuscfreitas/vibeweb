@@ -80,7 +80,7 @@ function logActivity(db, userId, taskId, actionType, actionDescription, oldData 
   );
 }
 
-function createTasksRoutes(db, NODE_ENV, sanitizeString) {
+function createTasksRoutes(db, NODE_ENV, sanitizeString, io) {
   const router = require('express').Router();
 
   router.get('/activities/recent', (req, res) => {
@@ -364,6 +364,10 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString) {
                 null,
                 { client: clientSanitized, col_id: colIdNum, price: priceNum }
               );
+
+              if (io) {
+                io.emit('task:created', { task, userId: req.user.id });
+              }
             });
 
             res.status(201).json({
@@ -563,6 +567,10 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString) {
                 { client: existing.client, col_id: existing.col_id, price: existing.price, payment_status: existing.payment_status },
                 { client: clientSanitized, col_id: colIdNum, price: priceNum, payment_status: payment_status || existing.payment_status }
               );
+
+              if (io) {
+                io.emit('task:updated', { task, userId: req.user.id });
+              }
             });
 
             res.json({
@@ -627,6 +635,10 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString) {
                   taskData ? { client: taskData.client } : null,
                   null
                 );
+
+                if (io) {
+                  io.emit('task:deleted', { taskId, userId: req.user.id });
+                }
               });
 
               res.json({
@@ -701,12 +713,12 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString) {
               updated_at: new Date().toISOString().replace('T', ' ').substring(0, 19)
             };
 
-            if (task.col_id !== colIdNum) {
-              const colNames = ['Descoberta', 'Acordo', 'Build', 'Live'];
-              const fromCol = colNames[task.col_id] || task.col_id;
-              const toCol = colNames[colIdNum] || colIdNum;
+            setImmediate(() => {
+              if (task.col_id !== colIdNum) {
+                const colNames = ['Descoberta', 'Acordo', 'Build', 'Live'];
+                const fromCol = colNames[task.col_id] || task.col_id;
+                const toCol = colNames[colIdNum] || colIdNum;
 
-              setImmediate(() => {
                 logActivity(
                   db,
                   req.user.id,
@@ -716,8 +728,12 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString) {
                   { col_id: task.col_id, client: task.client },
                   { col_id: colIdNum, client: task.client }
                 );
-              });
-            }
+              }
+
+              if (io) {
+                io.emit('task:moved', { task: updatedTask, userId: req.user.id });
+              }
+            });
 
             // Check if task was moved to col_id = 3 (Suporte / Live) and is recurring
             if (colIdNum === 3 && task.is_recurring === 1) {
