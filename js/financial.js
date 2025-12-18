@@ -1,7 +1,4 @@
-// Financial Screen Logic - Minimal Cognitive Load
-
-// Constants
-const FINANCIAL_RENDER_DELAY_MS = 50; // Delay to ensure DOM is ready after innerHTML
+const FINANCIAL_RENDER_DELAY_MS = 50;
 
 function getRevenueChangeClass(revenueChange) {
   if (revenueChange > 0) return 'positive';
@@ -77,7 +74,12 @@ let financialSearchState = {
   timeout: null,
   lastRenderHash: null,
   isRendered: false,
-  gridElement: null
+  gridElement: null,
+  filterStatus: 'all', // 'all', 'paid', 'pending'
+  sortColumn: 'value', // 'client', 'value', 'status', 'hosting'
+  sortDirection: 'desc', // 'asc', 'desc'
+  cachedMetrics: null, // Cache metrics to avoid recalculation
+  tasksCache: new Map() // Cache parsed task data (dates, lowercased strings)
 };
 
 const paymentStatusHtml = {
@@ -97,11 +99,16 @@ function resetFinancialRenderState() {
   financialSearchState.isRendered = false;
   financialSearchState.gridElement = null;
   financialSearchState.sortedTasks = null;
+  financialSearchState.filterStatus = 'all';
+  financialSearchState.sortColumn = 'value';
+  financialSearchState.sortDirection = 'desc';
+  financialSearchState.cachedMetrics = null;
+  financialSearchState.tasksCache.clear();
 }
 
 function handleFinancialSearch() {
   if (!DOM.financialContainer || !DOM.financialContainer.classList.contains('active')) {
-    return false; // Not in financial view
+    return false;
   }
 
   if (!DOM.searchInput) return false;
@@ -115,30 +122,320 @@ function handleFinancialSearch() {
     filterAndRenderProjects(searchTerm);
   }, SEARCH_DEBOUNCE_MS);
 
-  return true; // Handled
+  return true;
 }
 
 function filterAndRenderProjects(searchTerm) {
   const hasSearchTerm = searchTerm && searchTerm.length > 0;
   let filteredTasks = financialSearchState.tasks;
 
+  if (financialSearchState.filterStatus === 'paid') {
+    filteredTasks = filteredTasks.filter(task =>
+      task.payment_status === PAYMENT_STATUS_PAID || task.payment_status === PAYMENT_STATUS_PARTIAL
+    );
+  } else if (financialSearchState.filterStatus === 'pending') {
+    filteredTasks = filteredTasks.filter(task =>
+      task.payment_status === PAYMENT_STATUS_PENDING
+    );
+  }
+
   if (hasSearchTerm) {
     const searchLower = searchTerm.toLowerCase();
-    filteredTasks = financialSearchState.tasks.filter(task => {
-      const client = (task.client || '').toLowerCase();
-      const contact = (task.contact || '').toLowerCase();
-      const type = (task.type || '').toLowerCase();
-      const description = (task.description || '').toLowerCase();
+    filteredTasks = filteredTasks.filter(task => {
+      const cacheKey = task.id;
+      let cached = financialSearchState.tasksCache.get(cacheKey);
 
-      return client.includes(searchLower) ||
-        contact.includes(searchLower) ||
-        type.includes(searchLower) ||
-        description.includes(searchLower);
+      if (!cached || cached.version !== task.updated_at) {
+        cached = {
+          version: task.updated_at,
+          client: (task.client || '').toLowerCase(),
+          contact: (task.contact || '').toLowerCase(),
+          type: (task.type || '').toLowerCase(),
+          description: (task.description || '').toLowerCase()
+        };
+        financialSearchState.tasksCache.set(cacheKey, cached);
+      }
+
+      return cached.client.includes(searchLower) ||
+        cached.contact.includes(searchLower) ||
+        cached.type.includes(searchLower) ||
+        cached.description.includes(searchLower);
     });
   }
 
   financialSearchState.sortedTasks = null;
   renderProjectsTable(filteredTasks, hasSearchTerm);
+}
+
+function sortTasks(tasks) {
+  if (!tasks || tasks.length === 0) return tasks;
+
+  const column = financialSearchState.sortColumn;
+  const direction = financialSearchState.sortDirection;
+
+  const tasksWithSortKey = tasks.map(task => {
+    let sortKey;
+
+    switch (column) {
+      case 'client':
+        sortKey = (task.client || '').toLowerCase();
+        break;
+      case 'value':
+        sortKey = parseFloat(task.price) || 0;
+        break;
+      case 'status':
+        const statusOrder = { [PAYMENT_STATUS_PAID]: 0, [PAYMENT_STATUS_PARTIAL]: 1, [PAYMENT_STATUS_PENDING]: 2 };
+        sortKey = statusOrder[task.payment_status] !== undefined ? statusOrder[task.payment_status] : 3;
+        break;
+      case 'hosting':
+        const hostingOrder = { [HOSTING_YES]: 0, [HOSTING_LATER]: 1, [HOSTING_NO]: 2 };
+        sortKey = hostingOrder[task.hosting] !== undefined ? hostingOrder[task.hosting] : 3;
+        break;
+      default:
+        sortKey = 0;
+    }
+
+    return { task, sortKey };
+  });
+
+  tasksWithSortKey.sort((a, b) => {
+    if (column === 'client') {
+      return direction === 'asc'
+        ? a.sortKey.localeCompare(b.sortKey)
+        : b.sortKey.localeCompare(a.sortKey);
+    } else {
+      return direction === 'asc' ? a.sortKey - b.sortKey : b.sortKey - a.sortKey;
+    }
+  });
+
+  return tasksWithSortKey.map(item => item.task);
+}
+
+function handleSort(column) {
+  if (financialSearchState.sortColumn === column) {
+    financialSearchState.sortDirection = financialSearchState.sortDirection === 'asc' ? 'desc' : 'asc';
+  } else {
+    financialSearchState.sortColumn = column;
+    financialSearchState.sortDirection = 'desc';
+  }
+
+  const searchTerm = DOM.searchInput ? DOM.searchInput.value.toLowerCase().trim() : '';
+  filterAndRenderProjects(searchTerm);
+}
+
+function handleFilterStatus(status) {
+  financialSearchState.filterStatus = status;
+  const searchTerm = DOM.searchInput ? DOM.searchInput.value.toLowerCase().trim() : '';
+  filterAndRenderProjects(searchTerm);
+
+  const filterButtons = document.querySelectorAll('.financial-filter-btn');
+  filterButtons.forEach(btn => {
+    if (btn.dataset.filter === status) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+}
+
+async function quickMarkAsPaid(taskId, e) {
+  e.stopPropagation();
+
+  try {
+    const task = AppState.getTasks().find(t => t.id === taskId);
+    if (!task) {
+      NotificationManager.warning('Projeto não encontrado');
+      return;
+    }
+
+    const updatedTaskFromServer = await api.updateTask(taskId, {
+      payment_status: PAYMENT_STATUS_PAID
+    });
+
+    if (!updatedTaskFromServer) {
+      throw new Error('Resposta inválida do servidor');
+    }
+
+    const normalizedTask = normalizeTasksData([updatedTaskFromServer])[0];
+
+    if (!normalizedTask) {
+      throw new Error('Erro ao normalizar dados do projeto');
+    }
+
+    const tasks = AppState.getTasks();
+    const updatedTasks = tasks.map(t => t.id === taskId ? normalizedTask : t);
+    AppState.setTasks(updatedTasks);
+
+    financialSearchState.tasksCache.delete(taskId);
+    financialSearchState.cachedMetrics = null;
+
+    NotificationManager.success('Pagamento marcado como pago');
+
+    updateFinancialRow(normalizedTask);
+  } catch (error) {
+    NotificationManager.error('Erro ao atualizar pagamento: ' + error.message);
+  }
+}
+
+function updateFinancialRow(updatedTask) {
+  const tableBody = document.getElementById('projectsTable');
+  const mobileCards = document.getElementById('financialMobileCards');
+
+  if (!tableBody) {
+    renderFinancial();
+    return;
+  }
+
+  const rows = tableBody.querySelectorAll('tr');
+  for (const row of rows) {
+    const btn = row.querySelector('.quick-action-btn');
+    if (btn && parseInt(btn.dataset.taskId, 10) === updatedTask.id) {
+      const formattedPrice = formatCurrency(updatedTask.price);
+      const paymentStatus = paymentStatusHtml[updatedTask.payment_status] || paymentStatusHtml[PAYMENT_STATUS_PENDING];
+      const hosting = hostingHtml[updatedTask.hosting] || '';
+      const isUrgent = isTaskUrgent(updatedTask);
+      const canMarkAsPaid = updatedTask.payment_status === PAYMENT_STATUS_PENDING;
+
+      row.className = isUrgent ? 'financial-row-urgent' : '';
+      row.cells[1].innerHTML = `<span style="font-weight: 600; font-family: 'JetBrains Mono', monospace;">${formattedPrice}</span>`;
+      row.cells[2].innerHTML = paymentStatus;
+      row.cells[3].innerHTML = hosting;
+
+      if (canMarkAsPaid) {
+        if (!row.cells[4].querySelector('.quick-action-btn')) {
+          row.cells[4].innerHTML = `
+            <button class="quick-action-btn"
+                    data-task-id="${updatedTask.id}"
+                    aria-label="Marcar como pago"
+                    title="Marcar como pago">
+              <i class="fa-solid fa-check"></i>
+            </button>
+          `;
+          const quickBtn = row.cells[4].querySelector('.quick-action-btn');
+          quickBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const taskId = parseInt(quickBtn.dataset.taskId, 10);
+            if (!isNaN(taskId)) {
+              quickMarkAsPaid(taskId, e);
+            }
+          });
+        }
+      } else {
+        row.cells[4].innerHTML = '';
+      }
+      break;
+    }
+  }
+
+  if (mobileCards) {
+    const cards = mobileCards.querySelectorAll('.financial-mobile-card');
+    for (const card of cards) {
+      const btn = card.querySelector('.quick-action-btn');
+      if (btn && parseInt(btn.dataset.taskId, 10) === updatedTask.id) {
+        const formattedPrice = formatCurrency(updatedTask.price);
+        const paymentStatus = paymentStatusHtml[updatedTask.payment_status] || paymentStatusHtml[PAYMENT_STATUS_PENDING];
+        const hosting = hostingHtml[updatedTask.hosting] || '';
+        const isUrgent = isTaskUrgent(updatedTask);
+        const canMarkAsPaid = updatedTask.payment_status === PAYMENT_STATUS_PENDING;
+
+        card.className = isUrgent ? 'financial-mobile-card financial-card-urgent' : 'financial-mobile-card';
+
+        const header = card.querySelector('.financial-mobile-card-header');
+        const body = card.querySelector('.financial-mobile-card-body');
+
+        if (header && body) {
+          header.innerHTML = `
+            <div>
+              <strong>${escapeHtml(updatedTask.client)}</strong>
+              ${isUrgent ? '<span class="urgent-badge"><i class="fa-solid fa-exclamation-triangle"></i></span>' : ''}
+            </div>
+            ${canMarkAsPaid ? `
+              <button class="quick-action-btn"
+                      data-task-id="${updatedTask.id}"
+                      aria-label="Marcar como pago"
+                      title="Marcar como pago">
+                <i class="fa-solid fa-check"></i>
+              </button>
+            ` : ''}
+          `;
+
+          body.innerHTML = `
+            <div class="financial-mobile-card-row">
+              <span class="financial-mobile-label">Valor:</span>
+              <span style="font-weight: 600; font-family: 'JetBrains Mono', monospace;">${formattedPrice}</span>
+            </div>
+            <div class="financial-mobile-card-row">
+              <span class="financial-mobile-label">Status:</span>
+              ${paymentStatus}
+            </div>
+            <div class="financial-mobile-card-row">
+              <span class="financial-mobile-label">Hosting:</span>
+              ${hosting || 'Não'}
+            </div>
+          `;
+
+          if (canMarkAsPaid) {
+            const quickBtn = header.querySelector('.quick-action-btn');
+            if (quickBtn) {
+              quickBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const taskId = parseInt(quickBtn.dataset.taskId, 10);
+                if (!isNaN(taskId)) {
+                  quickMarkAsPaid(taskId, e);
+                }
+              });
+            }
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  if (financialSearchState.cachedMetrics) {
+    const tasks = AppState.getTasks();
+    const financialMetrics = calculateFinancialMetrics(tasks);
+    financialSearchState.cachedMetrics.financialMetrics = financialMetrics;
+
+    const summaryCards = document.querySelectorAll('.financial-summary .stat-card');
+    if (summaryCards.length >= 4) {
+      summaryCards[0].querySelector('.stat-card-value').textContent = formatCurrency(financialMetrics.mrr);
+      summaryCards[0].querySelector('.stat-card-change span').textContent = `${financialMetrics.hostingActive} hosting ativo`;
+      summaryCards[1].querySelector('.stat-card-value').textContent = formatCurrency(financialMetrics.totalRevenue);
+      summaryCards[2].querySelector('.stat-card-value').textContent = formatCurrency(financialMetrics.currentMonthRevenue);
+      summaryCards[3].querySelector('.stat-card-value').textContent = formatCurrency(financialMetrics.pendingRevenue);
+      summaryCards[3].querySelector('.stat-card-change span').textContent = `${financialMetrics.pendingCount} projetos`;
+    }
+  }
+}
+
+function isTaskUrgent(task) {
+  if (task.payment_status !== PAYMENT_STATUS_PENDING) return false;
+
+  const cacheKey = task.id;
+  let cached = financialSearchState.tasksCache.get(cacheKey);
+
+  if (!cached || cached.version !== task.updated_at) {
+    cached = {
+      version: task.updated_at,
+      createdDate: parseTaskDate(task.created_at),
+      isUrgent: null
+    };
+    financialSearchState.tasksCache.set(cacheKey, cached);
+  }
+
+  if (cached.isUrgent !== null) {
+    return cached.isUrgent;
+  }
+
+  if (!cached.createdDate) {
+    cached.isUrgent = false;
+    return false;
+  }
+
+  const daysSinceCreation = (Date.now() - cached.createdDate.getTime()) / MS_PER_DAY;
+  cached.isUrgent = daysSinceCreation > 30;
+  return cached.isUrgent;
 }
 
 function renderFinancial() {
@@ -152,7 +449,18 @@ function renderFinancial() {
     }
     DOM.financialContainer.classList.remove('hidden');
     DOM.financialContainer.classList.add('active');
-    DOM.financialContainer.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--text-muted);">Nenhum projeto cadastrado</div>';
+    DOM.financialContainer.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <i class="fa-solid fa-euro-sign"></i>
+        </div>
+        <div class="empty-state-text">Nenhum projeto cadastrado</div>
+        <div class="empty-state-subtext">Crie seu primeiro projeto para ver métricas financeiras</div>
+        <button class="btn-primary" onclick="if(typeof openModal === 'function') openModal();" style="margin-top: 1rem;">
+          <i class="fa-solid fa-plus"></i> Criar Projeto
+        </button>
+      </div>
+    `;
     financialSearchState.tasks = [];
     financialSearchState.isRendered = true;
     financialSearchState.lastRenderHash = null;
@@ -160,9 +468,18 @@ function renderFinancial() {
     return;
   }
 
-  const tasksHash = tasks.length + '-' + tasks.map(t =>
-    `${t.id}:${t.price || 0}:${t.payment_status || ''}:${t.hosting || ''}:${t.col_id || ''}`
-  ).join('|');
+  let tasksHash = tasks.length.toString();
+  if (tasks.length > 0) {
+    const sampleSize = Math.min(5, tasks.length);
+    const step = Math.max(1, Math.floor(tasks.length / sampleSize));
+    const samples = [];
+    for (let i = 0; i < tasks.length; i += step) {
+      const t = tasks[i];
+      samples.push(`${t.id}:${t.price || 0}:${t.payment_status || ''}:${t.hosting || ''}:${t.col_id || ''}`);
+      if (samples.length >= sampleSize) break;
+    }
+    tasksHash += '-' + samples.join('|');
+  }
 
   if (financialSearchState.isRendered && financialSearchState.lastRenderHash === tasksHash) {
     if (!financialSearchState.gridElement && DOM.financialContainer) {
@@ -192,8 +509,33 @@ function renderFinancial() {
     DOM.searchInput.placeholder = 'Buscar projeto financeiro... (/)';
   }
 
-  const metrics = AppState.getCachedMetrics(() => calculateDashboardMetrics());
-  const financialMetrics = calculateFinancialMetrics(tasks);
+  if (!financialSearchState.cachedMetrics) {
+    const metrics = AppState.getCachedMetrics(() => calculateDashboardMetrics());
+    financialSearchState.cachedMetrics = {
+      metrics,
+      financialMetrics: calculateFinancialMetrics(tasks),
+      tasksHash: tasksHash
+    };
+  } else if (financialSearchState.cachedMetrics.tasksHash !== tasksHash) {
+    const metrics = AppState.getCachedMetrics(() => calculateDashboardMetrics());
+    financialSearchState.cachedMetrics = {
+      metrics,
+      financialMetrics: calculateFinancialMetrics(tasks),
+      tasksHash: tasksHash
+    };
+  }
+
+  const metrics = financialSearchState.cachedMetrics.metrics;
+  const financialMetrics = financialSearchState.cachedMetrics.financialMetrics;
+
+  const sortIcon = (column) => {
+    if (financialSearchState.sortColumn !== column) {
+      return '<i class="fa-solid fa-sort" style="opacity: 0.3;"></i>';
+    }
+    return financialSearchState.sortDirection === 'asc'
+      ? '<i class="fa-solid fa-sort-up"></i>'
+      : '<i class="fa-solid fa-sort-down"></i>';
+  };
 
   DOM.financialContainer.innerHTML = `
     <div class="financial-grid">
@@ -206,7 +548,7 @@ function renderFinancial() {
               <i class="fa-solid fa-chart-line"></i>
             </div>
           </div>
-          <div class="stat-card-value" style="color: var(--success);">${formatCurrency(financialMetrics.mrr)}</div>
+          <div class="stat-card-value" style="color: var(--success); font-size: 1.75rem;">${formatCurrency(financialMetrics.mrr)}</div>
           <div class="stat-card-change">
             <span>${financialMetrics.hostingActive} hosting ativo</span>
           </div>
@@ -219,7 +561,7 @@ function renderFinancial() {
               <i class="fa-solid fa-euro-sign"></i>
             </div>
           </div>
-          <div class="stat-card-value">${formatCurrency(financialMetrics.totalRevenue)}</div>
+          <div class="stat-card-value" style="font-size: 1.75rem;">${formatCurrency(financialMetrics.totalRevenue)}</div>
         </div>
 
         <div class="stat-card">
@@ -229,7 +571,7 @@ function renderFinancial() {
               <i class="fa-solid fa-calendar"></i>
             </div>
           </div>
-          <div class="stat-card-value">${formatCurrency(financialMetrics.currentMonthRevenue)}</div>
+          <div class="stat-card-value" style="font-size: 1.75rem;">${formatCurrency(financialMetrics.currentMonthRevenue)}</div>
           <div class="stat-card-change ${getRevenueChangeClass(financialMetrics.revenueChange)}">
             ${getRevenueChangeIcon(financialMetrics.revenueChange)} ${Math.abs(financialMetrics.revenueChange).toFixed(1)}% vs anterior
           </div>
@@ -242,7 +584,7 @@ function renderFinancial() {
               <i class="fa-solid fa-clock"></i>
             </div>
           </div>
-          <div class="stat-card-value" style="color: var(--danger);">${formatCurrency(financialMetrics.pendingRevenue)}</div>
+          <div class="stat-card-value" style="color: var(--danger); font-size: 1.75rem;">${formatCurrency(financialMetrics.pendingRevenue)}</div>
           <div class="stat-card-change">
             <span>${financialMetrics.pendingCount} projetos</span>
           </div>
@@ -253,27 +595,60 @@ function renderFinancial() {
       <div class="dashboard-card">
         <div class="dashboard-card-header">
           <h3 class="dashboard-card-title">Projetos</h3>
+          <div class="financial-filters">
+            <button class="financial-filter-btn ${financialSearchState.filterStatus === 'all' ? 'active' : ''}"
+                    data-filter="all"
+                    onclick="handleFilterStatus('all')"
+                    aria-label="Mostrar todos os projetos">
+              Todos
+            </button>
+            <button class="financial-filter-btn ${financialSearchState.filterStatus === 'paid' ? 'active' : ''}"
+                    data-filter="paid"
+                    onclick="handleFilterStatus('paid')"
+                    aria-label="Mostrar apenas projetos pagos">
+              Pago
+            </button>
+            <button class="financial-filter-btn ${financialSearchState.filterStatus === 'pending' ? 'active' : ''}"
+                    data-filter="pending"
+                    onclick="handleFilterStatus('pending')"
+                    aria-label="Mostrar apenas projetos pendentes">
+              Pendente
+            </button>
+          </div>
         </div>
         <div class="financial-table-container">
           <table class="financial-table" role="table" aria-label="Tabela de projetos financeiros">
             <thead>
               <tr>
-                <th scope="col">Cliente</th>
-                <th scope="col">Valor</th>
-                <th scope="col">Status</th>
-                <th scope="col">Hosting</th>
+                <th scope="col" class="sortable" onclick="handleSort('client')" style="cursor: pointer;">
+                  Cliente ${sortIcon('client')}
+                </th>
+                <th scope="col" class="sortable" onclick="handleSort('value')" style="cursor: pointer;">
+                  Valor ${sortIcon('value')}
+                </th>
+                <th scope="col" class="sortable" onclick="handleSort('status')" style="cursor: pointer;">
+                  Status ${sortIcon('status')}
+                </th>
+                <th scope="col" class="sortable" onclick="handleSort('hosting')" style="cursor: pointer;">
+                  Hosting ${sortIcon('hosting')}
+                </th>
+                <th scope="col" style="width: 80px;">Ação</th>
               </tr>
             </thead>
             <tbody id="projectsTable">
             </tbody>
           </table>
         </div>
+        <div id="financialMobileCards" class="financial-mobile-cards">
+          <!-- Mobile cards will be rendered here -->
+        </div>
       </div>
     </div>
   `;
 
   setTimeout(() => {
-    renderProjectsTable(tasks);
+    const searchTerm = DOM.searchInput ? DOM.searchInput.value.toLowerCase().trim() : '';
+    filterAndRenderProjects(searchTerm);
     if (DOM.financialContainer) {
       financialSearchState.gridElement = DOM.financialContainer.querySelector('.financial-grid');
     }
@@ -282,53 +657,172 @@ function renderFinancial() {
 
 function renderProjectsTable(tasks, showNoResults = false) {
   const tableBody = document.getElementById('projectsTable');
+  const mobileCards = document.getElementById('financialMobileCards');
   if (!tableBody) return;
 
   if (tasks.length === 0) {
     const message = showNoResults
       ? 'Nenhum projeto encontrado com o termo buscado'
       : 'Nenhum projeto';
-    tableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 2rem; color: var(--text-muted);">${message}</td></tr>`;
+    tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-muted);">${message}</td></tr>`;
+    if (mobileCards) {
+      mobileCards.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--text-muted);">${message}</div>`;
+    }
     return;
   }
 
-  const tasksWithPrice = tasks.map(task => ({
-    task,
-    price: parseFloat(task.price) || 0
-  }));
-  tasksWithPrice.sort((a, b) => b.price - a.price);
-  const sortedTasks = tasksWithPrice.map(item => item.task);
+  const sortedTasks = sortTasks(tasks);
+  financialSearchState.sortedTasks = sortedTasks;
 
   const fragment = document.createDocumentFragment();
+  const mobileFragment = document.createDocumentFragment();
 
   sortedTasks.forEach(task => {
     const formattedPrice = formatCurrency(task.price);
     const paymentStatus = paymentStatusHtml[task.payment_status] || paymentStatusHtml[PAYMENT_STATUS_PENDING];
     const hosting = hostingHtml[task.hosting] || '';
+    const isUrgent = isTaskUrgent(task);
+    const canMarkAsPaid = task.payment_status === PAYMENT_STATUS_PENDING;
 
+    // Desktop table row
     const row = document.createElement('tr');
+    if (isUrgent) {
+      row.classList.add('financial-row-urgent');
+    }
     row.style.cursor = 'pointer';
     row.setAttribute('role', 'button');
     row.setAttribute('tabindex', '0');
     row.setAttribute('aria-label', `Projeto ${task.client}, ${formattedPrice}, ${task.payment_status}`);
-    row.addEventListener('click', () => openModal(task));
+
+    const rowClickHandler = (e) => {
+      if (!e.target.closest('.quick-action-btn')) {
+        openModal(task);
+      }
+    };
+
+    row.addEventListener('click', rowClickHandler);
     row.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         openModal(task);
       }
     });
+
     row.innerHTML = `
-      <td><strong>${escapeHtml(task.client)}</strong></td>
-      <td>${formattedPrice}</td>
+      <td>
+        <strong>${escapeHtml(task.client)}</strong>
+        ${isUrgent ? '<span class="urgent-badge" title="Pagamento pendente há mais de 30 dias"><i class="fa-solid fa-exclamation-triangle"></i></span>' : ''}
+      </td>
+      <td style="font-weight: 600; font-family: 'JetBrains Mono', monospace;">${formattedPrice}</td>
       <td>${paymentStatus}</td>
       <td>${hosting}</td>
+      <td>
+        ${canMarkAsPaid ? `
+          <button class="quick-action-btn"
+                  data-task-id="${task.id}"
+                  aria-label="Marcar como pago"
+                  title="Marcar como pago">
+            <i class="fa-solid fa-check"></i>
+          </button>
+        ` : ''}
+      </td>
     `;
+
+    if (canMarkAsPaid) {
+      const quickBtn = row.querySelector('.quick-action-btn');
+      if (quickBtn) {
+        quickBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const taskId = parseInt(quickBtn.dataset.taskId, 10);
+          if (!isNaN(taskId)) {
+            quickMarkAsPaid(taskId, e);
+          }
+        });
+      }
+    }
+
     fragment.appendChild(row);
+
+    // Mobile card
+    if (mobileCards) {
+      const card = document.createElement('div');
+      card.className = 'financial-mobile-card';
+      if (isUrgent) {
+        card.classList.add('financial-card-urgent');
+      }
+      card.setAttribute('role', 'button');
+      card.setAttribute('tabindex', '0');
+      card.setAttribute('aria-label', `Projeto ${task.client}, ${formattedPrice}, ${task.payment_status}`);
+
+      const cardClickHandler = (e) => {
+        if (!e.target.closest('.quick-action-btn')) {
+          openModal(task);
+        }
+      };
+
+      card.addEventListener('click', cardClickHandler);
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openModal(task);
+        }
+      });
+
+      card.innerHTML = `
+        <div class="financial-mobile-card-header">
+          <div>
+            <strong>${escapeHtml(task.client)}</strong>
+            ${isUrgent ? '<span class="urgent-badge"><i class="fa-solid fa-exclamation-triangle"></i></span>' : ''}
+          </div>
+          ${canMarkAsPaid ? `
+            <button class="quick-action-btn"
+                    data-task-id="${task.id}"
+                    aria-label="Marcar como pago"
+                    title="Marcar como pago">
+              <i class="fa-solid fa-check"></i>
+            </button>
+          ` : ''}
+        </div>
+        <div class="financial-mobile-card-body">
+          <div class="financial-mobile-card-row">
+            <span class="financial-mobile-label">Valor:</span>
+            <span style="font-weight: 600; font-family: 'JetBrains Mono', monospace;">${formattedPrice}</span>
+          </div>
+          <div class="financial-mobile-card-row">
+            <span class="financial-mobile-label">Status:</span>
+            ${paymentStatus}
+          </div>
+          <div class="financial-mobile-card-row">
+            <span class="financial-mobile-label">Hosting:</span>
+            ${hosting || 'Não'}
+          </div>
+        </div>
+      `;
+
+      if (canMarkAsPaid) {
+        const quickBtn = card.querySelector('.quick-action-btn');
+        if (quickBtn) {
+          quickBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const taskId = parseInt(quickBtn.dataset.taskId, 10);
+            if (!isNaN(taskId)) {
+              quickMarkAsPaid(taskId, e);
+            }
+          });
+        }
+      }
+
+      mobileFragment.appendChild(card);
+    }
   });
 
   tableBody.innerHTML = '';
   tableBody.appendChild(fragment);
+
+  if (mobileCards) {
+    mobileCards.innerHTML = '';
+    mobileCards.appendChild(mobileFragment);
+  }
 }
 
 function renderFinancialHeader(metrics) {
@@ -351,11 +845,50 @@ function renderFinancialHeader(metrics) {
 }
 
 function exportFinancialData() {
-  const tasks = AppState.getTasks();
+  let tasksToExport = (financialSearchState.sortedTasks && financialSearchState.sortedTasks.length > 0)
+    ? financialSearchState.sortedTasks
+    : financialSearchState.tasks;
+
+  if (!tasksToExport || tasksToExport.length === 0) {
+    NotificationManager.warning('Nenhum projeto para exportar');
+    return;
+  }
+
+  if (financialSearchState.filterStatus === 'paid') {
+    tasksToExport = tasksToExport.filter(task =>
+      task.payment_status === PAYMENT_STATUS_PAID || task.payment_status === PAYMENT_STATUS_PARTIAL
+    );
+  } else if (financialSearchState.filterStatus === 'pending') {
+    tasksToExport = tasksToExport.filter(task =>
+      task.payment_status === PAYMENT_STATUS_PENDING
+    );
+  }
+
+  const searchTerm = DOM.searchInput ? DOM.searchInput.value.toLowerCase().trim() : '';
+  if (searchTerm) {
+    const searchLower = searchTerm.toLowerCase();
+    tasksToExport = tasksToExport.filter(task => {
+      const client = (task.client || '').toLowerCase();
+      const contact = (task.contact || '').toLowerCase();
+      const type = (task.type || '').toLowerCase();
+      const description = (task.description || '').toLowerCase();
+      return client.includes(searchLower) ||
+        contact.includes(searchLower) ||
+        type.includes(searchLower) ||
+        description.includes(searchLower);
+    });
+  }
+
+  const allTasks = AppState.getTasks();
   const metrics = AppState.getCachedMetrics(() => calculateDashboardMetrics());
-  const financialMetrics = calculateFinancialMetrics(tasks);
-  const monthlyRevenue = calculateMonthlyRevenue(tasks, 12);
-  const projectedRevenue = calculateProjectedRevenue(tasks, 12);
+  const financialMetrics = calculateFinancialMetrics(allTasks);
+  const monthlyRevenue = calculateMonthlyRevenue(allTasks, 12);
+  const projectedRevenue = calculateProjectedRevenue(allTasks, 12);
+
+  const filterInfo = financialSearchState.filterStatus !== 'all'
+    ? ` (Filtrado: ${financialSearchState.filterStatus === 'paid' ? 'Pago' : 'Pendente'})`
+    : '';
+  const searchInfo = searchTerm ? ` (Busca: "${searchTerm}")` : '';
 
   const csv = [
     'Métrica,Valor',
@@ -369,12 +902,17 @@ function exportFinancialData() {
       return `${month.name},€${month.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })},€${projection.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }),
     '',
-    'Cliente,Valor,Status Pagamento,Hosting',
-    ...tasks.map(t => {
+    `Cliente,Valor,Status Pagamento,Hosting${filterInfo}${searchInfo}`,
+    ...tasksToExport.map(t => {
       const hosting = getHostingDisplayText(t.hosting);
       return `"${t.client}",€${(parseFloat(t.price) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })},"${t.payment_status}","${hosting}"`;
     })
   ].join('\n');
 
   downloadCSV(csv, `vibeos-financial-${new Date().toISOString().split('T')[0]}.csv`);
+}
+
+if (typeof window !== 'undefined') {
+  window.handleSort = handleSort;
+  window.handleFilterStatus = handleFilterStatus;
 }
