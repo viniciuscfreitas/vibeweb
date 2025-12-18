@@ -218,7 +218,8 @@ function generateInvoice(taskData) {
       const numberFormatter = typeof formatPrice === 'function' ? null : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'EUR' });
       const formatCurrency = (val) => {
         if (typeof formatPrice === 'function') return formatPrice(val);
-        return numberFormatter.format(val);
+        if (numberFormatter) return numberFormatter.format(val);
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'EUR' }).format(val);
       };
 
       const now = new Date();
@@ -308,8 +309,13 @@ function generateInvoice(taskData) {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
         const descriptionLines = doc.splitTextToSize(taskData.description, contentWidth);
+        const descriptionHeight = descriptionLines.length * 5;
+        if (yPos + descriptionHeight > pageBottomThreshold) {
+          doc.addPage();
+          yPos = layout.margin;
+        }
         doc.text(descriptionLines, layout.margin, yPos);
-        yPos += descriptionLines.length * 5 + 5;
+        yPos += descriptionHeight + 5;
       }
 
       yPos += 5;
@@ -342,9 +348,9 @@ function generateInvoice(taskData) {
       if (taskData.deadline) {
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.text('Prazo:', layout.margin, yPos);
+        doc.text('Prazo:', labelX, yPos);
         doc.setFont('helvetica', 'normal');
-        doc.text(taskData.deadline, layout.margin + 30, yPos);
+        doc.text(taskData.deadline, deadlineValueX, yPos);
         yPos += 10;
       }
 
@@ -364,7 +370,8 @@ function generateInvoice(taskData) {
         if (Array.isArray(taskData.assets_link)) {
           assetsLinks = taskData.assets_link;
         } else if (typeof taskData.assets_link === 'string') {
-          if (taskData.assets_link.trim().startsWith('[') || taskData.assets_link.trim().startsWith('{')) {
+          const trimmed = taskData.assets_link.trim();
+          if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
             try {
               const parsed = JSON.parse(taskData.assets_link);
               assetsLinks = Array.isArray(parsed) ? parsed : [taskData.assets_link];
@@ -394,7 +401,8 @@ function generateInvoice(taskData) {
               doc.addPage();
               yPos = layout.margin;
             }
-            const linkText = link.length > 60 ? link.substring(0, 57) + '...' : link;
+            const linkStr = String(link);
+            const linkText = linkStr.length > 60 ? linkStr.substring(0, 57) + '...' : linkStr;
             doc.text(linkText, layout.margin + 5, yPos);
             yPos += 6;
           });
@@ -415,10 +423,10 @@ function generateInvoice(taskData) {
 
       // Salvar PDF
       const clientName = (taskData.client || 'projeto')
-        .replace(/[^a-z0-9\s]/gi, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, '')
         .trim()
-        .replace(/\s+/g, '-')
-        .toLowerCase();
+        .replace(/\s+/g, '-');
       const filename = `proposta-${clientName}-${dateStr}.pdf`;
 
       doc.save(filename);
