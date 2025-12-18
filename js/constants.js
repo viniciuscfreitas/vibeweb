@@ -45,8 +45,8 @@ const HOSTING_LATER = 'depois'; // Potential upsell opportunity
 const CHART_TOTAL_HEIGHT = 200;
 const CHART_SPACE_FOR_LABELS = 40;
 const CHART_MINIMUM_BAR_HEIGHT = 8;
-const PIE_CHART_SIZE = 200;
-const PIE_CHART_RADIUS = 70;
+const PIE_CHART_SIZE = 160;
+const PIE_CHART_RADIUS = 60;
 
 // Deadline Constants
 const DEADLINE_UNDEFINED = 'A Definir';
