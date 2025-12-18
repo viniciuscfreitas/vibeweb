@@ -1,3 +1,4 @@
+(function() {
 const isFileProtocol = window.location.protocol === 'file:';
 const isLocalhost = window.location.hostname === 'localhost' ||
                     window.location.hostname === '127.0.0.1' ||
@@ -6,7 +7,6 @@ const isLocalhost = window.location.hostname === 'localhost' ||
 const WS_URL = isLocalhost ? 'http://localhost:3000' : '';
 
 let socket = null;
-let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
 
 let cachedUserId = null;
@@ -20,6 +20,8 @@ let pendingRenders = {
   financial: false,
   header: false
 };
+
+const hasNormalizeTasksData = typeof normalizeTasksData === 'function';
 
 function connectWebSocket() {
   if (socket?.connected) {
@@ -62,7 +64,6 @@ function initializeSocket() {
     });
 
     socket.on('connect', () => {
-      reconnectAttempts = 0;
       cachedUserId = null;
       if (isLocalhost) {
         console.log('[WebSocket] Connected');
@@ -127,8 +128,7 @@ function scheduleRender() {
     renderScheduled = false;
 
     if (pendingRenders.board) {
-      const isBoardVisible = DOM.boardContainer && !DOM.boardContainer.classList.contains('hidden');
-      if (isBoardVisible) {
+      if (DOM.boardContainer && !DOM.boardContainer.classList.contains('hidden')) {
         renderBoard();
       }
       pendingRenders.board = false;
@@ -151,22 +151,27 @@ function scheduleRender() {
   });
 }
 
+function isCurrentUser(userId) {
+  if (userId === undefined) return false;
+  const currentUserId = getCurrentUserId();
+  return currentUserId !== null && userId === currentUserId;
+}
+
+function normalizeTask(task) {
+  if (!hasNormalizeTasksData) return task;
+  const normalized = normalizeTasksData([task]);
+  return normalized[0] || task;
+}
+
 function handleTaskCreated(data) {
   if (!data?.task || !AppState) return;
-
-  const currentUserId = getCurrentUserId();
-  if (currentUserId !== null && data.userId !== undefined && data.userId === currentUserId) {
-    return;
-  }
+  if (isCurrentUser(data.userId)) return;
 
   const tasks = AppState.getTasks();
   const exists = tasks.some(t => t.id === data.task.id);
   if (exists) return;
 
-  const normalizedTask = typeof normalizeTasksData === 'function'
-    ? (normalizeTasksData([data.task])[0] || data.task)
-    : data.task;
-
+  const normalizedTask = normalizeTask(data.task);
   const newTasks = [...tasks, normalizedTask];
   AppState.setTasks(newTasks);
 
@@ -179,20 +184,13 @@ function handleTaskCreated(data) {
 
 function handleTaskUpdated(data) {
   if (!data?.task || !AppState) return;
-
-  const currentUserId = getCurrentUserId();
-  if (currentUserId !== null && data.userId !== undefined && data.userId === currentUserId) {
-    return;
-  }
+  if (isCurrentUser(data.userId)) return;
 
   const tasks = AppState.getTasks();
   const taskIndex = tasks.findIndex(t => t.id === data.task.id);
   if (taskIndex === -1) return;
 
-  const normalizedTask = typeof normalizeTasksData === 'function'
-    ? (normalizeTasksData([data.task])[0] || data.task)
-    : data.task;
-
+  const normalizedTask = normalizeTask(data.task);
   const updatedTasks = [...tasks];
   updatedTasks[taskIndex] = normalizedTask;
   AppState.setTasks(updatedTasks);
@@ -208,11 +206,7 @@ function handleTaskUpdated(data) {
 
 function handleTaskDeleted(data) {
   if (!data?.taskId || !AppState) return;
-
-  const currentUserId = getCurrentUserId();
-  if (currentUserId !== null && data.userId !== undefined && data.userId === currentUserId) {
-    return;
-  }
+  if (isCurrentUser(data.userId)) return;
 
   const tasks = AppState.getTasks();
   const updatedTasks = tasks.filter(t => t.id !== data.taskId);
@@ -232,11 +226,7 @@ function handleTaskDeleted(data) {
 
 function handleTaskMoved(data) {
   if (!data?.task || !AppState) return;
-
-  const currentUserId = getCurrentUserId();
-  if (currentUserId !== null && data.userId !== undefined && data.userId === currentUserId) {
-    return;
-  }
+  if (isCurrentUser(data.userId)) return;
 
   const tasks = AppState.getTasks();
   const taskIndex = tasks.findIndex(t => t.id === data.task.id);
@@ -247,10 +237,7 @@ function handleTaskMoved(data) {
     return;
   }
 
-  const normalizedTask = typeof normalizeTasksData === 'function'
-    ? (normalizeTasksData([data.task])[0] || data.task)
-    : data.task;
-
+  const normalizedTask = normalizeTask(data.task);
   const updatedTasks = [...tasks];
   updatedTasks[taskIndex] = {
     ...updatedTasks[taskIndex],
@@ -282,9 +269,6 @@ function getCurrentUserId() {
       return cachedUserId;
     }
   } catch (e) {
-    cachedUserId = null;
-    cachedUserIdTimestamp = now;
-    return null;
   }
 
   cachedUserId = null;
@@ -294,3 +278,4 @@ function getCurrentUserId() {
 
 window.connectWebSocket = connectWebSocket;
 window.disconnectWebSocket = disconnectWebSocket;
+})();
