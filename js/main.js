@@ -888,10 +888,12 @@ function setupEventListeners() {
         if (oldHandler) {
           btn.removeEventListener('click', oldHandler);
         }
-        const clickHandler = () => {
+        const clickHandler = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
           switchView(view);
         };
-        btn.addEventListener('click', clickHandler);
+        btn.addEventListener('click', clickHandler, { passive: false });
         btn._clickHandler = clickHandler;
       }
     });
@@ -903,10 +905,11 @@ function setupEventListeners() {
       DOM.bottomNavProfile.removeEventListener('click', oldProfileHandler);
     }
     const profileClickHandler = (e) => {
+      e.preventDefault();
       e.stopPropagation();
       openProfileModal();
     };
-    DOM.bottomNavProfile.addEventListener('click', profileClickHandler);
+    DOM.bottomNavProfile.addEventListener('click', profileClickHandler, { passive: false });
     DOM.bottomNavProfile._clickHandler = profileClickHandler;
   }
 

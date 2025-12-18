@@ -400,6 +400,9 @@ body {
   overflow-y: hidden;
   opacity: 1;
   transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+  min-height: 0;
 }
 
 .board-container.hidden {
@@ -411,6 +414,7 @@ body {
   gap: 1rem;
   height: 100%;
   min-width: 1000px;
+  min-height: 0;
 }
 
 .column {
@@ -418,6 +422,8 @@ body {
   display: flex;
   flex-direction: column;
   min-width: 250px;
+  min-height: 0;
+  height: 100%;
 }
 
 .col-header {
@@ -445,10 +451,15 @@ body {
 .col-body {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding-right: 4px;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  min-height: 0;
+  max-height: 100%;
 }
 
 /* Card Styles */
@@ -2410,6 +2421,8 @@ html[data-authenticated="true"] #appContainer.hidden {
     will-change: transform;
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
+    pointer-events: auto;
+    -webkit-touch-callout: none;
   }
 
   .bottom-nav-item {
@@ -2429,6 +2442,9 @@ html[data-authenticated="true"] #appContainer.hidden {
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
     position: relative;
+    -webkit-user-select: none;
+    user-select: none;
+    z-index: 1;
   }
 
   .bottom-nav-item i {
@@ -2706,6 +2722,15 @@ html[data-authenticated="true"] #appContainer.hidden {
       z-index: 9999 !important;
       height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom)) !important;
       padding-bottom: env(safe-area-inset-bottom) !important;
+      pointer-events: auto !important;
+      -webkit-touch-callout: none !important;
+    }
+
+    .bottom-nav-item {
+      touch-action: manipulation !important;
+      -webkit-tap-highlight-color: transparent !important;
+      pointer-events: auto !important;
+      z-index: 1 !important;
     }
 
     .sidebar {
@@ -2720,6 +2745,21 @@ html[data-authenticated="true"] #appContainer.hidden {
     .column {
       width: 100% !important;
       min-width: unset !important;
+    }
+
+    .col-body {
+      -webkit-overflow-scrolling: touch !important;
+      touch-action: pan-y !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      min-height: 0 !important;
+      max-height: 100% !important;
+    }
+
+    .board-container {
+      -webkit-overflow-scrolling: touch !important;
+      touch-action: pan-x pan-y !important;
+      min-height: 0 !important;
     }
 
     .main-content {
