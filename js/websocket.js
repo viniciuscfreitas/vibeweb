@@ -47,60 +47,85 @@ function markLocalAction(taskId) {
   }
 
   localActions.add(taskId);
-  console.log('[WebSocket] 🏷️  Marked local action (will ignore WebSocket events for 1s)', { taskId });
+  if (isLocalhost) {
+    console.log('[WebSocket] 🏷️  Marked local action (will ignore WebSocket events for 1s)', { taskId });
+  }
   const timeoutId = setTimeout(() => {
     localActions.delete(taskId);
     actionTimeouts.delete(taskId);
-    console.log('[WebSocket] 🏷️  Local action timeout cleared', { taskId });
+    if (isLocalhost) {
+      console.log('[WebSocket] 🏷️  Local action timeout cleared', { taskId });
+    }
   }, LOCAL_ACTION_TIMEOUT_MS);
 
   actionTimeouts.set(taskId, timeoutId);
 }
 
-function loadSocketIOFromCDN() {
-  return new Promise((resolve, reject) => {
-    if (typeof io !== 'undefined') {
-      resolve();
-      return;
-    }
+let cdnLoadPromise = null;
 
-    if (cdnLoadInProgress) {
+function loadSocketIOFromCDN() {
+  if (typeof io !== 'undefined') {
+    return Promise.resolve();
+  }
+
+  if (cdnLoadPromise) {
+    return cdnLoadPromise;
+  }
+
+  if (cdnLoadInProgress) {
+    return new Promise((resolve, reject) => {
       const checkInterval = setInterval(() => {
         if (typeof io !== 'undefined') {
           clearInterval(checkInterval);
           cdnLoadInProgress = false;
+          cdnLoadPromise = null;
           resolve();
         } else if (!cdnLoadInProgress) {
           clearInterval(checkInterval);
+          cdnLoadPromise = null;
           reject(new Error('CDN load was cancelled'));
         }
       }, 100);
       setTimeout(() => {
         clearInterval(checkInterval);
+        if (cdnLoadInProgress) {
+          cdnLoadPromise = null;
+        }
       }, SOCKET_IO_LOAD_TIMEOUT);
-      return;
-    }
+    });
+  }
 
-    cdnLoadInProgress = true;
+  cdnLoadInProgress = true;
+  if (isLocalhost) {
     console.log('[WebSocket] 📦 Loading socket.io from CDN fallback...');
+  }
+
+  cdnLoadPromise = new Promise((resolve, reject) => {
     const script = document.createElement('script');
     script.src = `https://cdn.socket.io/${SOCKET_IO_VERSION}/socket.io.min.js`;
     script.crossOrigin = 'anonymous';
     script.onload = () => {
       cdnLoadInProgress = false;
       if (typeof io !== 'undefined') {
-        console.log('[WebSocket] ✅ socket.io loaded from CDN');
+        if (isLocalhost) {
+          console.log('[WebSocket] ✅ socket.io loaded from CDN');
+        }
+        cdnLoadPromise = null;
         resolve();
       } else {
+        cdnLoadPromise = null;
         reject(new Error('socket.io not available after CDN load'));
       }
     };
     script.onerror = () => {
       cdnLoadInProgress = false;
+      cdnLoadPromise = null;
       reject(new Error('Failed to load socket.io from CDN'));
     };
     document.head.appendChild(script);
   });
+
+  return cdnLoadPromise;
 }
 
 function waitForSocketIO(callback, retries = 0) {
@@ -122,7 +147,9 @@ function waitForSocketIO(callback, retries = 0) {
 
   if (retries >= maxRetries) {
     socketIOWaitInProgress = false;
-    console.warn('[WebSocket] ⚠️  socket.io not loaded from server, trying CDN fallback...');
+    if (isLocalhost) {
+      console.warn('[WebSocket] ⚠️  socket.io not loaded from server, trying CDN fallback...');
+    }
     loadSocketIOFromCDN()
       .then(() => {
         socketIOWaitInProgress = false;
@@ -131,7 +158,9 @@ function waitForSocketIO(callback, retries = 0) {
       .catch((error) => {
         socketIOWaitInProgress = false;
         console.error('[WebSocket] ❌ Failed to load socket.io:', error.message);
-        console.warn('[WebSocket] 💡 WebSocket features will be disabled');
+        if (isLocalhost) {
+          console.warn('[WebSocket] 💡 WebSocket features will be disabled');
+        }
       });
     return;
   }
@@ -141,7 +170,9 @@ function waitForSocketIO(callback, retries = 0) {
 
 function connectWebSocket() {
   if (socket?.connected) {
-    console.log('[WebSocket] Already connected, skipping');
+    if (isLocalhost) {
+      console.log('[WebSocket] Already connected, skipping');
+    }
     return;
   }
 
@@ -150,7 +181,9 @@ function connectWebSocket() {
       console.error('[WebSocket] ❌ socket.io library not available');
       return;
     }
-    console.log('[WebSocket] 🔌 Initiating connection...');
+    if (isLocalhost) {
+      console.log('[WebSocket] 🔌 Initiating connection...');
+    }
     initializeSocket();
   });
 }
@@ -159,7 +192,9 @@ function initializeSocket() {
   try {
     const token = localStorage.getItem('vibeTasks_token');
     if (!token) {
-      console.warn('[WebSocket] No token available, cannot connect');
+      if (isLocalhost) {
+        console.warn('[WebSocket] No token available, cannot connect');
+      }
       return;
     }
 
@@ -168,7 +203,9 @@ function initializeSocket() {
       socket.disconnect();
     }
 
-    console.log('[WebSocket] Connecting to:', WS_URL);
+    if (isLocalhost) {
+      console.log('[WebSocket] Connecting to:', WS_URL);
+    }
     socket = io(WS_URL, {
       transports: ['websocket', 'polling'],
       reconnection: true,
@@ -181,22 +218,30 @@ function initializeSocket() {
 
     socket.on('connect', () => {
       cachedUserId = null;
-      const socketId = socket.id;
-      console.log('[WebSocket] ✅ Connected successfully', { socketId, url: WS_URL });
+      if (isLocalhost) {
+        const socketId = socket.id;
+        console.log('[WebSocket] ✅ Connected successfully', { socketId, url: WS_URL });
+      }
     });
 
     socket.on('disconnect', (reason) => {
       cachedUserId = null;
       cachedUserIdTimestamp = 0;
-      console.log('[WebSocket] ❌ Disconnected', { reason });
+      if (isLocalhost) {
+        console.log('[WebSocket] ❌ Disconnected', { reason });
+      }
     });
 
     socket.on('reconnect', (attemptNumber) => {
-      console.log('[WebSocket] 🔄 Reconnected', { attemptNumber });
+      if (isLocalhost) {
+        console.log('[WebSocket] 🔄 Reconnected', { attemptNumber });
+      }
     });
 
     socket.on('reconnect_attempt', (attemptNumber) => {
-      console.log('[WebSocket] 🔄 Reconnection attempt', { attemptNumber, maxAttempts: MAX_RECONNECT_ATTEMPTS });
+      if (isLocalhost) {
+        console.log('[WebSocket] 🔄 Reconnection attempt', { attemptNumber, maxAttempts: MAX_RECONNECT_ATTEMPTS });
+      }
     });
 
     socket.on('reconnect_failed', () => {
@@ -204,34 +249,44 @@ function initializeSocket() {
     });
 
     socket.on('task:created', (data) => {
-      console.log('[WebSocket] 📨 Received task:created', { taskId: data?.task?.id, userId: data?.userId });
+      if (isLocalhost) {
+        console.log('[WebSocket] 📨 Received task:created', { taskId: data?.task?.id, userId: data?.userId });
+      }
       handleTaskCreated(data);
     });
 
     socket.on('task:updated', (data) => {
-      console.log('[WebSocket] 📨 Received task:updated', { taskId: data?.task?.id, userId: data?.userId });
+      if (isLocalhost) {
+        console.log('[WebSocket] 📨 Received task:updated', { taskId: data?.task?.id, userId: data?.userId });
+      }
       handleTaskUpdated(data);
     });
 
     socket.on('task:deleted', (data) => {
-      console.log('[WebSocket] 📨 Received task:deleted', { taskId: data?.taskId, userId: data?.userId });
+      if (isLocalhost) {
+        console.log('[WebSocket] 📨 Received task:deleted', { taskId: data?.taskId, userId: data?.userId });
+      }
       handleTaskDeleted(data);
     });
 
     socket.on('task:moved', (data) => {
-      console.log('[WebSocket] 📨 Received task:moved', { 
-        taskId: data?.task?.id, 
-        userId: data?.userId,
-        fromCol: data?.task?.col_id,
-        toPosition: data?.task?.order_position
-      });
+      if (isLocalhost) {
+        console.log('[WebSocket] 📨 Received task:moved', { 
+          taskId: data?.task?.id, 
+          userId: data?.userId,
+          fromCol: data?.task?.col_id,
+          toPosition: data?.task?.order_position
+        });
+      }
       handleTaskMoved(data);
     });
 
     socket.on('connect_error', (error) => {
       console.error('[WebSocket] ❌ Connection error:', error.message, { url: WS_URL });
       if (error.message === 'Authentication error') {
-        console.warn('[WebSocket] 🔒 Authentication failed, disconnecting');
+        if (isLocalhost) {
+          console.warn('[WebSocket] 🔒 Authentication failed, disconnecting');
+        }
         socket.disconnect();
       }
     });
@@ -242,7 +297,9 @@ function initializeSocket() {
 
 function disconnectWebSocket() {
   if (socket) {
-    console.log('[WebSocket] 🔌 Disconnecting...');
+    if (isLocalhost) {
+      console.log('[WebSocket] 🔌 Disconnecting...');
+    }
     socket.removeAllListeners();
     socket.disconnect();
     socket = null;
@@ -255,7 +312,9 @@ function disconnectWebSocket() {
   }
   localActions.clear();
   actionTimeouts.clear();
-  console.log('[WebSocket] ✅ Disconnected and cleaned up');
+  if (isLocalhost) {
+    console.log('[WebSocket] ✅ Disconnected and cleaned up');
+  }
 }
 
 function scheduleRender() {
@@ -297,7 +356,7 @@ function shouldIgnoreWebSocketEvent(taskId, userId) {
     return false;
   }
   const shouldIgnore = localActions.has(taskId);
-  if (shouldIgnore) {
+  if (shouldIgnore && isLocalhost) {
     console.log('[WebSocket] ⏭️  Ignoring event (local action)', { taskId, userId });
   }
   return shouldIgnore;
@@ -311,7 +370,9 @@ function normalizeTask(task) {
 
 function handleTaskCreated(data) {
   if (!data?.task || !AppState) {
-    console.warn('[WebSocket] Invalid task:created data', data);
+    if (isLocalhost) {
+      console.warn('[WebSocket] Invalid task:created data', data);
+    }
     return;
   }
   if (shouldIgnoreWebSocketEvent(data.task.id, data.userId)) return;
@@ -319,7 +380,9 @@ function handleTaskCreated(data) {
   const tasks = AppState.getTasks();
   const exists = tasks.some(t => t.id === data.task.id);
   if (exists) {
-    console.log('[WebSocket] ⏭️  Task already exists, skipping', { taskId: data.task.id });
+    if (isLocalhost) {
+      console.log('[WebSocket] ⏭️  Task already exists, skipping', { taskId: data.task.id });
+    }
     return;
   }
 
@@ -331,13 +394,17 @@ function handleTaskCreated(data) {
   pendingRenders.header = true;
   scheduleRender();
 
-  console.log('[WebSocket] ✅ Task created and rendered', { taskId: data.task.id, client: data.task.client });
+  if (isLocalhost) {
+    console.log('[WebSocket] ✅ Task created and rendered', { taskId: data.task.id, client: data.task.client });
+  }
   AppState.log('Task created via WebSocket', { taskId: data.task.id });
 }
 
 function handleTaskUpdated(data) {
   if (!data?.task || !AppState) {
-    console.warn('[WebSocket] Invalid task:updated data', data);
+    if (isLocalhost) {
+      console.warn('[WebSocket] Invalid task:updated data', data);
+    }
     return;
   }
   if (shouldIgnoreWebSocketEvent(data.task.id, data.userId)) return;
@@ -345,7 +412,9 @@ function handleTaskUpdated(data) {
   const tasks = AppState.getTasks();
   const taskIndex = tasks.findIndex(t => t.id === data.task.id);
   if (taskIndex === -1) {
-    console.log('[WebSocket] ⏭️  Task not found locally, skipping update', { taskId: data.task.id });
+    if (isLocalhost) {
+      console.log('[WebSocket] ⏭️  Task not found locally, skipping update', { taskId: data.task.id });
+    }
     return;
   }
 
@@ -360,13 +429,17 @@ function handleTaskUpdated(data) {
   pendingRenders.header = true;
   scheduleRender();
 
-  console.log('[WebSocket] ✅ Task updated and rendered', { taskId: data.task.id, client: data.task.client });
+  if (isLocalhost) {
+    console.log('[WebSocket] ✅ Task updated and rendered', { taskId: data.task.id, client: data.task.client });
+  }
   AppState.log('Task updated via WebSocket', { taskId: data.task.id });
 }
 
 function handleTaskDeleted(data) {
   if (!data?.taskId || !AppState) {
-    console.warn('[WebSocket] Invalid task:deleted data', data);
+    if (isLocalhost) {
+      console.warn('[WebSocket] Invalid task:deleted data', data);
+    }
     return;
   }
   if (shouldIgnoreWebSocketEvent(data.taskId, data.userId)) return;
@@ -374,7 +447,9 @@ function handleTaskDeleted(data) {
   const tasks = AppState.getTasks();
   const taskExists = tasks.some(t => t.id === data.taskId);
   if (!taskExists) {
-    console.log('[WebSocket] ⏭️  Task not found locally, skipping delete', { taskId: data.taskId });
+    if (isLocalhost) {
+      console.log('[WebSocket] ⏭️  Task not found locally, skipping delete', { taskId: data.taskId });
+    }
     return;
   }
 
@@ -388,13 +463,17 @@ function handleTaskDeleted(data) {
   pendingRenders.header = true;
   scheduleRender();
 
-  console.log('[WebSocket] ✅ Task deleted and rendered', { taskId: data.taskId });
+  if (isLocalhost) {
+    console.log('[WebSocket] ✅ Task deleted and rendered', { taskId: data.taskId });
+  }
   AppState.log('Task deleted via WebSocket', { taskId: data.taskId });
 }
 
 function handleTaskMoved(data) {
   if (!data?.task || !AppState) {
-    console.warn('[WebSocket] Invalid task:moved data', data);
+    if (isLocalhost) {
+      console.warn('[WebSocket] Invalid task:moved data', data);
+    }
     return;
   }
   if (shouldIgnoreWebSocketEvent(data.task.id, data.userId)) return;
@@ -402,17 +481,21 @@ function handleTaskMoved(data) {
   const tasks = AppState.getTasks();
   const taskIndex = tasks.findIndex(t => t.id === data.task.id);
   if (taskIndex === -1) {
-    console.log('[WebSocket] ⏭️  Task not found locally, skipping move', { taskId: data.task.id });
+    if (isLocalhost) {
+      console.log('[WebSocket] ⏭️  Task not found locally, skipping move', { taskId: data.task.id });
+    }
     return;
   }
 
   const task = tasks[taskIndex];
   if (task.col_id === data.task.col_id && task.order_position === data.task.order_position) {
-    console.log('[WebSocket] ⏭️  Task position unchanged, skipping', { 
-      taskId: data.task.id, 
-      col_id: data.task.col_id, 
-      order_position: data.task.order_position 
-    });
+    if (isLocalhost) {
+      console.log('[WebSocket] ⏭️  Task position unchanged, skipping', { 
+        taskId: data.task.id, 
+        col_id: data.task.col_id, 
+        order_position: data.task.order_position 
+      });
+    }
     return;
   }
 
@@ -432,14 +515,16 @@ function handleTaskMoved(data) {
   pendingRenders.header = true;
   scheduleRender();
 
-  console.log('[WebSocket] ✅ Task moved and rendered', { 
-    taskId: data.task.id, 
-    client: data.task.client,
-    fromCol: oldCol,
-    toCol: normalizedTask.col_id,
-    fromPos: oldPos,
-    toPos: normalizedTask.order_position
-  });
+  if (isLocalhost) {
+    console.log('[WebSocket] ✅ Task moved and rendered', { 
+      taskId: data.task.id, 
+      client: data.task.client,
+      fromCol: oldCol,
+      toCol: normalizedTask.col_id,
+      fromPos: oldPos,
+      toPos: normalizedTask.order_position
+    });
+  }
   AppState.log('Task moved via WebSocket', { taskId: data.task.id });
 }
 
