@@ -2796,7 +2796,7 @@ html[data-authenticated="true"] #appContainer.hidden {
 /* Notification System */
 .notification-container {
   position: fixed;
-  bottom: calc(var(--bottom-nav-height) + 1rem);
+  bottom: 1rem;
   right: 1rem;
   z-index: 10001;
   display: flex;
@@ -2817,20 +2817,23 @@ html[data-authenticated="true"] #appContainer.hidden {
   justify-content: space-between;
   gap: 0.75rem;
   opacity: 0;
-  transform: translateY(100%);
-  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateY(20px);
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: auto;
   min-width: 300px;
+  visibility: hidden;
 }
 
 .notification.show {
   opacity: 1;
   transform: translateY(0);
+  visibility: visible;
 }
 
 .notification.hide {
   opacity: 0;
-  transform: translateY(100%);
+  transform: translateY(20px);
+  visibility: hidden;
 }
 
 .notification-content {
