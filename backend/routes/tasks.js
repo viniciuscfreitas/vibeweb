@@ -726,9 +726,9 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString, io) {
                       actionDescription: `Deletou projeto ${taskClient}`
                     };
                     if (NODE_ENV === 'development') {
-                      console.log('[WebSocket] 📤 Emitting task:deleted', { 
-                        taskId, 
-                        userId: req.user.id 
+                      console.log('[WebSocket] 📤 Emitting task:deleted', {
+                        taskId,
+                        userId: req.user.id
                       });
                     }
                     io.emit('task:deleted', emitData);
@@ -809,41 +809,68 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString, io) {
             };
 
             setImmediate(() => {
+              const colNames = ['Descoberta', 'Acordo', 'Build', 'Live'];
+              
               if (task.col_id !== colIdNum) {
-                const colNames = ['Descoberta', 'Acordo', 'Build', 'Live'];
                 const fromCol = colNames[task.col_id] || task.col_id;
                 const toCol = colNames[colIdNum] || colIdNum;
+                const actionDescription = `Moveu projeto ${task.client} de ${fromCol} para ${toCol}`;
 
                 logActivity(
                   db,
                   req.user.id,
                   taskId,
                   'move',
-                  `Moveu projeto ${task.client} de ${fromCol} para ${toCol}`,
+                  actionDescription,
                   { col_id: task.col_id, client: task.client },
                   { col_id: colIdNum, client: task.client }
                 );
-              }
 
-              if (io) {
-                getUserInfoForNotification(req.user.id, (err, userInfo) => {
-                  const emitData = {
-                    task: updatedTask,
-                    userId: req.user.id,
-                    userName: userInfo?.name || null,
-                    userAvatarUrl: userInfo?.avatarUrl || null
-                  };
-                  if (NODE_ENV === 'development') {
-                    console.log('[WebSocket] 📤 Emitting task:moved', {
-                      taskId: updatedTask.id,
-                      client: updatedTask.client,
-                      fromCol: task.col_id,
-                      toCol: colIdNum,
-                      userId: req.user.id
-                    });
-                  }
-                  io.emit('task:moved', emitData);
-                });
+                if (io) {
+                  getUserInfoForNotification(req.user.id, (err, userInfo) => {
+                    const emitData = {
+                      task: updatedTask,
+                      userId: req.user.id,
+                      userName: userInfo?.name || null,
+                      userAvatarUrl: userInfo?.avatarUrl || null,
+                      actionDescription: actionDescription
+                    };
+                    if (NODE_ENV === 'development') {
+                      console.log('[WebSocket] 📤 Emitting task:moved', {
+                        taskId: updatedTask.id,
+                        client: updatedTask.client,
+                        fromCol: task.col_id,
+                        toCol: colIdNum,
+                        userId: req.user.id
+                      });
+                    }
+                    io.emit('task:moved', emitData);
+                  });
+                }
+              } else {
+                // Task moved within same column (just position change)
+                const colName = colNames[colIdNum] || colIdNum;
+                if (io) {
+                  getUserInfoForNotification(req.user.id, (err, userInfo) => {
+                    const emitData = {
+                      task: updatedTask,
+                      userId: req.user.id,
+                      userName: userInfo?.name || null,
+                      userAvatarUrl: userInfo?.avatarUrl || null,
+                      actionDescription: `Reordenou ${task.client} em ${colName}`
+                    };
+                    if (NODE_ENV === 'development') {
+                      console.log('[WebSocket] 📤 Emitting task:moved', {
+                        taskId: updatedTask.id,
+                        client: updatedTask.client,
+                        fromCol: task.col_id,
+                        toCol: colIdNum,
+                        userId: req.user.id
+                      });
+                    }
+                    io.emit('task:moved', emitData);
+                  });
+                }
               }
             });
 
