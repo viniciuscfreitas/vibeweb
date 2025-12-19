@@ -366,11 +366,13 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString, io) {
               );
 
               if (io) {
-                console.log('[WebSocket] 📤 Emitting task:created', { 
-                  taskId: task.id, 
-                  client: task.client, 
-                  userId: req.user.id 
-                });
+                if (NODE_ENV === 'development') {
+                  console.log('[WebSocket] 📤 Emitting task:created', { 
+                    taskId: task.id, 
+                    client: task.client, 
+                    userId: req.user.id 
+                  });
+                }
                 io.emit('task:created', { task, userId: req.user.id });
               }
             });
@@ -574,11 +576,13 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString, io) {
               );
 
               if (io) {
-                console.log('[WebSocket] 📤 Emitting task:updated', { 
-                  taskId: task.id, 
-                  client: task.client, 
-                  userId: req.user.id 
-                });
+                if (NODE_ENV === 'development') {
+                  console.log('[WebSocket] 📤 Emitting task:updated', { 
+                    taskId: task.id, 
+                    client: task.client, 
+                    userId: req.user.id 
+                  });
+                }
                 io.emit('task:updated', { task, userId: req.user.id });
               }
             });
@@ -647,10 +651,12 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString, io) {
                 );
 
                 if (io) {
-                  console.log('[WebSocket] 📤 Emitting task:deleted', { 
-                    taskId, 
-                    userId: req.user.id 
-                  });
+                  if (NODE_ENV === 'development') {
+                    console.log('[WebSocket] 📤 Emitting task:deleted', { 
+                      taskId, 
+                      userId: req.user.id 
+                    });
+                  }
                   io.emit('task:deleted', { taskId, userId: req.user.id });
                 }
               });
@@ -745,13 +751,15 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString, io) {
               }
 
               if (io) {
-                console.log('[WebSocket] 📤 Emitting task:moved', { 
-                  taskId: updatedTask.id, 
-                  client: updatedTask.client,
-                  fromCol: task.col_id,
-                  toCol: colIdNum,
-                  userId: req.user.id 
-                });
+                if (NODE_ENV === 'development') {
+                  console.log('[WebSocket] 📤 Emitting task:moved', { 
+                    taskId: updatedTask.id, 
+                    client: updatedTask.client,
+                    fromCol: task.col_id,
+                    toCol: colIdNum,
+                    userId: req.user.id 
+                  });
+                }
                 io.emit('task:moved', { task: updatedTask, userId: req.user.id });
               }
             });

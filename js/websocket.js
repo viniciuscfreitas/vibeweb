@@ -34,6 +34,10 @@ const hasNormalizeTasksData = typeof normalizeTasksData === 'function';
 const localActions = new Set();
 const actionTimeouts = new Map();
 
+let cdnLoadInProgress = false;
+let socketIOWaitInProgress = false;
+const SOCKET_IO_VERSION = '4.8.1';
+
 function markLocalAction(taskId) {
   if (!taskId) return;
 
@@ -60,11 +64,30 @@ function loadSocketIOFromCDN() {
       return;
     }
 
+    if (cdnLoadInProgress) {
+      const checkInterval = setInterval(() => {
+        if (typeof io !== 'undefined') {
+          clearInterval(checkInterval);
+          cdnLoadInProgress = false;
+          resolve();
+        } else if (!cdnLoadInProgress) {
+          clearInterval(checkInterval);
+          reject(new Error('CDN load was cancelled'));
+        }
+      }, 100);
+      setTimeout(() => {
+        clearInterval(checkInterval);
+      }, SOCKET_IO_LOAD_TIMEOUT);
+      return;
+    }
+
+    cdnLoadInProgress = true;
     console.log('[WebSocket] 📦 Loading socket.io from CDN fallback...');
     const script = document.createElement('script');
-    script.src = 'https://cdn.socket.io/4.8.1/socket.io.min.js';
+    script.src = `https://cdn.socket.io/${SOCKET_IO_VERSION}/socket.io.min.js`;
     script.crossOrigin = 'anonymous';
     script.onload = () => {
+      cdnLoadInProgress = false;
       if (typeof io !== 'undefined') {
         console.log('[WebSocket] ✅ socket.io loaded from CDN');
         resolve();
@@ -73,6 +96,7 @@ function loadSocketIOFromCDN() {
       }
     };
     script.onerror = () => {
+      cdnLoadInProgress = false;
       reject(new Error('Failed to load socket.io from CDN'));
     };
     document.head.appendChild(script);
@@ -83,15 +107,29 @@ function waitForSocketIO(callback, retries = 0) {
   const maxRetries = Math.floor(SOCKET_IO_LOAD_TIMEOUT / SOCKET_IO_LOAD_RETRY_DELAY);
   
   if (typeof io !== 'undefined') {
+    socketIOWaitInProgress = false;
     callback();
     return;
   }
 
+  if (retries === 0 && socketIOWaitInProgress) {
+    return;
+  }
+
+  if (retries === 0) {
+    socketIOWaitInProgress = true;
+  }
+
   if (retries >= maxRetries) {
+    socketIOWaitInProgress = false;
     console.warn('[WebSocket] ⚠️  socket.io not loaded from server, trying CDN fallback...');
     loadSocketIOFromCDN()
-      .then(() => callback())
+      .then(() => {
+        socketIOWaitInProgress = false;
+        callback();
+      })
       .catch((error) => {
+        socketIOWaitInProgress = false;
         console.error('[WebSocket] ❌ Failed to load socket.io:', error.message);
         console.warn('[WebSocket] 💡 WebSocket features will be disabled');
       });

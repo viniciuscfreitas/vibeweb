@@ -613,42 +613,52 @@ initDatabase()
                     (socket.handshake.headers.authorization && socket.handshake.headers.authorization.split(' ')[1]);
 
       if (!token) {
-        console.log('[WebSocket] ❌ Authentication failed: No token provided');
+        if (NODE_ENV === 'development') {
+          console.log('[WebSocket] ❌ Authentication failed: No token provided');
+        }
         return next(new Error('Authentication error'));
       }
 
       jwt.verify(token, JWT_SECRET, (err, decoded) => {
         if (err) {
-          console.log('[WebSocket] ❌ Authentication failed: Invalid token', { error: err.message });
+          if (NODE_ENV === 'development') {
+            console.log('[WebSocket] ❌ Authentication failed: Invalid token', { error: err.message });
+          }
           return next(new Error('Authentication error'));
         }
         socket.userId = decoded.userId;
         socket.userEmail = decoded.email;
-        console.log('[WebSocket] ✅ Authentication successful', { userId: decoded.userId, email: decoded.email });
+        if (NODE_ENV === 'development') {
+          console.log('[WebSocket] ✅ Authentication successful', { userId: decoded.userId, email: decoded.email });
+        }
         next();
       });
     });
 
     // WebSocket connection events
     io.on('connection', (socket) => {
-      console.log('[WebSocket] 🔌 Client connected', { 
-        socketId: socket.id, 
-        userId: socket.userId, 
-        email: socket.userEmail 
-      });
-
-      socket.on('disconnect', (reason) => {
-        console.log('[WebSocket] 🔌 Client disconnected', { 
+      if (NODE_ENV === 'development') {
+        console.log('[WebSocket] 🔌 Client connected', { 
           socketId: socket.id, 
           userId: socket.userId, 
-          reason 
+          email: socket.userEmail 
         });
+      }
+
+      socket.on('disconnect', (reason) => {
+        if (NODE_ENV === 'development') {
+          console.log('[WebSocket] 🔌 Client disconnected', { 
+            socketId: socket.id, 
+            userId: socket.userId, 
+            reason 
+          });
+        }
       });
 
       socket.on('error', (error) => {
         console.error('[WebSocket] ❌ Socket error', { 
           socketId: socket.id, 
-          userId: socket.userId, 
+          userId: NODE_ENV === 'development' ? socket.userId : '[hidden]', 
           error: error.message 
         });
       });
