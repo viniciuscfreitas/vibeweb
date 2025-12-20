@@ -366,24 +366,68 @@ function initializeSortable() {
   const columnBodies = document.querySelectorAll('.col-body[data-col-id]');
   
   columnBodies.forEach(colBody => {
+    let draggedElement = null;
+    
     const sortable = Sortable.create(colBody, {
       group: 'kanban-columns',
       animation: 150,
       ghostClass: 'sortable-ghost',
       dragClass: 'sortable-drag',
       chosenClass: 'sortable-chosen',
+      placeholder: 'sortable-placeholder',
       handle: '.card',
       filter: '.empty-state',
       forceFallback: false,
       fallbackOnBody: true,
       swapThreshold: 0.65,
+      onStart: function(evt) {
+        draggedElement = evt.item;
+      },
+      onMove: function(evt) {
+        const placeholder = colBody.querySelector('.sortable-placeholder');
+        if (placeholder && draggedElement) {
+          const draggedRect = draggedElement.getBoundingClientRect();
+          const placeholderRect = placeholder.getBoundingClientRect();
+          
+          const isOverlapping = !(
+            draggedRect.bottom < placeholderRect.top ||
+            draggedRect.top > placeholderRect.bottom ||
+            draggedRect.right < placeholderRect.left ||
+            draggedRect.left > placeholderRect.right
+          );
+          
+          if (isOverlapping) {
+            placeholder.style.opacity = '0';
+            placeholder.style.pointerEvents = 'none';
+          } else {
+            placeholder.style.opacity = '';
+            placeholder.style.pointerEvents = '';
+          }
+        }
+        return true;
+      },
       onAdd: function(evt) {
         const emptyState = evt.to.querySelector('.empty-state');
         if (emptyState) {
           emptyState.remove();
         }
       },
+      onCancel: function(evt) {
+        const placeholder = colBody.querySelector('.sortable-placeholder');
+        if (placeholder) {
+          placeholder.style.opacity = '';
+          placeholder.style.pointerEvents = '';
+        }
+        draggedElement = null;
+      },
       onEnd: function(evt) {
+        const placeholder = colBody.querySelector('.sortable-placeholder');
+        if (placeholder) {
+          placeholder.style.opacity = '';
+          placeholder.style.pointerEvents = '';
+        }
+        
+        draggedElement = null;
         handleSortableEnd(evt);
       }
     });
