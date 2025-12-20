@@ -575,37 +575,86 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString, io) {
 
             // Log activity - detect what changed with specific descriptions
             // Note: col_id changes are handled separately via move endpoint, not included here
+            // Only check fields that were actually sent in the request body
             const changes = [];
-            const newPaymentStatus = payment_status || existing.payment_status;
-            
-            if (existing.client !== clientSanitized) {
+            const bodyHas = (field) => req.body.hasOwnProperty(field) && req.body[field] !== undefined;
+
+            if (bodyHas('client') && existing.client !== clientSanitized) {
               changes.push(`alterou cliente de "${existing.client}" para "${clientSanitized}"`);
             }
             // Exclude col_id changes - these are handled by move endpoint separately
             // if (existing.col_id !== colIdNum) { ... }
-            if (existing.price !== priceNum) {
+            if (bodyHas('price') && existing.price !== priceNum) {
               changes.push(`alterou preço de €${existing.price} para €${priceNum}`);
             }
-            if (existing.payment_status !== newPaymentStatus) {
-              if (newPaymentStatus === 'Pago') {
-                changes.push('marcou como pago');
-              } else if (existing.payment_status === 'Pago' && newPaymentStatus !== 'Pago') {
-                changes.push('desfez marcação de pago');
-              } else {
-                changes.push(`alterou status de pagamento de "${existing.payment_status}" para "${newPaymentStatus}"`);
+            if (bodyHas('payment_status')) {
+              const newPaymentStatus = payment_status || existing.payment_status;
+              if (existing.payment_status !== newPaymentStatus) {
+                if (newPaymentStatus === 'Pago') {
+                  changes.push('marcou como pago');
+                } else if (existing.payment_status === 'Pago' && newPaymentStatus !== 'Pago') {
+                  changes.push('desfez marcação de pago');
+                } else {
+                  changes.push(`alterou status de pagamento de "${existing.payment_status}" para "${newPaymentStatus}"`);
+                }
               }
             }
-            if (existing.contact !== contactSanitized) {
-              changes.push(`alterou contato de "${existing.contact || 'sem contato'}" para "${contactSanitized || 'sem contato'}"`);
+            if (bodyHas('contact')) {
+              const finalContact = contactSanitized !== null ? contactSanitized : existing.contact;
+              if (existing.contact !== finalContact) {
+                changes.push(`alterou contato de "${existing.contact || 'sem contato'}" para "${finalContact || 'sem contato'}"`);
+              }
             }
-            if (existing.domain !== domainSanitized) {
-              changes.push(`alterou domínio de "${existing.domain || 'sem domínio'}" para "${domainSanitized || 'sem domínio'}"`);
+            if (bodyHas('domain')) {
+              const finalDomain = domainSanitized !== null ? domainSanitized : existing.domain;
+              if (existing.domain !== finalDomain) {
+                changes.push(`alterou domínio de "${existing.domain || 'sem domínio'}" para "${finalDomain || 'sem domínio'}"`);
+              }
             }
-            if (existing.deadline !== deadline) {
+            if (bodyHas('deadline') && existing.deadline !== deadline) {
               if (deadline) {
                 changes.push(`definiu prazo: ${deadline}`);
               } else if (existing.deadline) {
                 changes.push('removeu prazo');
+              }
+            }
+            if (bodyHas('hosting')) {
+              const finalHosting = hosting || existing.hosting;
+              if (existing.hosting !== finalHosting) {
+                changes.push(`alterou hosting de "${existing.hosting}" para "${finalHosting}"`);
+              }
+            }
+            if (bodyHas('type')) {
+              const finalType = type || null;
+              if (existing.type !== finalType) {
+                const oldType = existing.type || 'sem tipo';
+                const newType = finalType || 'sem tipo';
+                changes.push(`alterou tipo de "${oldType}" para "${newType}"`);
+              }
+            }
+            if (bodyHas('stack')) {
+              const finalStack = stackSanitized !== null ? stackSanitized : existing.stack;
+              if (existing.stack !== finalStack) {
+                changes.push(`alterou stack de "${existing.stack || 'sem stack'}" para "${finalStack || 'sem stack'}"`);
+              }
+            }
+            if (bodyHas('description')) {
+              const finalDescription = descriptionSanitized !== null ? descriptionSanitized : existing.description;
+              if (existing.description !== finalDescription) {
+                changes.push('alterou descrição');
+              }
+            }
+            if (bodyHas('assets_link')) {
+              const finalAssetsLink = assetsLinkSanitized !== null ? assetsLinkSanitized : existing.assets_link;
+              if (existing.assets_link !== finalAssetsLink) {
+                changes.push('alterou link de assets');
+              }
+            }
+            if (bodyHas('is_recurring') && existing.is_recurring !== isRecurringValue) {
+              if (isRecurringValue === 1) {
+                changes.push('marcou como recorrente');
+              } else {
+                changes.push('removeu marcação de recorrente');
               }
             }
 
@@ -627,6 +676,7 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString, io) {
             }
 
             setImmediate(() => {
+              const finalPaymentStatus = payment_status || existing.payment_status;
               logActivity(
                 db,
                 req.user.id,
@@ -634,7 +684,7 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString, io) {
                 'update',
                 actionDescription,
                 { client: existing.client, col_id: existing.col_id, price: existing.price, payment_status: existing.payment_status },
-                { client: clientSanitized, col_id: colIdNum, price: priceNum, payment_status: newPaymentStatus }
+                { client: clientSanitized, col_id: colIdNum, price: priceNum, payment_status: finalPaymentStatus }
               );
 
               if (io) {
