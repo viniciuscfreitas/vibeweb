@@ -579,15 +579,6 @@ body {
   cursor: grabbing;
 }
 
-.sortable-placeholder {
-  opacity: 0.3;
-  background-color: var(--primary);
-  border: 2px dashed var(--primary);
-  border-radius: 8px;
-  min-height: 80px;
-  transition: opacity 0.15s ease;
-}
-
 /* Legacy classes (kept for compatibility) */
 .card-dragging {
   opacity: 0.5;
