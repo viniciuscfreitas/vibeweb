@@ -13,6 +13,7 @@ var EMAIL_PATTERN = window.EMAIL_PATTERN;
 var CONTACT_PATTERN = window.CONTACT_PATTERN;
 
 let lastSavedFormState = null;
+let isDeletingItem = false;
 
 function saveFormState() {
   if (!DOM.formClient || !DOM.modalOverlay || !DOM.modalOverlay.classList.contains('open')) return;
@@ -112,6 +113,7 @@ function resetFormToDefaults() {
 
 function openModal(task = null) {
   if (!DOM.modalOverlay || !DOM.modalTitle || !DOM.btnDelete) return;
+  if (DOM.modalOverlay.classList.contains('open')) return;
 
   const isEditingExistingTask = !!task;
   AppState.currentTaskId = isEditingExistingTask && task?.id ? task.id : null;
@@ -960,7 +962,7 @@ async function saveForm() {
   }
 }
 
-function showConfirmDialog(message, onConfirm) {
+function showConfirmDialog(message, onConfirm, onCancel = null) {
   const dialog = document.createElement('div');
   dialog.className = 'confirm-dialog';
   dialog.innerHTML = `
@@ -977,19 +979,27 @@ function showConfirmDialog(message, onConfirm) {
     document.body.removeChild(dialog);
   };
 
-  dialog.querySelector('#confirmCancel').addEventListener('click', cleanup);
+  dialog.querySelector('#confirmCancel').addEventListener('click', () => {
+    cleanup();
+    if (onCancel) onCancel();
+  });
   dialog.querySelector('#confirmOk').addEventListener('click', () => {
     cleanup();
     onConfirm();
   });
 
   dialog.addEventListener('click', (e) => {
-    if (e.target === dialog) cleanup();
+    if (e.target === dialog) {
+      cleanup();
+      if (onCancel) onCancel();
+    }
   });
 }
 
 function deleteItem() {
   if (!AppState.currentTaskId) return;
+  if (isDeletingItem) return;
+  isDeletingItem = true;
 
   showConfirmDialog("Arquivar este projeto?", async () => {
     try {
@@ -1024,7 +1034,11 @@ function deleteItem() {
       });
       const errorMessage = error.message || 'Erro ao deletar. Tente novamente.';
       NotificationManager.error(errorMessage);
+    } finally {
+      isDeletingItem = false;
     }
+  }, () => {
+    isDeletingItem = false;
   });
 }
 

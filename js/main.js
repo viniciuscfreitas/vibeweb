@@ -247,6 +247,7 @@ function getSettingsFromForm() {
 
 async function openSettingsModal() {
   if (!DOM.settingsModalOverlay) return;
+  if (DOM.settingsModalOverlay.classList.contains('open')) return;
   await loadSettingsIntoForm();
   DOM.settingsModalOverlay.classList.remove('hidden');
   DOM.settingsModalOverlay.classList.add('open');
@@ -1409,6 +1410,7 @@ async function renderUserAvatar(userParam = null) {
 
 function openProfileModal() {
   if (!DOM.profileModalOverlay) return;
+  if (DOM.profileModalOverlay.classList.contains('open')) return;
   DOM.profileModalOverlay.classList.remove('hidden');
   DOM.profileModalOverlay.classList.add('open');
   DOM.profileModalOverlay.setAttribute('aria-hidden', 'false');
