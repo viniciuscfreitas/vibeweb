@@ -348,9 +348,9 @@ function generateInvoice(taskData) {
       if (taskData.deadline) {
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.text('Prazo:', labelX, yPos);
+        doc.text('Prazo:', layout.margin, yPos);
         doc.setFont('helvetica', 'normal');
-        doc.text(taskData.deadline, deadlineValueX, yPos);
+        doc.text(taskData.deadline, layout.margin + 35, yPos);
         yPos += 10;
       }
 
