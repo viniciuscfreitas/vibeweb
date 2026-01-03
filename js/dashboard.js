@@ -77,8 +77,8 @@ async function renderDashboard() {
     const metrics = AppState.getCachedMetrics(() => calculateDashboardMetrics());
     const tasks = AppState.getTasks();
 
-    renderMRRCard(metrics);
     renderStatsCards(metrics);
+    renderMRRCard(metrics);
 
     if (currentChartView === 'history') {
       const historicalData = calculateMonthlyRevenue(tasks, 12);
@@ -131,6 +131,8 @@ function renderMRRCard(metrics) {
     card.style.gridColumn = 'span 2';
     DOM.statsGrid.insertBefore(card, DOM.statsGrid.firstChild);
     mrrCard = document.getElementById('mrrCard');
+  } else if (mrrCard.parentNode === DOM.statsGrid && mrrCard !== DOM.statsGrid.firstChild) {
+    DOM.statsGrid.insertBefore(mrrCard, DOM.statsGrid.firstChild);
   }
 
   if (mrrCard && valuesChanged && lastMRRValues) {
