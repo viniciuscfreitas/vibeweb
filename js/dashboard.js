@@ -30,7 +30,15 @@ const statCardKeydownHandler = (e) => {
 let lastRenderedStats = null;
 
 function renderDashboardHeader(metrics) {
-  if (!DOM.headerInfo || !metrics) return;
+  // Add null check with warning
+  if (!DOM.headerInfo) {
+    console.warn('[Header] headerInfo not initialized');
+    return;
+  }
+  if (!metrics) {
+    console.warn('[Header] Metrics not available');
+    return;
+  }
 
   const gap = Math.max(0, TARGET_MRR_10K - (metrics.mrr || 0));
   const settings = getSettings();
@@ -43,22 +51,55 @@ function renderDashboardHeader(metrics) {
     ? `Precisa de ${upsellsNeeded} upsells para atingir €10k`
     : 'Configure o preço de hospedagem nas configurações para calcular upsells necessários';
 
-  DOM.headerInfo.innerHTML = `
-    <div class="header-stat">
-      <span class="header-stat-label">MRR</span>
-      <span class="header-stat-value" style="color: var(--success);">${formatCurrency(metrics.mrr || 0)}</span>
-    </div>
-    <div class="header-stat" id="mrrProjection" title="${escapeHtml(titleText)}">
-      <span class="header-stat-label">Meta €10k</span>
-      <span class="header-stat-value" id="gapValue" style="color: ${gap > 0 ? 'var(--danger)' : 'var(--success)'};">€${(gap || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
-    </div>
-    ${(metrics.urgentCount || 0) > 0 ? `
-      <div class="header-stat">
-        <span class="header-stat-label">Urgentes</span>
-        <span class="header-stat-value" style="color: var(--danger);">${metrics.urgentCount || 0}</span>
-      </div>
-    ` : ''}
-  `;
+  // Use DOM manipulation instead of innerHTML to prevent XSS
+  DOM.headerInfo.innerHTML = '';
+  
+  // MRR stat
+  const mrrStat = document.createElement('div');
+  mrrStat.className = 'header-stat';
+  const mrrLabel = document.createElement('span');
+  mrrLabel.className = 'header-stat-label';
+  mrrLabel.textContent = 'MRR';
+  const mrrValue = document.createElement('span');
+  mrrValue.className = 'header-stat-value';
+  mrrValue.style.color = 'var(--success)';
+  mrrValue.textContent = formatCurrency(metrics.mrr || 0);
+  mrrStat.appendChild(mrrLabel);
+  mrrStat.appendChild(mrrValue);
+  DOM.headerInfo.appendChild(mrrStat);
+  
+  // Gap stat
+  const gapStat = document.createElement('div');
+  gapStat.className = 'header-stat';
+  gapStat.id = 'mrrProjection';
+  gapStat.title = titleText;
+  const gapLabel = document.createElement('span');
+  gapLabel.className = 'header-stat-label';
+  gapLabel.textContent = 'Meta €10k';
+  const gapValue = document.createElement('span');
+  gapValue.id = 'gapValue';
+  gapValue.className = 'header-stat-value';
+  gapValue.style.color = gap > 0 ? 'var(--danger)' : 'var(--success)';
+  gapValue.textContent = `€${(gap || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  gapStat.appendChild(gapLabel);
+  gapStat.appendChild(gapValue);
+  DOM.headerInfo.appendChild(gapStat);
+  
+  // Urgent count stat (only if > 0)
+  if ((metrics.urgentCount || 0) > 0) {
+    const urgentStat = document.createElement('div');
+    urgentStat.className = 'header-stat';
+    const urgentLabel = document.createElement('span');
+    urgentLabel.className = 'header-stat-label';
+    urgentLabel.textContent = 'Urgentes';
+    const urgentValue = document.createElement('span');
+    urgentValue.className = 'header-stat-value';
+    urgentValue.style.color = 'var(--danger)';
+    urgentValue.textContent = String(metrics.urgentCount || 0);
+    urgentStat.appendChild(urgentLabel);
+    urgentStat.appendChild(urgentValue);
+    DOM.headerInfo.appendChild(urgentStat);
+  }
 }
 
 let renderDashboardInProgress = false;

@@ -366,7 +366,11 @@ function scheduleRender() {
     }
 
     if (pendingRenders.header) {
-      updateHeaderStats();
+      if (typeof debouncedUpdateHeaderStats === 'function') {
+        debouncedUpdateHeaderStats();
+      } else {
+        updateHeaderStats();
+      }
       pendingRenders.header = false;
     }
   });

@@ -908,22 +908,58 @@ function renderProjectsTable(tasks, showNoResults = false) {
 }
 
 function renderFinancialHeader(metrics) {
-  if (!DOM.headerInfo) return;
+  // Add null check with warning
+  if (!DOM.headerInfo) {
+    console.warn('[Header] headerInfo not initialized');
+    return;
+  }
+  if (!metrics) {
+    console.warn('[Header] Metrics not available');
+    return;
+  }
 
-  DOM.headerInfo.innerHTML = `
-    <div class="header-stat">
-      <span class="header-stat-label">MRR</span>
-      <span class="header-stat-value" style="color: var(--success);">${formatCurrency(metrics.mrr)}</span>
-    </div>
-    <div class="header-stat">
-      <span class="header-stat-label">Receita Total</span>
-      <span class="header-stat-value">${formatCurrency(metrics.totalRevenue)}</span>
-    </div>
-    <div class="header-stat">
-      <span class="header-stat-label">Ticket Médio</span>
-      <span class="header-stat-value">${formatCurrency(metrics.averageTicket)}</span>
-    </div>
-  `;
+  // Use DOM manipulation instead of innerHTML to prevent XSS
+  DOM.headerInfo.innerHTML = '';
+  
+  // MRR stat
+  const mrrStat = document.createElement('div');
+  mrrStat.className = 'header-stat';
+  const mrrLabel = document.createElement('span');
+  mrrLabel.className = 'header-stat-label';
+  mrrLabel.textContent = 'MRR';
+  const mrrValue = document.createElement('span');
+  mrrValue.className = 'header-stat-value';
+  mrrValue.style.color = 'var(--success)';
+  mrrValue.textContent = formatCurrency(metrics.mrr || 0);
+  mrrStat.appendChild(mrrLabel);
+  mrrStat.appendChild(mrrValue);
+  DOM.headerInfo.appendChild(mrrStat);
+  
+  // Total Revenue stat
+  const revenueStat = document.createElement('div');
+  revenueStat.className = 'header-stat';
+  const revenueLabel = document.createElement('span');
+  revenueLabel.className = 'header-stat-label';
+  revenueLabel.textContent = 'Receita Total';
+  const revenueValue = document.createElement('span');
+  revenueValue.className = 'header-stat-value';
+  revenueValue.textContent = formatCurrency(metrics.totalRevenue || 0);
+  revenueStat.appendChild(revenueLabel);
+  revenueStat.appendChild(revenueValue);
+  DOM.headerInfo.appendChild(revenueStat);
+  
+  // Average Ticket stat
+  const ticketStat = document.createElement('div');
+  ticketStat.className = 'header-stat';
+  const ticketLabel = document.createElement('span');
+  ticketLabel.className = 'header-stat-label';
+  ticketLabel.textContent = 'Ticket Médio';
+  const ticketValue = document.createElement('span');
+  ticketValue.className = 'header-stat-value';
+  ticketValue.textContent = formatCurrency(metrics.averageTicket || 0);
+  ticketStat.appendChild(ticketLabel);
+  ticketStat.appendChild(ticketValue);
+  DOM.headerInfo.appendChild(ticketStat);
 }
 
 function exportFinancialData() {

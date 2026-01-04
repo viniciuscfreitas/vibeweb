@@ -4,6 +4,41 @@ let cachedPath = null;
 let cachedTaskId = null;
 let cachedIsNew = null;
 
+// Event listener storage for cleanup (prevents memory leaks)
+const eventListeners = {
+  navButtons: [],
+  bottomNavItems: [],
+  userAvatar: null,
+  cleanup: function() {
+    // Remove all stored event listeners
+    this.navButtons.forEach(({ btn, handler }) => {
+      if (btn && handler) {
+        btn.removeEventListener('click', handler);
+      }
+    });
+    this.navButtons = [];
+    
+    this.bottomNavItems.forEach(({ btn, handler }) => {
+      if (btn && handler) {
+        btn.removeEventListener('click', handler);
+      }
+    });
+    this.bottomNavItems = [];
+    
+    if (this.userAvatar && this.userAvatar._clickHandler) {
+      this.userAvatar.removeEventListener('click', this.userAvatar._clickHandler);
+      this.userAvatar._clickHandler = null;
+    }
+  }
+};
+
+// Header update lock to prevent race conditions
+let isUpdatingHeader = false;
+let headerUpdateQueue = null;
+
+// Debounce for header stats updates
+let headerStatsUpdateTimeout = null;
+
 function getTaskIdFromUrl(path = null) {
   const currentPath = path || window.location.pathname;
   if (cachedPath !== currentPath) {
@@ -436,6 +471,19 @@ function collapseSearch() {
   }
 }
 
+// Debounced version of updateHeaderStats to prevent unnecessary re-renders
+function debouncedUpdateHeaderStats() {
+  if (headerStatsUpdateTimeout) {
+    clearTimeout(headerStatsUpdateTimeout);
+  }
+  headerStatsUpdateTimeout = setTimeout(() => {
+    if (typeof updateHeaderStats === 'function') {
+      updateHeaderStats();
+    }
+    headerStatsUpdateTimeout = null;
+  }, 100);
+}
+
 function handleSearch() {
   // Try financial search first - it returns true if handled
   if (typeof handleFinancialSearch === 'function' && handleFinancialSearch()) {
@@ -448,7 +496,7 @@ function handleSearch() {
   }
   AppState.searchTimeout = setTimeout(() => {
     renderBoard();
-    updateHeaderStats();
+    debouncedUpdateHeaderStats();
     AppState.log('Search executed');
   }, SEARCH_DEBOUNCE_MS);
 }
@@ -483,6 +531,7 @@ function switchToDashboard() {
     clearKanbanFilter();
     renderDashboard();
     updateHeader('dashboard');
+    debouncedUpdateHeaderStats();
   }, 150);
 }
 
@@ -564,6 +613,19 @@ function updateBottomNavCentralButton(view) {
   centralBtn._currentView = view;
 }
 
+// Centralized navigation state management
+function updateNavigationState(view) {
+  const state = {
+    isProjects: view === 'projects',
+    isDashboard: view === 'dashboard',
+    isFinancial: view === 'financial'
+  };
+  
+  updateNavButtons(state.isProjects, state.isDashboard, state.isFinancial);
+  updateBottomNavCentralButton(view);
+  updateAriaHiddenForViews();
+}
+
 function updateNavButtons(isProjects, isDashboard, isFinancial) {
   if (!DOM.navButtons || DOM.navButtons.length < 3) return;
 
@@ -577,8 +639,10 @@ function updateNavButtons(isProjects, isDashboard, isFinancial) {
       projectsBtn.classList.toggle('active', isProjects);
       if (isProjects) {
         projectsBtn.setAttribute('aria-current', 'page');
+        projectsBtn.setAttribute('aria-label', 'Projetos - página atual');
       } else {
         projectsBtn.removeAttribute('aria-current');
+        projectsBtn.setAttribute('aria-label', 'Projetos');
       }
     }
   }
@@ -589,8 +653,10 @@ function updateNavButtons(isProjects, isDashboard, isFinancial) {
       dashboardBtn.classList.toggle('active', isDashboard);
       if (isDashboard) {
         dashboardBtn.setAttribute('aria-current', 'page');
+        dashboardBtn.setAttribute('aria-label', 'Painel - página atual');
       } else {
         dashboardBtn.removeAttribute('aria-current');
+        dashboardBtn.setAttribute('aria-label', 'Painel');
       }
     }
   }
@@ -601,8 +667,10 @@ function updateNavButtons(isProjects, isDashboard, isFinancial) {
       financialBtn.classList.toggle('active', isFinancial);
       if (isFinancial) {
         financialBtn.setAttribute('aria-current', 'page');
+        financialBtn.setAttribute('aria-label', 'Financeiro - página atual');
       } else {
         financialBtn.removeAttribute('aria-current');
+        financialBtn.setAttribute('aria-label', 'Financeiro');
       }
     }
   }
@@ -617,8 +685,10 @@ function updateNavButtons(isProjects, isDashboard, isFinancial) {
       bottomProjectsBtn.classList.toggle('active', isProjects);
       if (isProjects) {
         bottomProjectsBtn.setAttribute('aria-current', 'page');
+        bottomProjectsBtn.setAttribute('aria-label', 'Projetos - página atual');
       } else {
         bottomProjectsBtn.removeAttribute('aria-current');
+        bottomProjectsBtn.setAttribute('aria-label', 'Projetos');
       }
     }
   }
@@ -629,8 +699,10 @@ function updateNavButtons(isProjects, isDashboard, isFinancial) {
       bottomDashboardBtn.classList.toggle('active', isDashboard);
       if (isDashboard) {
         bottomDashboardBtn.setAttribute('aria-current', 'page');
+        bottomDashboardBtn.setAttribute('aria-label', 'Painel - página atual');
       } else {
         bottomDashboardBtn.removeAttribute('aria-current');
+        bottomDashboardBtn.setAttribute('aria-label', 'Painel');
       }
     }
   }
@@ -641,8 +713,10 @@ function updateNavButtons(isProjects, isDashboard, isFinancial) {
       bottomFinancialBtn.classList.toggle('active', isFinancial);
       if (isFinancial) {
         bottomFinancialBtn.setAttribute('aria-current', 'page');
+        bottomFinancialBtn.setAttribute('aria-label', 'Financeiro - página atual');
       } else {
         bottomFinancialBtn.removeAttribute('aria-current');
+        bottomFinancialBtn.setAttribute('aria-label', 'Financeiro');
       }
     }
   }
@@ -662,12 +736,14 @@ function updateAriaHiddenForViews() {
 
 // Announce view changes to screen readers (WCAG 2.1 - Status Changes)
 function announceToScreenReader(message) {
-  const liveRegion = document.getElementById('ariaLiveRegion');
-  if (liveRegion) {
-    liveRegion.textContent = message;
+  // Use cached reference instead of querying DOM every time
+  if (DOM.ariaLiveRegion) {
+    DOM.ariaLiveRegion.textContent = message;
     // Clear after announcement to allow re-announcement of same message
     setTimeout(() => {
-      liveRegion.textContent = '';
+      if (DOM.ariaLiveRegion) {
+        DOM.ariaLiveRegion.textContent = '';
+      }
     }, 1000);
   }
 }
@@ -743,6 +819,12 @@ function switchView(view, currentPath = null) {
   const state = determineViewState(view);
   const path = currentPath || window.location.pathname;
 
+  // Add loading state feedback for navigation transitions
+  // Use cached reference instead of querying DOM every time
+  if (DOM.sidebar) {
+    DOM.sidebar.classList.add('nav-transitioning');
+  }
+
   // Handle animated transitions for major view changes
   if (state.isSwitchingToDashboard) {
     switchToDashboard();
@@ -756,10 +838,16 @@ function switchView(view, currentPath = null) {
     updateViewContent(state);
   }
 
-  updateNavButtons(state.isProjects, state.isDashboard, state.isFinancial);
-  updateAriaHiddenForViews();
+  // Use centralized navigation state management
+  updateNavigationState(view);
   updateUrl(view, path);
-  updateBottomNavCentralButton(view);
+
+  // Remove loading state after transition
+  setTimeout(() => {
+    if (DOM.sidebar) {
+      DOM.sidebar.classList.remove('nav-transitioning');
+    }
+  }, 150);
 
   // Announce view change to screen readers
   if (state.isDashboard) {
@@ -772,27 +860,47 @@ function switchView(view, currentPath = null) {
 }
 
 function updateHeader(view) {
-  if (view === 'dashboard') {
-    const metrics = AppState.getCachedMetrics(() => calculateDashboardMetrics());
-    renderDashboardHeader(metrics);
-    if (DOM.btnNewProject) DOM.btnNewProject.style.display = 'none';
-    if (DOM.searchContainer) DOM.searchContainer.style.display = 'none';
-    updateBottomNavCentralButton('dashboard');
-  } else if (view === 'financial') {
-    const metrics = AppState.getCachedMetrics(() => calculateDashboardMetrics());
-    renderFinancialHeader(metrics);
-    if (DOM.btnNewProject) DOM.btnNewProject.style.display = 'none';
-    if (DOM.searchContainer) DOM.searchContainer.style.display = 'flex';
-    updateBottomNavCentralButton('financial');
-    // Placeholder is set by renderFinancial() in financial.js
-  } else {
-    renderProjectsHeader();
-    if (DOM.btnNewProject) DOM.btnNewProject.style.display = 'flex';
-    if (DOM.searchContainer) DOM.searchContainer.style.display = 'flex';
-    if (DOM.searchInput) {
-      DOM.searchInput.placeholder = 'Buscar projeto... (/)';
+  // Prevent race conditions with lock mechanism
+  if (isUpdatingHeader) {
+    headerUpdateQueue = view;
+    return;
+  }
+  
+  isUpdatingHeader = true;
+  
+  try {
+    if (view === 'dashboard') {
+      const metrics = AppState.getCachedMetrics(() => calculateDashboardMetrics());
+      renderDashboardHeader(metrics);
+      if (DOM.btnNewProject) DOM.btnNewProject.style.display = 'none';
+      if (DOM.searchContainer) DOM.searchContainer.style.display = 'none';
+      updateBottomNavCentralButton('dashboard');
+    } else if (view === 'financial') {
+      const metrics = AppState.getCachedMetrics(() => calculateDashboardMetrics());
+      renderFinancialHeader(metrics);
+      if (DOM.btnNewProject) DOM.btnNewProject.style.display = 'none';
+      if (DOM.searchContainer) DOM.searchContainer.style.display = 'flex';
+      updateBottomNavCentralButton('financial');
+      // Placeholder is set by renderFinancial() in financial.js
+    } else {
+      renderProjectsHeader();
+      if (DOM.btnNewProject) DOM.btnNewProject.style.display = 'flex';
+      if (DOM.searchContainer) DOM.searchContainer.style.display = 'flex';
+      if (DOM.searchInput) {
+        DOM.searchInput.placeholder = 'Buscar projeto... (/)';
+      }
+      updateBottomNavCentralButton('projects');
     }
-    updateBottomNavCentralButton('projects');
+  } finally {
+    // Release lock and process queue if any
+    requestAnimationFrame(() => {
+      isUpdatingHeader = false;
+      if (headerUpdateQueue !== null) {
+        const queuedView = headerUpdateQueue;
+        headerUpdateQueue = null;
+        updateHeader(queuedView);
+      }
+    });
   }
 }
 
@@ -847,8 +955,12 @@ const handleModalOverlayClick = (e) => {
 };
 
 function setupEventListeners() {
+  // Clean up any existing listeners first
+  eventListeners.cleanup();
+  
+  // Setup navigation button listeners with proper cleanup tracking
   DOM.navButtons.forEach((btn, index) => {
-    btn.addEventListener('click', () => {
+    const handler = () => {
       if (index === 0) {
         switchView('projects');
       } else if (index === 1) {
@@ -856,7 +968,9 @@ function setupEventListeners() {
       } else if (index === 2) {
         switchView('financial');
       }
-    });
+    };
+    btn.addEventListener('click', handler);
+    eventListeners.navButtons.push({ btn, handler });
   });
 
   if (DOM.bottomNavItems && DOM.bottomNavItems.length > 0) {
@@ -874,6 +988,7 @@ function setupEventListeners() {
         };
         btn.addEventListener('click', clickHandler, { passive: false });
         btn._clickHandler = clickHandler;
+        eventListeners.bottomNavItems.push({ btn, handler: clickHandler });
       }
     });
   }
@@ -1358,8 +1473,13 @@ async function renderUserAvatar(userParam = null) {
   if (DOM.userProfile) {
     DOM.userProfile.style.display = 'flex';
     if (DOM.userAvatar) {
-      DOM.userAvatar.removeEventListener('click', toggleUserDropdown);
+      // Remove old listener if exists
+      if (eventListeners.userAvatar) {
+        DOM.userAvatar.removeEventListener('click', eventListeners.userAvatar);
+      }
+      // Add new listener and store reference
       DOM.userAvatar.addEventListener('click', toggleUserDropdown);
+      eventListeners.userAvatar = toggleUserDropdown;
     }
   }
 
@@ -1487,6 +1607,17 @@ async function initApp() {
   DOM.init();
   updateAriaHiddenForViews();
 
+  // Expand search by default on desktop (reduce friction)
+  if (DOM.searchContainer && window.innerWidth > 767) {
+    DOM.searchContainer.classList.add('expanded');
+    // Focus search input after a short delay for better UX
+    setTimeout(() => {
+      if (DOM.searchInput) {
+        DOM.searchInput.focus();
+      }
+    }, 100);
+  }
+
   // Show loading state (only in boardGrid, not entire container)
   if (DOM.boardGrid) {
     DOM.boardGrid.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--text-muted); grid-column: 1 / -1;">Carregando...</div>';
@@ -1588,6 +1719,9 @@ async function initApp() {
       } else {
         updateHeader('projects');
       }
+      
+      // Use debounced version to prevent excessive updates
+      debouncedUpdateHeaderStats();
     }, UPDATE_INTERVAL_MS);
   }
 

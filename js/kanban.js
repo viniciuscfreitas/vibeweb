@@ -5,7 +5,11 @@ const COLUMNS_MAP = new Map(COLUMNS.map(col => [col.id, col]));
 let sortableInstances = [];
 
 function updateHeaderStats() {
-  if (!DOM.dashboardContainer || !DOM.financialContainer) return;
+  // Add null checks to prevent errors
+  if (!DOM.dashboardContainer || !DOM.financialContainer) {
+    console.warn('[Header] Containers not initialized');
+    return;
+  }
 
   if (DOM.dashboardContainer.classList.contains('active')) {
     const metrics = AppState.getCachedMetrics(() => calculateDashboardMetrics());
@@ -580,15 +584,42 @@ function handleKeyboardMove(e, task, cardElement) {
     });
 }
 
+// Cache for renderProjectsHeader to avoid recalculating if nothing changed
+let _projectsHeaderCache = {
+  tasksHash: null,
+  searchTerm: null,
+  totalValue: null,
+  lastElement: null
+};
+
 function renderProjectsHeader() {
-  if (!DOM.headerInfo) return;
+  // Add null check with warning
+  if (!DOM.headerInfo) {
+    console.warn('[Header] headerInfo not initialized');
+    return;
+  }
 
   const tasks = AppState.getTasks();
-  if (!Array.isArray(tasks)) return;
+  if (!Array.isArray(tasks)) {
+    console.warn('[Header] Tasks not available');
+    return;
+  }
 
   // Cache search term once
   const searchInputValue = DOM.searchInput ? DOM.searchInput.value : '';
   const searchTerm = searchInputValue ? searchInputValue.toLowerCase() : '';
+  
+  // Simple hash for tasks array (length + first few IDs for quick comparison)
+  const tasksHash = tasks.length + (tasks.length > 0 ? tasks[0]?.id || 0 : 0) + (tasks.length > 1 ? tasks[tasks.length - 1]?.id || 0 : 0);
+  
+  // Check if we can reuse cached result
+  if (_projectsHeaderCache.tasksHash === tasksHash && 
+      _projectsHeaderCache.searchTerm === searchTerm && 
+      _projectsHeaderCache.lastElement) {
+    // Value hasn't changed, skip DOM manipulation
+    return;
+  }
+  
   const filteredTasks = tasks.filter(t => {
     if (!searchTerm) return true;
     if (!t || !t.client) return false;
@@ -600,13 +631,40 @@ function renderProjectsHeader() {
     return clientMatches || domainMatches;
   });
   const totalValue = filteredTasks.reduce((sum, t) => sum + (parseFloat(t.price) || 0), 0);
+  
+  // Check if value actually changed (avoid unnecessary DOM update)
+  if (_projectsHeaderCache.totalValue === totalValue && _projectsHeaderCache.lastElement) {
+    // Value is the same, just update cache
+    _projectsHeaderCache.tasksHash = tasksHash;
+    _projectsHeaderCache.searchTerm = searchTerm;
+    return;
+  }
 
-  DOM.headerInfo.innerHTML = `
-    <div class="header-stat">
-      <span class="header-stat-label">Total:</span>
-      <span class="header-stat-value">${formatCurrency(totalValue)}</span>
-    </div>
-  `;
+  // Use textContent to prevent XSS instead of innerHTML
+  const statDiv = document.createElement('div');
+  statDiv.className = 'header-stat';
+  
+  const labelSpan = document.createElement('span');
+  labelSpan.className = 'header-stat-label';
+  labelSpan.textContent = 'Total:';
+  
+  const valueSpan = document.createElement('span');
+  valueSpan.className = 'header-stat-value';
+  valueSpan.textContent = formatCurrency(totalValue);
+  
+  statDiv.appendChild(labelSpan);
+  statDiv.appendChild(valueSpan);
+  
+  // Use replaceChildren for better performance than innerHTML + appendChild
+  DOM.headerInfo.replaceChildren(statDiv);
+  
+  // Update cache
+  _projectsHeaderCache = {
+    tasksHash: tasksHash,
+    searchTerm: searchTerm,
+    totalValue: totalValue,
+    lastElement: statDiv
+  };
 }
 
 function filterKanbanByStatus(columnId) {
@@ -880,8 +938,12 @@ function updateColumnCounts() {
     }
   });
   
-  // Update header stats
-  updateHeaderStats();
+  // Update header stats (will be debounced by main.js)
+  if (typeof debouncedUpdateHeaderStats === 'function') {
+    debouncedUpdateHeaderStats();
+  } else {
+    updateHeaderStats();
+  }
 }
 
 function exportKanbanData() {

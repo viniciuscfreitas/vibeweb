@@ -85,6 +85,8 @@ const DOM = {
   dropdownThemeText: null,
   profileModalThemeIcon: null,
   profileModalThemeText: null,
+  sidebar: null,
+  ariaLiveRegion: null,
 
   init() {
     this.boardGrid = document.getElementById('boardGrid');
@@ -172,5 +174,7 @@ const DOM = {
     this.dropdownThemeText = document.getElementById('dropdownThemeText');
     this.profileModalThemeIcon = document.getElementById('profileModalThemeIcon');
     this.profileModalThemeText = document.getElementById('profileModalThemeText');
+    this.sidebar = document.querySelector('.sidebar');
+    this.ariaLiveRegion = document.getElementById('ariaLiveRegion');
   }
 };

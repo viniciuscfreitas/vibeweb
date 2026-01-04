@@ -194,6 +194,14 @@
   </div>
   <!-- MAIN APP (hidden until authenticated) -->
   <div class="app-container hidden" id="appContainer">
+    <!-- SIDEBAR (Shell) -->
+    <!-- 
+      Sidebar structure:
+      - Brand icon at top
+      - Navigation buttons (Projects, Dashboard, Financial)
+      - User profile at bottom with dropdown menu
+      Active state is managed by JS via updateNavButtons()
+    -->
     <aside class="sidebar shell-bg">
       <div class="brand-icon" aria-hidden="true">
         <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -203,16 +211,16 @@
         </svg>
       </div>
       <nav class="nav-container" role="navigation" aria-label="Navegação principal">
-        <button class="nav-btn active" aria-label="Projetos" aria-current="page"><i class="fa-solid fa-layer-group"
+        <button class="nav-btn active" aria-label="Projetos - página atual" aria-current="page" title="Projetos"><i class="fa-solid fa-layer-group"
             aria-hidden="true"></i></button>
-        <button class="nav-btn" aria-label="Painel"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i></button>
-        <button class="nav-btn" aria-label="Financeiro"><i class="fa-solid fa-euro-sign"
+        <button class="nav-btn" aria-label="Painel" title="Painel de controle"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i></button>
+        <button class="nav-btn" aria-label="Financeiro" title="Financeiro"><i class="fa-solid fa-euro-sign"
             aria-hidden="true"></i></button>
       </nav>
       <div class="nav-footer">
         <div class="user-profile" id="userProfile">
-          <div class="avatar" id="userAvatar" title=""></div>
-          <div class="user-dropdown hidden" id="userDropdown">
+          <div class="avatar" id="userAvatar" title="" role="button" aria-label="Abrir menu do usuário" tabindex="0"></div>
+          <div class="user-dropdown hidden" id="userDropdown" role="menu" aria-label="Menu do usuário">
             <div class="dropdown-header">
               <div class="dropdown-avatar" id="dropdownAvatar"></div>
               <div class="dropdown-info">
@@ -221,15 +229,15 @@
             </div>
             <div class="dropdown-divider"></div>
             <div class="dropdown-menu">
-              <button class="dropdown-item" id="dropdownSettings">
+              <button class="dropdown-item" id="dropdownSettings" role="menuitem" aria-label="Abrir configurações">
                 <i class="fa-solid fa-gear"></i>
                 <span>Configurações</span>
               </button>
-              <button class="dropdown-item" id="dropdownTheme">
+              <button class="dropdown-item" id="dropdownTheme" role="menuitem" aria-label="Alternar tema">
                 <i class="fa-solid fa-moon" id="dropdownThemeIcon"></i>
                 <span id="dropdownThemeText">Tema Escuro</span>
               </button>
-              <button class="dropdown-item" id="dropdownLogout">
+              <button class="dropdown-item" id="dropdownLogout" role="menuitem" aria-label="Sair da aplicação">
                 <i class="fa-solid fa-sign-out-alt"></i>
                 <span>Sair</span>
               </button>
@@ -241,24 +249,36 @@
     <!-- MAIN CONTENT -->
     <main class="main-content" id="main-content" role="main">
       <!-- HEADER (Shell) -->
+      <!-- 
+        Header structure:
+        - Left side (header-info): Displays stats that vary by view (Projects/Dashboard/Financial)
+          Content is dynamically injected by JS functions:
+          * renderProjectsHeader() - shows total value
+          * renderDashboardHeader() - shows MRR, gap to €10k, urgent count
+          * renderFinancialHeader() - shows MRR, total revenue, average ticket
+        - Right side (header-actions): Search, export, and new project buttons
+          Visibility of buttons changes based on current view
+      -->
       <header class="header shell-bg">
-        <div class="header-info" id="headerInfo">
+        <!-- Stats display area (left side) - content injected by JS -->
+        <div class="header-info" id="headerInfo" role="region" aria-label="Estatísticas do painel">
           <div class="header-stat">
             <span class="header-stat-label">Total:</span>
             <span class="header-stat-value" id="statTotalValue">€0</span>
           </div>
         </div>
-        <div class="header-actions">
+        <!-- Actions area (right side) -->
+        <div class="header-actions" role="toolbar" aria-label="Ações do cabeçalho">
           <div class="search-container" id="searchContainer">
-            <button class="search-btn" id="searchBtn" aria-label="Buscar projeto">
+            <button class="search-btn" id="searchBtn" aria-label="Buscar projeto" title="Buscar projeto (/)">
               <i class="fa-solid fa-search search-btn-icon" aria-hidden="true"></i>
             </button>
             <label for="searchInput" class="sr-only">Buscar projeto</label>
             <i class="fa-solid fa-search search-icon" aria-hidden="true"></i>
             <input type="text" class="search-input" placeholder="Buscar projeto... (/) " id="searchInput"
-              autocomplete="off" inputmode="search" aria-label="Buscar projeto">
+              autocomplete="off" inputmode="search" aria-label="Buscar projeto" title="Buscar projeto (/)">
           </div>
-          <button class="export-icon-btn" id="exportBtn" aria-label="Exportar dados para CSV" title="Exportar CSV">
+          <button class="export-icon-btn" id="exportBtn" aria-label="Exportar dados para CSV" title="Exportar dados para CSV">
             <i class="fa-solid fa-download" aria-hidden="true"></i>
           </button>
           <button class="btn-primary" id="btnNewProject" aria-label="Novo Projeto (Ctrl+N)">
