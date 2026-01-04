@@ -113,6 +113,7 @@
               .safari-mobile .header-stat-label { display: none !important; }
               .safari-mobile .header-stat-value { font-size: 0.75rem !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
               .safari-mobile .header-actions { gap: 0.375rem !important; flex: 0 0 auto !important; }
+              .safari-mobile .header-actions-group { gap: 0.375rem !important; }
               .safari-mobile .search-container { width: 32px !important; }
               .safari-mobile .search-container.expanded { min-width: 150px !important; max-width: 250px !important; flex: 0 1 auto !important; }
               .safari-mobile .export-icon-btn { width: 32px !important; height: 32px !important; }
@@ -269,18 +270,20 @@
         </div>
         <!-- Actions area (right side) -->
         <div class="header-actions" role="toolbar" aria-label="Ações do cabeçalho">
-          <div class="search-container" id="searchContainer">
-            <button class="search-btn" id="searchBtn" aria-label="Buscar projeto" title="Buscar projeto (/)">
-              <i class="fa-solid fa-search search-btn-icon" aria-hidden="true"></i>
+          <div class="header-actions-group">
+            <div class="search-container" id="searchContainer">
+              <button class="search-btn" id="searchBtn" aria-label="Buscar projeto" title="Buscar projeto (/)">
+                <i class="fa-solid fa-search search-btn-icon" aria-hidden="true"></i>
+              </button>
+              <label for="searchInput" class="sr-only">Buscar projeto</label>
+              <i class="fa-solid fa-search search-icon" aria-hidden="true"></i>
+              <input type="text" class="search-input" placeholder="Buscar projeto... (/) " id="searchInput"
+                autocomplete="off" inputmode="search" aria-label="Buscar projeto" title="Buscar projeto (/)">
+            </div>
+            <button class="export-icon-btn" id="exportBtn" aria-label="Exportar dados para CSV" title="Exportar dados para CSV">
+              <i class="fa-solid fa-download" aria-hidden="true"></i>
             </button>
-            <label for="searchInput" class="sr-only">Buscar projeto</label>
-            <i class="fa-solid fa-search search-icon" aria-hidden="true"></i>
-            <input type="text" class="search-input" placeholder="Buscar projeto... (/) " id="searchInput"
-              autocomplete="off" inputmode="search" aria-label="Buscar projeto" title="Buscar projeto (/)">
           </div>
-          <button class="export-icon-btn" id="exportBtn" aria-label="Exportar dados para CSV" title="Exportar dados para CSV">
-            <i class="fa-solid fa-download" aria-hidden="true"></i>
-          </button>
           <button class="btn-primary" id="btnNewProject" aria-label="Novo Projeto (Ctrl+N)">
             <i class="fa-solid fa-plus" aria-hidden="true"></i> Novo Projeto
           </button>

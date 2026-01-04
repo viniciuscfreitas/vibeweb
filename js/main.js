@@ -9,7 +9,7 @@ const eventListeners = {
   navButtons: [],
   bottomNavItems: [],
   userAvatar: null,
-  cleanup: function() {
+  cleanup: function () {
     // Remove all stored event listeners
     this.navButtons.forEach(({ btn, handler }) => {
       if (btn && handler) {
@@ -17,14 +17,14 @@ const eventListeners = {
       }
     });
     this.navButtons = [];
-    
+
     this.bottomNavItems.forEach(({ btn, handler }) => {
       if (btn && handler) {
         btn.removeEventListener('click', handler);
       }
     });
     this.bottomNavItems = [];
-    
+
     if (this.userAvatar && this.userAvatar._clickHandler) {
       this.userAvatar.removeEventListener('click', this.userAvatar._clickHandler);
       this.userAvatar._clickHandler = null;
@@ -457,13 +457,13 @@ let searchClickTarget = null;
 
 function expandSearch(e) {
   if (!DOM.searchContainer || !DOM.searchInput) return;
-  
+
   if (e) {
     searchClickTarget = e.target;
   }
-  
+
   DOM.searchContainer.classList.add('expanded');
-  
+
   requestAnimationFrame(() => {
     if (DOM.searchInput && document.activeElement !== DOM.searchInput) {
       DOM.searchInput.focus();
@@ -473,9 +473,9 @@ function expandSearch(e) {
 
 function collapseSearch(force = false) {
   if (!DOM.searchInput || !DOM.searchContainer) return;
-  
+
   const hasValue = DOM.searchInput.value.trim().length > 0;
-  
+
   if (force || !hasValue) {
     DOM.searchContainer.classList.remove('expanded');
     if (DOM.searchInput === document.activeElement) {
@@ -488,27 +488,27 @@ function handleSearchBlur(e) {
   if (searchBlurTimeout) {
     clearTimeout(searchBlurTimeout);
   }
-  
+
   searchBlurTimeout = setTimeout(() => {
     const relatedTarget = e.relatedTarget;
     const clickTarget = searchClickTarget;
     searchClickTarget = null;
-    
+
     if (relatedTarget === DOM.searchBtn || clickTarget === DOM.searchBtn) {
       return;
     }
-    
+
     if (relatedTarget && DOM.searchContainer && DOM.searchContainer.contains(relatedTarget)) {
       return;
     }
-    
+
     collapseSearch();
   }, 150);
 }
 
 function handleSearchContainerClick(e) {
   if (!DOM.searchContainer || !DOM.searchInput) return;
-  
+
   if (e.target === DOM.searchBtn || DOM.searchBtn.contains(e.target)) {
     const isExpanded = DOM.searchContainer.classList.contains('expanded');
     if (isExpanded && !DOM.searchInput.value.trim()) {
@@ -670,7 +670,7 @@ function updateNavigationState(view) {
     isDashboard: view === 'dashboard',
     isFinancial: view === 'financial'
   };
-  
+
   updateNavButtons(state.isProjects, state.isDashboard, state.isFinancial);
   updateBottomNavCentralButton(view);
   updateAriaHiddenForViews();
@@ -915,9 +915,9 @@ function updateHeader(view) {
     headerUpdateQueue = view;
     return;
   }
-  
+
   isUpdatingHeader = true;
-  
+
   try {
     if (view === 'dashboard') {
       const metrics = AppState.getCachedMetrics(() => calculateDashboardMetrics());
@@ -931,10 +931,7 @@ function updateHeader(view) {
       if (DOM.btnNewProject) DOM.btnNewProject.style.display = 'none';
       if (DOM.searchContainer) {
         DOM.searchContainer.style.display = 'flex';
-        const isDesktop = window.innerWidth > 767;
-        if (isDesktop && !DOM.searchContainer.classList.contains('expanded')) {
-          DOM.searchContainer.classList.add('expanded');
-        }
+        DOM.searchContainer.classList.remove('expanded');
       }
       updateBottomNavCentralButton('financial');
       // Placeholder is set by renderFinancial() in financial.js
@@ -943,10 +940,7 @@ function updateHeader(view) {
       if (DOM.btnNewProject) DOM.btnNewProject.style.display = 'flex';
       if (DOM.searchContainer) {
         DOM.searchContainer.style.display = 'flex';
-        const isDesktop = window.innerWidth > 767;
-        if (isDesktop && !DOM.searchContainer.classList.contains('expanded')) {
-          DOM.searchContainer.classList.add('expanded');
-        }
+        DOM.searchContainer.classList.remove('expanded');
       }
       if (DOM.searchInput) {
         DOM.searchInput.placeholder = 'Buscar projeto... (/)';
@@ -1019,7 +1013,7 @@ const handleModalOverlayClick = (e) => {
 function setupEventListeners() {
   // Clean up any existing listeners first
   eventListeners.cleanup();
-  
+
   // Setup navigation button listeners with proper cleanup tracking
   DOM.navButtons.forEach((btn, index) => {
     const handler = () => {
@@ -1694,10 +1688,10 @@ async function initApp() {
 
   function updateSearchContainerState() {
     if (!DOM.searchContainer) return;
-    
+
     const isDesktop = window.innerWidth > 767;
     const isExpanded = DOM.searchContainer.classList.contains('expanded');
-    
+
     if (isDesktop && !isExpanded) {
       DOM.searchContainer.classList.add('expanded');
       requestAnimationFrame(() => {
@@ -1712,9 +1706,9 @@ async function initApp() {
       }
     }
   }
-  
+
   updateSearchContainerState();
-  
+
   let resizeTimeout = null;
   window.addEventListener('resize', () => {
     if (resizeTimeout) {
@@ -1824,7 +1818,7 @@ async function initApp() {
       } else {
         updateHeader('projects');
       }
-      
+
       // Use debounced version to prevent excessive updates
       debouncedUpdateHeaderStats();
     }, UPDATE_INTERVAL_MS);

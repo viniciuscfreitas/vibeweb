@@ -270,13 +270,19 @@ body {
   justify-content: flex-end;
 }
 
+.header-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .search-container {
   position: relative;
-  width: auto;
-  min-width: 200px;
-  flex: 0 1 auto;
+  width: 40px;
+  min-width: 40px;
+  flex: 0 0 auto;
   flex-shrink: 0;
-  transition: flex 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: flex 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
 }
