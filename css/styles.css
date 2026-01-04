@@ -2028,8 +2028,8 @@ html[data-authenticated="true"] #appContainer.hidden {
   position: sticky;
   top: 0;
   background-color: var(--bg-card);
-  padding: 1rem 0;
-  margin-bottom: 1rem;
+  padding: 1rem 1.5rem;
+  margin: 0 -1.5rem 1rem -1.5rem;
   z-index: 10;
   border-bottom: 1px solid var(--border-subtle);
 }
