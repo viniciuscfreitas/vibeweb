@@ -284,6 +284,7 @@ body {
   flex-shrink: 0;
   display: flex;
   align-items: center;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .search-btn {
@@ -321,10 +322,13 @@ body {
   right: 0;
   z-index: 2;
   opacity: 0.8;
+  pointer-events: auto;
 }
 
 .search-container.expanded {
   z-index: 10;
+  width: 280px;
+  min-width: 280px;
 }
 
 .search-container.expanded .search-btn:hover {
@@ -340,7 +344,7 @@ body {
   border-radius: 6px;
   font-size: 0.875rem;
   outline: none;
-  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   opacity: 0;
   pointer-events: none;
   position: absolute;
@@ -354,8 +358,8 @@ body {
 .search-container.expanded .search-input {
   opacity: 1;
   pointer-events: auto;
-  width: 280px;
-  transform: translateX(calc(-100% + 40px));
+  width: calc(100% - 40px);
+  padding-right: 2.5rem;
 }
 
 .search-input:focus {
@@ -372,13 +376,12 @@ body {
   pointer-events: none;
   z-index: 3;
   opacity: 0;
-  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .search-container.expanded .search-icon {
   opacity: 1;
   z-index: 3;
-  left: calc(0.75rem - 240px);
 }
 
 .search-btn-icon {
@@ -3204,12 +3207,18 @@ html[data-authenticated="true"] #appContainer.hidden {
     width: 44px;
     min-width: 44px;
     flex-shrink: 0;
+    transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .search-container.expanded {
+    width: 200px;
     min-width: 150px;
     max-width: 250px;
     flex: 0 1 auto;
+  }
+
+  .search-container.expanded .search-input {
+    width: calc(100% - 44px);
   }
 
   .search-btn {
@@ -3534,12 +3543,18 @@ html[data-authenticated="true"] #appContainer.hidden {
     .search-container {
       width: 44px !important;
       min-width: 44px !important;
+      transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
     }
 
     .search-container.expanded {
+      width: 200px !important;
       min-width: 150px !important;
       max-width: 250px !important;
       flex: 0 1 auto !important;
+    }
+
+    .search-container.expanded .search-input {
+      width: calc(100% - 44px) !important;
     }
 
     .search-btn {
