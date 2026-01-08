@@ -1090,7 +1090,7 @@ DEPLOY CHECKLIST (before Meta Ads campaign):
                     <div class="aspect-[16/9] w-full overflow-hidden bg-neutral-800 relative">
                         <svg class="w-full h-full object-cover opacity-80 group-hover:opacity-40 transition-opacity duration-300"
                             viewBox="0 0 400 225" fill="none" xmlns="http://www.w3.org/2000/svg" width="400"
-                            height="225" aria-hidden="true" role="img" aria-label="Dlux Barbearia platform preview">
+                            height="225" aria-hidden="true">
                             <rect width="400" height="225" fill="#111" />
                             <rect x="50" y="40" width="300" height="145" rx="8" fill="#1a1a1a" />
                             <path d="M150 100 L250 100 M150 120 L250 120 M150 140 L200 140" stroke="#04D361" stroke-width="3" />
@@ -1113,8 +1113,7 @@ DEPLOY CHECKLIST (before Meta Ads campaign):
                     <div class="aspect-[16/9] w-full overflow-hidden bg-neutral-800 relative">
                         <svg class="w-full h-full object-cover opacity-80 group-hover:opacity-40 transition-opacity duration-300"
                             viewBox="0 0 400 225" fill="none" xmlns="http://www.w3.org/2000/svg" width="400"
-                            height="225" aria-hidden="true" role="img"
-                            aria-label="Postaê Web automation preview">
+                            height="225" aria-hidden="true">
                             <rect width="400" height="225" fill="#050505" />
                             <rect x="20" y="20" width="360" height="185" rx="4" fill="#111" />
                             <circle cx="60" cy="60" r="25" fill="#04D361" fill-opacity="0.1" />
@@ -1139,8 +1138,7 @@ DEPLOY CHECKLIST (before Meta Ads campaign):
                     <div class="aspect-[16/9] w-full overflow-hidden bg-neutral-800 relative">
                         <svg class="w-full h-full object-cover opacity-80 group-hover:opacity-40 transition-opacity duration-300"
                             viewBox="0 0 400 225" fill="none" xmlns="http://www.w3.org/2000/svg" width="400"
-                            height="225" aria-hidden="true" role="img"
-                            aria-label="Marcelo Braz real estate preview">
+                            height="225" aria-hidden="true">
                             <rect width="400" height="225" fill="#111" />
                             <rect x="20" y="20" width="60" height="185" fill="#222" />
                             <rect x="100" y="30" width="280" height="80" fill="#04D361" fill-opacity="0.1" />
@@ -1164,8 +1162,7 @@ DEPLOY CHECKLIST (before Meta Ads campaign):
                     <div class="aspect-[16/9] w-full overflow-hidden bg-neutral-800 relative">
                         <svg class="w-full h-full object-cover opacity-80 group-hover:opacity-40 transition-opacity duration-300"
                             viewBox="0 0 400 225" fill="none" xmlns="http://www.w3.org/2000/svg" width="400"
-                            height="225" aria-hidden="true" role="img"
-                            aria-label="Prime League Minecraft preview">
+                            height="225" aria-hidden="true">
                             <rect width="400" height="225" fill="#1a1a1a" />
                             <path d="M150 50 L250 50 L280 150 L120 150 Z" fill="#04D361" fill-opacity="0.2" stroke="#04D361" stroke-width="2" />
                             <rect x="140" y="160" width="120" height="30" rx="4" fill="#333" />
@@ -1188,8 +1185,7 @@ DEPLOY CHECKLIST (before Meta Ads campaign):
                     <div class="aspect-[16/9] w-full overflow-hidden bg-neutral-800 relative">
                         <svg class="w-full h-full object-cover opacity-80 group-hover:opacity-40 transition-opacity duration-300"
                             viewBox="0 0 400 225" fill="none" xmlns="http://www.w3.org/2000/svg" width="400"
-                            height="225" aria-hidden="true" role="img"
-                            aria-label="Gui Magellane creative portfolio preview">
+                            height="225" aria-hidden="true">
                             <rect width="400" height="225" fill="#000" />
                             <path d="M100 112.5 L300 112.5 M200 50 L200 175" stroke="#333" stroke-width="1" />
                             <circle cx="200" cy="112.5" r="40" stroke="#04D361" stroke-width="2" fill="none" />
@@ -1212,7 +1208,7 @@ DEPLOY CHECKLIST (before Meta Ads campaign):
                     <div class="aspect-[16/9] w-full overflow-hidden bg-neutral-800 relative">
                         <svg class="w-full h-full object-cover opacity-80 group-hover:opacity-40 transition-opacity duration-300"
                             viewBox="0 0 400 225" fill="none" xmlns="http://www.w3.org/2000/svg" width="400"
-                            height="225" aria-hidden="true" role="img" aria-label="JCuts video editing website preview">
+                            height="225" aria-hidden="true">
                             <rect width="400" height="225" fill="#171717" />
                             <rect x="40" y="40" width="200" height="20" fill="#333" />
                             <rect x="40" y="70" width="320" height="80" fill="#262626" />
@@ -1473,7 +1469,7 @@ DEPLOY CHECKLIST (before Meta Ads campaign):
                 </div>
 
                 <p class="text-neutral-500 text-sm mt-8">
-                    Copyright © 2025 VibeWeb Partners · Made with <span class="text-brand">code</span> & 🇧🇷 in Brazil.
+                    Copyright © 2026 VibeWeb Partners · Made with <span class="text-brand">code</span> & 🇧🇷 in Brazil.
                 </p>
             </div>
         </footer>
