@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!-- 
 DEPLOY CHECKLIST (before Meta Ads campaign):
-1. Replace vibeweb.eu with actual domain in .env
+1. Replace vibe-web.com with actual domain in .env
 2. Replace YOUR_PIXEL_ID with Meta Pixel ID in .env (code is at line ~972)
 3. Ensure WHATSAPP_NUMBER in .env is only numbers (ex: 5562994584520)
 4. Test all WhatsApp links work
