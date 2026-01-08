@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<!-- 
+DEPLOY CHECKLIST (before Meta Ads campaign):
+1. Replace vibeweb.eu with actual domain in .env
+2. Replace YOUR_PIXEL_ID with Meta Pixel ID in .env (code is at line ~972)
+3. Ensure WHATSAPP_NUMBER in .env is only numbers (ex: 5562994584520)
+4. Test all WhatsApp links work
+5. Verify photos load (fotos/kaio.jpeg, fotos/vinicius.jpeg)
+-->
+<html lang="en" class="scroll-smooth" itemscope itemtype="https://schema.org/WebPage">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VibeWeb – High-End Sites in 48h for the European Market</title>
+    <meta name="description"
+        content="Professional sites in 48h. High-end Brazilian development for European businesses. 10x cheaper than local agencies with 100/100 performance.">
+    <meta name="theme-color" content="#000000">
+    <link rel="canonical" href="https://${DOMAIN}/">
+    <meta name="robots" content="index, follow">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://${DOMAIN}/">
+    <meta property="og:title" content="VibeWeb – High-End Sites in 48h for Europe">
+    <meta property="og:description"
+        content="Professional sites in 48h. High-end Brazilian development for European companies. 10x cheaper than local agencies with 100/100 performance.">
+    <meta property="og:locale" content="en_US">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="VibeWeb – High-End Sites in 48h for Europe">
+    <meta name="twitter:description"
+        content="Professional sites in 48h. High-end Brazilian development for European companies. 10x cheaper than local agencies.">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet"></noscript>
+    
+    <style>
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: #000;
+            color: #fff;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        a[class*="block"] {
+            cursor: pointer;
+        }
+
+        svg {
+            display: block;
+        }
+
+        :root {
+            --brand: #04D361;
+            --accent: #FACC15;
+            --neutral-400: #b3b3b3;
+            --neutral-500: #8a8a8a;
+            --neutral-600: #6b6b6b;
+            --neutral-800: #262626;
+            --neutral-900: #171717;
+            --neutral-950: #0a0a0a;
+        }
+
+        ::selection {
+            background: var(--brand);
+            color: #000;
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #000;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--brand);
+        }
+
+        *:focus-visible {
+            outline: none;
+        }
+
+        a:focus-visible,
+        button:focus-visible {
+            outline: none;
+        }
+
+        .reveal-on-scroll {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.8s cubic-bezier(0.5, 0, 0, 1), transform 0.8s cubic-bezier(0.5, 0, 0, 1);
+        }
+
+        .reveal-on-scroll.delay-100 {
+            transition-delay: 100ms;
+        }
+
+        .reveal-on-scroll.delay-200 {
+            transition-delay: 200ms;
+        }
+
+        .reveal-on-scroll.delay-300 {
+            transition-delay: 300ms;
+        }
+
+        .reveal-on-scroll.delay-400 {
+            transition-delay: 400ms;
+        }
+
+        .reveal-on-scroll.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .text-xs {
+            font-size: 0.75rem;
+            line-height: 1rem;
+        }
+
+        .text-sm {
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+        }
+
+        .text-lg {
+            font-size: 1.125rem;
+            line-height: 1.75rem;
+        }
+
+        .text-xl {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+        }
+
+        .text-2xl {
+            font-size: 1.5rem;
+            line-height: 2rem;
+        }
+
+        .text-3xl {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+        }
+
+        .text-4xl {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+        }
+
+        .text-5xl {
+            font-size: 3rem;
+            line-height: 1;
+        }
+
+        .text-6xl {
+            font-size: 3.75rem;
+            line-height: 1;
+        }
+
+        .font-mono {
+            font-family: ui-monospace, monospace;
+        }
+
+        .font-medium {
+            font-weight: 500;
+        }
+
+        .font-bold {
+            font-weight: 700;
+        }
+
+        .font-black {
+            font-weight: 900;
+        }
+
+        .tracking-tighter {
+            letter-spacing: -0.05em;
+        }
+
+        .tracking-widest {
+            letter-spacing: 0.1em;
+        }
+
+        .tracking-wide {
+            letter-spacing: 0.025em;
+        }
+
+        .tracking-wider {
+            letter-spacing: 0.05em;
+        }
+
+        .leading-snug {
+            line-height: 1.375;
+        }
+
+        .leading-tight {
+            line-height: 1.25;
+        }
+
+        .leading-relaxed {
+            line-height: 1.625;
+        }
+
+        .leading-\[0\.9\] {
+            line-height: 0.9;
+        }
+
+        .uppercase {
+            text-transform: uppercase;
+        }
+
+        .italic {
+            font-style: italic;
+        }
+
+        .not-italic {
+            font-style: normal;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-white {
+            color: #fff;
+        }
+
+        .text-black {
+            color: #000;
+        }
+
+        .text-brand {
+            color: var(--brand);
+        }
+
+        .text-accent {
+            color: var(--accent);
+        }
+
+        .text-neutral-400 {
+            color: var(--neutral-400);
+        }
+
+        .text-neutral-500 {
+            color: var(--neutral-500);
+        }
+
+        .text-neutral-600 {
+            color: var(--neutral-600);
+        }
+
+        .text-neutral-300 {
+            color: #d4d4d4;
+        }
+
+        .bg-brand {
+            background-color: var(--brand);
+        }
+
+        .bg-accent {
+            background-color: var(--accent);
+        }
+
+        .bg-neutral-800 {
+            background-color: var(--neutral-800);
+        }
+
+        .bg-neutral-900 {
+            background-color: var(--neutral-900);
+        }
+
+        .bg-neutral-900\/50 {
+            background-color: rgba(23, 23, 23, 0.5);
+        }
+
+        .bg-neutral-950 {
+            background-color: var(--neutral-950);
+        }
+
+        .bg-neutral-950\/50 {
+            background-color: rgba(10, 10, 10, 0.5);
+        }
+
+        .bg-gradient-to-b {
+            background-image: linear-gradient(to bottom, var(--tw-gradient-stops));
+        }
+
+        .from-neutral-950 {
+            --tw-gradient-from: var(--neutral-950);
+            --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(10, 10, 10, 0));
+        }
+
+        .via-neutral-900 {
+            --tw-gradient-stops: var(--tw-gradient-from), var(--neutral-900), var(--tw-gradient-to, rgba(23, 23, 23, 0));
+        }
+
+        .to-neutral-950 {
+            --tw-gradient-to: var(--neutral-950);
+        }
+
+        .bg-green-950\/20 {
+            background-color: rgba(5, 46, 22, 0.2);
+        }
+
+        .bg-green-400 {
+            background-color: #4ade80;
+        }
+
+        .p-6 {
+            padding: 1.5rem;
+        }
+
+        .p-8 {
+            padding: 2rem;
+        }
+
+        .p-12 {
+            padding: 3rem;
+        }
+
+        .px-2 {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+
+        .px-3 {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+        }
+
+        .px-6 {
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
+        }
+
+        .px-10 {
+            padding-left: 2.5rem;
+            padding-right: 2.5rem;
+        }
+
+        .px-12 {
+            padding-left: 3rem;
+            padding-right: 3rem;
+        }
+
+        .py-0\.5 {
+            padding-top: 0.125rem;
+            padding-bottom: 0.125rem;
+        }
+
+        .pb-0\.5 {
+            padding-bottom: 0.125rem;
+        }
+
+        .py-3 {
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem;
+        }
+
+        .py-5 {
+            padding-top: 1.25rem;
+            padding-bottom: 1.25rem;
+        }
+
+        .py-6 {
+            padding-top: 1.5rem;
+            padding-bottom: 1.5rem;
+        }
+
+        .py-16 {
+            padding-top: 4rem;
+            padding-bottom: 4rem;
+        }
+
+        .py-24 {
+            padding-top: 6rem;
+            padding-bottom: 6rem;
+        }
+
+        .pt-8 {
+            padding-top: 2rem;
+        }
+
+        .pt-12 {
+            padding-top: 3rem;
+        }
+
+        .pb-24 {
+            padding-bottom: 6rem;
+        }
+
+        .mb-1 {
+            margin-bottom: 0.25rem;
+        }
+
+        .mb-2 {
+            margin-bottom: 0.5rem;
+        }
+
+        .mb-4 {
+            margin-bottom: 1rem;
+        }
+
+        .mb-8 {
+            margin-bottom: 2rem;
+        }
+
+        .mb-12 {
+            margin-bottom: 3rem;
+        }
+
+        .mb-16 {
+            margin-bottom: 4rem;
+        }
+
+        .mt-4 {
+            margin-top: 1rem;
+        }
+
+        .mt-6 {
+            margin-top: 1.5rem;
+        }
+
+        .mt-12 {
+            margin-top: 3rem;
+        }
+
+        .mx-2 {
+            margin-left: 0.5rem;
+            margin-right: 0.5rem;
+        }
+
+        .mx-auto {
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .w-full {
+            width: 100%;
+        }
+
+        .w-24 {
+            width: 6rem;
+        }
+
+        .h-24 {
+            height: 6rem;
+        }
+
+        .min-h-\[400px\] {
+            min-height: 400px;
+        }
+
+        .min-h-\[600px\] {
+            min-height: 600px;
+        }
+
+        .max-w-2xl {
+            max-width: 42rem;
+        }
+
+        .max-w-3xl {
+            max-width: 48rem;
+        }
+
+        .max-w-4xl {
+            max-width: 56rem;
+        }
+
+        .max-w-7xl {
+            max-width: 80rem;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .flex-col {
+            flex-direction: column;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
+        .items-start {
+            align-items: flex-start;
+        }
+
+        .items-end {
+            align-items: flex-end;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .justify-center {
+            justify-content: center;
+        }
+
+        .gap-2 {
+            gap: 0.5rem;
+        }
+
+        .gap-4 {
+            gap: 1rem;
+        }
+
+        .gap-6 {
+            gap: 1.5rem;
+        }
+
+        .gap-8 {
+            gap: 2rem;
+        }
+
+        .gap-12 {
+            gap: 3rem;
+        }
+
+        .grid {
+            display: grid;
+        }
+
+        .grid-cols-1 {
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+        }
+
+        .relative {
+            position: relative;
+        }
+
+        .absolute {
+            position: absolute;
+        }
+
+        .inset-0 {
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+        }
+
+        .top-0 {
+            top: 0;
+        }
+
+        .right-0 {
+            right: 0;
+        }
+
+        .z-10 {
+            z-index: 10;
+        }
+
+        .z-40 {
+            z-index: 40;
+        }
+
+        .block {
+            display: block;
+        }
+
+        .inline-block {
+            display: inline-block;
+        }
+
+        .border {
+            border-width: 1px;
+            border-style: solid;
+        }
+
+        .border-2 {
+            border-width: 2px;
+            border-style: solid;
+        }
+
+        .border-l-4 {
+            border-left-width: 4px;
+            border-left-style: solid;
+        }
+
+        .border-t {
+            border-top-width: 1px;
+            border-top-style: solid;
+        }
+
+        .border-b {
+            border-bottom-width: 1px;
+            border-bottom-style: solid;
+        }
+
+        .border-y {
+            border-top-width: 1px;
+            border-bottom-width: 1px;
+            border-top-style: solid;
+            border-bottom-style: solid;
+        }
+
+        .border-transparent {
+            border-color: transparent !important;
+        }
+
+        .border-white {
+            border-color: #fff !important;
+        }
+
+        .border-brand {
+            border-color: var(--brand) !important;
+        }
+
+        .border-neutral-800 {
+            border-color: var(--neutral-800) !important;
+        }
+
+        .border-neutral-600 {
+            border-color: var(--neutral-600) !important;
+        }
+
+        .border-green-900\/50 {
+            border-color: rgba(20, 83, 45, 0.5) !important;
+        }
+
+        .rounded-sm {
+            border-radius: 0.125rem;
+        }
+
+        .rounded-full {
+            border-radius: 9999px;
+        }
+
+        .rounded-none {
+            border-radius: 0;
+        }
+
+        .overflow-hidden {
+            overflow: hidden;
+        }
+
+        .object-cover {
+            object-fit: cover;
+        }
+
+        .aspect-\[4\/3\] {
+            aspect-ratio: 4 / 3;
+        }
+
+        .opacity-0 {
+            opacity: 0;
+        }
+
+        .opacity-40 {
+            opacity: 0.4;
+        }
+
+        .opacity-80 {
+            opacity: 0.8;
+        }
+
+        .transform {
+            transform: translateZ(0);
+        }
+
+        .translate-y-4 {
+            transform: translateY(1rem);
+        }
+
+        .-translate-y-1 {
+            transform: translateY(-0.25rem);
+        }
+
+        .translate-y-0 {
+            transform: translateY(0);
+        }
+
+        .grayscale {
+            filter: grayscale(100%);
+        }
+
+        .grayscale-0 {
+            filter: grayscale(0);
+        }
+
+        .transition-colors {
+            transition: color 150ms, background-color 150ms, border-color 150ms;
+        }
+
+        .transition-opacity {
+            transition: opacity 300ms;
+        }
+
+        .transition-transform {
+            transition: transform 150ms;
+        }
+
+        .transition-all {
+            transition: all 500ms;
+        }
+
+        .duration-300 {
+            transition-duration: 300ms;
+        }
+
+        .duration-500 {
+            transition-duration: 500ms;
+        }
+
+        .hover\:bg-green-400:hover {
+            background-color: #4ade80;
+        }
+
+        .hover\:bg-neutral-900:hover {
+            background-color: var(--neutral-900);
+        }
+
+        .hover\:border-neutral-600:hover {
+            border-color: var(--neutral-600);
+        }
+
+        .hover\:border-brand:hover {
+            border-color: var(--brand);
+        }
+
+        .hover\:border-white:hover {
+            border-color: #fff;
+        }
+
+        .hover\:-translate-y-1:hover {
+            transform: translateY(-0.25rem);
+        }
+
+        .hover\:opacity-40:hover {
+            opacity: 0.4;
+        }
+
+        .hover\:opacity-100:hover {
+            opacity: 1;
+        }
+
+        .hover\:grayscale-0:hover {
+            filter: grayscale(0);
+        }
+
+        .hover\:bg-white:hover {
+            background-color: #fff;
+        }
+
+        .hover\:text-black:hover {
+            color: #000;
+        }
+
+        .group:hover .group-hover\:text-accent {
+            color: var(--accent);
+        }
+
+        .group:hover .group-hover\:opacity-40 {
+            opacity: 0.4;
+        }
+
+        .group:hover .group-hover\:opacity-100 {
+            opacity: 1;
+        }
+
+        .group:hover .group-hover\:translate-y-0 {
+            transform: translateY(0);
+        }
+
+        .shadow-\[4px_4px_0px_0px_rgba\(255\,255\,255\,0\.2\)\] {
+            box-shadow: 4px 4px 0px 0px rgba(255, 255, 255, 0.2);
+        }
+
+        .shadow-\[4px_4px_0px_0px_rgba\(255\,255\,255\,0\.1\)\] {
+            box-shadow: 4px 4px 0px 0px rgba(255, 255, 255, 0.1);
+        }
+
+        .shadow-\[0_0_20px_rgba\(4\,211\,97\,0\.1\)\] {
+            box-shadow: 0 0 20px rgba(4, 211, 97, 0.1);
+        }
+
+        .focus\:outline-none:focus {
+            outline: none;
+        }
+
+        .divide-y>*+* {
+            border-top-width: 1px;
+            border-top-style: solid;
+        }
+
+        .divide-x>*+* {
+            border-left-width: 1px;
+            border-left-style: solid;
+        }
+
+        .divide-neutral-800>*+* {
+            border-color: var(--neutral-800);
+        }
+
+        .space-y-3>*+* {
+            margin-top: 0.75rem;
+        }
+
+        .space-y-8>*+* {
+            margin-top: 2rem;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        @media (min-width: 768px) {
+            .md\:px-12 {
+                padding-left: 3rem;
+                padding-right: 3rem;
+            }
+
+            .md\:pt-24 {
+                padding-top: 6rem;
+            }
+
+            .md\:pb-32 {
+                padding-bottom: 8rem;
+            }
+
+            .md\:min-h-\[800px\] {
+                min-height: 800px;
+            }
+
+            .md\:flex-row {
+                flex-direction: row;
+            }
+
+            .md\:text-base {
+                font-size: 1rem;
+                line-height: 1.5rem;
+            }
+
+            .md\:text-2xl {
+                font-size: 1.5rem;
+                line-height: 2rem;
+            }
+
+            .md\:text-3xl {
+                font-size: 1.875rem;
+                line-height: 2.25rem;
+            }
+
+            .md\:text-5xl {
+                font-size: 3rem;
+                line-height: 1;
+            }
+
+            .md\:text-6xl {
+                font-size: 3.75rem;
+                line-height: 1;
+            }
+
+            .md\:text-8xl {
+                font-size: 6rem;
+                line-height: 1;
+            }
+
+            .md\:grid-cols-2 {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .md\:grid-cols-3 {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            .md\:grid-cols-4 {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+
+            .md\:divide-y-0>*+* {
+                border-top-width: 0;
+            }
+
+            .md\:divide-x>*+* {
+                border-left-width: 1px;
+                border-left-style: solid;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .lg\:text-9xl {
+                font-size: 8rem;
+                line-height: 1;
+            }
+        }
+    </style>
+
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Service",
+        "name": "VibeWeb",
+        "description": "Professional websites in 48h. Faster and cheaper than EU agencies.",
+        "url": "https://${DOMAIN}/",
+        "provider": {
+            "@type": "Organization",
+            "name": "VibeWeb Partners",
+            "founder": [
+                {
+                    "@type": "Person",
+                    "name": "Kaio",
+                    "jobTitle": "Head of Growth"
+                },
+                {
+                    "@type": "Person",
+                    "name": "Vinícius",
+                    "jobTitle": "Lead Developer"
+                }
+            ]
+        },
+        "areaServed": {
+            "@type": "Place",
+            "name": "Europe"
+        },
+        "offers": [
+            {
+                "@type": "Offer",
+                "name": "Basic Landing",
+                "description": "For those who need to exist on Google yesterday. 48h delivery."
+            },
+            {
+                "@type": "Offer",
+                "name": "Pro Portfolio",
+                "description": "High-end design to convert leads. 3 days delivery."
+            },
+            {
+                "@type": "Offer",
+                "name": "Fullstack",
+                "description": "CRUD, dashboard, member areas. 3–5 days delivery."
+            }
+        ]
+    }
+    </script>
+    <script>
+        // Meta Pixel Initialization (Grug Style: simple and robust)
+        (function(f,b,e,v,n,t,s) {
+            if(f.fbq) return;
+            n=f.fbq=function(){ n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments) };
+            if(!f._fbq) f._fbq=n;
+            n.push=n; n.loaded=!0; n.version='2.0'; n.queue=[];
+            t=b.createElement(e); t.async=!0; t.src=v;
+            s=b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t,s);
+        })(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
+
+        const PIXEL_ID = '${PIXEL_ID}';
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const hasPixelId = PIXEL_ID && PIXEL_ID !== 'YOUR_PIXEL_ID';
+
+        if (hasPixelId) {
+            fbq('init', PIXEL_ID);
+            fbq('track', 'PageView');
+        } else if (!isLocalhost) {
+            console.warn('VibeWeb: PIXEL_ID not configured for production');
+        }
+    </script>
+    <noscript><img height="1" width="1" style="display:none"
+            src="https://www.facebook.com/tr?id=${PIXEL_ID}&ev=PageView&noscript=1" /></noscript>
+</head>
+
+<body class="antialiased">
+
+    <nav class="w-full py-6 px-6 md:px-12 flex justify-between items-center max-w-7xl mx-auto z-40 relative reveal-on-scroll"
+        aria-label="Main navigation" role="navigation">
+        <div class="text-2xl font-bold tracking-tighter flex items-center gap-2">
+            VibeWeb <span class="text-xs bg-neutral-800 text-white px-2 py-0.5 rounded-sm"
+                aria-label="Brazilian development for the European market">🇧🇷 ➔ 🇪🇺</span>
+        </div>
+    </nav>
+
+    <main id="main-content">
+        <header class="relative w-full min-h-[600px] md:min-h-[800px] flex items-center overflow-hidden bg-neutral-950">
+            <!-- Background Image -->
+            <div class="absolute inset-0 z-0">
+                <img src="fotos/hero.png" alt="" class="w-full h-full object-cover opacity-20" fetchpriority="high" decoding="async">
+                <div class="absolute inset-0 bg-gradient-to-b from-neutral-950/80 via-neutral-900/60 to-neutral-950"></div>
+            </div>
+
+            <div class="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-12 pt-12 pb-24 md:pt-24 md:pb-32">
+                <div class="flex flex-col items-start gap-8">
+                    <h1
+                        class="reveal-on-scroll delay-100 text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter leading-[0.9] text-white">
+                        Professional sites<br>
+                        in 48h
+                    </h1>
+
+                    <p
+                        class="reveal-on-scroll delay-200 text-xl md:text-3xl text-white max-w-3xl leading-snug font-medium">
+                        Faster and 5–10× cheaper than any local agency in Europe. High-end Brazilian engineering for European companies.
+                    </p>
+
+                    <div class="pt-8 flex flex-col items-start reveal-on-scroll delay-300">
+                        <a href="https://wa.me/${WHATSAPP_NUMBER}" rel="noopener noreferrer"
+                            aria-label="Start conversation on WhatsApp (opens in new window)"
+                            title="Start conversation on WhatsApp" onclick="trackContact()"
+                            class="w-full md:w-auto text-center inline-block bg-brand hover:bg-green-400 text-black text-xl md:text-2xl font-bold py-5 px-10 rounded-none transition-transform hover:-translate-y-1 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)] border-2 border-transparent hover:border-white focus:outline-none">
+                            Book free call (15 min)
+                        </a>
+                        <p class="text-sm text-white opacity-90 mt-4 flex items-center gap-2">
+                            <span class="w-2 h-2 bg-brand rounded-full animate-pulse"></span>
+                            Only 2 spots left for this week to maintain 48h delivery
+                        </p>
+                        <div class="flex items-center gap-4 mt-4 opacity-60 grayscale hover:grayscale-0 transition-all duration-300">
+                            <span class="text-[10px] uppercase tracking-widest font-bold text-neutral-400">Accepted:</span>
+                            <div class="flex items-center gap-3">
+                                <svg class="h-4 w-auto" viewBox="0 0 512 214" fill="currentColor" aria-label="Stripe payment accepted"><path d="M512 110.08c0-36.409-17.636-65.138-51.342-65.138-33.85 0-54.33 28.73-54.33 64.854c0 42.808 24.179 64.426 58.88 64.426 16.925 0 29.725-3.84 39.396-9.244v-28.445c-9.67 4.836-20.764 7.823-34.844 7.823-13.796 0-26.027-4.836-27.591-21.618h69.547c0-1.85.284-9.245.284-12.658m-70.258-13.511c0-16.071 9.814-22.756 18.774-22.756 8.675 0 17.92 6.685 17.92 22.756zm-90.31-51.627c-13.939 0-22.899 6.542-27.876 11.094l-1.85-8.818h-31.288v165.83l35.555-7.537l.143-40.249c5.12 3.698 12.657 8.96 25.173 8.96c25.458 0 48.64-20.48 48.64-65.564c-.142-41.245-23.609-63.716-48.498-63.716m-8.534 97.991c-8.391 0-13.37-2.986-16.782-6.684l-.143-52.765c3.698-4.124 8.818-6.968 16.925-6.968c12.942 0 21.902 14.506 21.902 33.137c0 19.058-8.818 33.28-21.902 33.28M241.493 36.551l35.698-7.68V0l-35.698 7.538zm0 10.809h35.698v124.444h-35.698zm-38.257 10.524L200.96 47.36h-30.72v124.444h35.556V87.467c8.39-10.951 22.613-8.96 27.022-7.396V47.36c-4.551-1.707-21.191-4.836-29.582 10.524m-71.112-41.386l-34.702 7.395l-.142 113.92c0 21.05 15.787 36.551 36.836 36.551c11.662 0 20.195-2.133 24.888-4.693V140.8c-4.55 1.849-27.022 8.391-27.022-12.658V77.653h27.022V47.36h-27.022zM35.982 83.484c0-5.546 4.551-7.68 12.09-7.68c10.808 0 24.461 3.272 35.27 9.103V51.484c-11.804-4.693-23.466-6.542-35.27-6.542C19.2 44.942 0 60.018 0 85.192c0 39.252 54.044 32.995 54.044 49.92c0 6.541-5.688 8.675-13.653 8.675c-11.804 0-26.88-4.836-38.827-11.378v33.849c13.227 5.689 26.596 8.106 38.827 8.106c29.582 0 49.92-14.648 49.92-40.106c-.142-42.382-54.329-34.845-54.329-50.774"/></svg>
+                                <span class="text-[10px] font-bold tracking-tighter">PIX</span>
+                                <span class="text-[10px] font-bold tracking-tighter">VISA</span>
+                                <span class="text-[10px] font-bold tracking-tighter">MASTERCARD</span>
+                                <span class="text-[10px] font-bold tracking-tighter">APPLE PAY</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-neutral-400 mt-4">50% only after approval · Full refund if you don't love it</p>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <section class="border-y border-neutral-800 bg-neutral-950/50" aria-labelledby="how-it-works-heading">
+            <h2 id="how-it-works-heading" class="sr-only">How it works</h2>
+            <div
+                class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-neutral-800">
+                <div
+                    class="p-8 flex flex-col gap-4 hover:bg-neutral-900 transition-colors group reveal-on-scroll delay-100">
+                    <span
+                        class="text-brand group-hover:text-accent transition-colors font-mono text-sm uppercase tracking-widest">01.
+                        Discovery</span>
+                    <h3 class="text-2xl font-bold">We understand your business and goals</h3>
+                </div>
+                <div
+                    class="p-8 flex flex-col gap-4 hover:bg-neutral-900 transition-colors group reveal-on-scroll delay-200">
+                    <span
+                        class="text-brand group-hover:text-accent transition-colors font-mono text-sm uppercase tracking-widest">02.
+                        Agreement</span>
+                    <h3 class="text-2xl font-bold">Quick call to align expectations + secure start</h3>
+                </div>
+                <div
+                    class="p-8 flex flex-col gap-4 hover:bg-neutral-900 transition-colors group reveal-on-scroll delay-300">
+                    <span
+                        class="text-brand group-hover:text-accent transition-colors font-mono text-sm uppercase tracking-widest">03.
+                        Build & Deliver</span>
+                    <h3 class="text-2xl font-bold">Your site ready in 48h–5 days with unlimited revisions</h3>
+                </div>
+                <div
+                    class="p-8 flex flex-col gap-4 hover:bg-neutral-900 transition-colors group reveal-on-scroll delay-400">
+                    <span
+                        class="text-brand group-hover:text-accent transition-colors font-mono text-sm uppercase tracking-widest">04.
+                        Support</span>
+                    <h3 class="text-2xl font-bold">Ongoing support and updates available</h3>
+                </div>
+            </div>
+        </section>
+
+        <section class="px-6 md:px-12 py-24 max-w-7xl mx-auto border-b border-neutral-800"
+            aria-labelledby="portfolio-heading">
+            <div class="flex flex-col md:flex-row justify-between items-end mb-16 gap-6 reveal-on-scroll">
+                <h2 id="portfolio-heading" class="text-4xl md:text-6xl font-black tracking-tighter">Recent Work.</h2>
+                <p class="text-neutral-400 font-mono text-sm uppercase tracking-widest mb-2">Real speed. Real results.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <a href="https://jcuts.io/" target="_blank" rel="noopener noreferrer"
+                    class="group relative bg-neutral-900 border border-neutral-800 hover:border-brand transition-colors duration-300 reveal-on-scroll delay-100 block">
+                    <div class="aspect-[4/3] w-full overflow-hidden bg-neutral-800 relative">
+                        <svg class="w-full h-full object-cover opacity-80 group-hover:opacity-40 transition-opacity duration-300"
+                            viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg" width="400"
+                            height="300" aria-hidden="true" role="img" aria-label="JCuts video editing website preview">
+                            <rect width="400" height="300" fill="#171717" />
+                            <rect x="40" y="40" width="200" height="24" fill="#333" />
+                            <rect x="40" y="80" width="320" height="120" fill="#262626" />
+                            <rect x="40" y="220" width="100" height="30" fill="#04D361" />
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-4 group-hover:translate-y-0"
+                            aria-hidden="true">
+                            <span class="bg-brand text-black font-bold px-6 py-3 uppercase tracking-wider text-sm">Live
+                                Demo →</span>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-white mb-1">JCuts</h3>
+                        <p class="text-neutral-400 text-sm">Video Editing Landing • Professional</p>
+                    </div>
+                </a>
+
+                <a href="https://magic-portfolio.com/" target="_blank" rel="noopener noreferrer"
+                    class="group relative bg-neutral-900 border border-neutral-800 hover:border-brand transition-colors duration-300 reveal-on-scroll delay-200 block">
+                    <div class="aspect-[4/3] w-full overflow-hidden bg-neutral-800 relative">
+                        <svg class="w-full h-full object-cover opacity-80 group-hover:opacity-40 transition-opacity duration-300"
+                            viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg" width="400"
+                            height="300" aria-hidden="true" role="img" aria-label="Magic Portfolio website preview">
+                            <rect width="400" height="300" fill="#0A0A0A" />
+                            <circle cx="200" cy="120" r="50" fill="#333" />
+                            <rect x="100" y="190" width="200" height="16" fill="#262626" />
+                            <rect x="130" y="220" width="140" height="16" fill="#262626" />
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-4 group-hover:translate-y-0"
+                            aria-hidden="true">
+                            <span class="bg-brand text-black font-bold px-6 py-3 uppercase tracking-wider text-sm">Live
+                                Demo →</span>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-white mb-1">Magic Portfolio</h3>
+                        <p class="text-neutral-400 text-sm">Portfolio Template • Next.js</p>
+                    </div>
+                </a>
+
+                <a href="https://marcelobraz.vinicius.xyz/" target="_blank" rel="noopener noreferrer"
+                    class="group relative bg-neutral-900 border border-neutral-800 hover:border-brand transition-colors duration-300 reveal-on-scroll delay-300 block">
+                    <div class="aspect-[4/3] w-full overflow-hidden bg-neutral-800 relative">
+                        <svg class="w-full h-full object-cover opacity-80 group-hover:opacity-40 transition-opacity duration-300"
+                            viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg" width="400"
+                            height="300" aria-hidden="true" role="img"
+                            aria-label="Marcelo Braz fullstack website preview">
+                            <rect width="400" height="300" fill="#111" />
+                            <rect x="20" y="20" width="60" height="260" fill="#222" />
+                            <rect x="100" y="40" width="280" height="100" fill="#04D361" fill-opacity="0.2" />
+                            <rect x="100" y="160" width="130" height="100" fill="#222" />
+                            <rect x="250" y="160" width="130" height="100" fill="#222" />
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-4 group-hover:translate-y-0"
+                            aria-hidden="true">
+                            <span class="bg-brand text-black font-bold px-6 py-3 uppercase tracking-wider text-sm">Live
+                                Demo →</span>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-white mb-1">Marcelo Braz</h3>
+                        <p class="text-neutral-400 text-sm">Fullstack App • Private Broker</p>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <section class="px-6 md:px-12 py-24 max-w-7xl mx-auto" aria-labelledby="services-heading">
+            <h2 id="services-heading" class="text-4xl md:text-6xl font-black tracking-tighter mb-4 reveal-on-scroll">
+                What We Build.</h2>
+            <p class="text-xl text-neutral-400 mb-16 reveal-on-scroll max-w-2xl">
+                We don't use rigid price lists. Every project is unique. <br>
+                <span class="text-brand font-bold">Tell us your budget</span>, and we will tell you exactly what we can
+                do for
+                you.
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+                <div
+                    class="border border-neutral-800 p-8 flex flex-col justify-between min-h-[400px] hover:border-neutral-600 transition-colors reveal-on-scroll delay-100 bg-neutral-950">
+                    <div>
+                        <span class="text-neutral-400 text-sm font-mono uppercase tracking-widest mb-4 block">Option
+                            01</span>
+                        <h3 class="text-3xl font-bold mb-4 text-white">Essential Landing</h3>
+                        <ul class="space-y-3 text-neutral-400 mb-8">
+                            <li class="flex items-center gap-2"><span class="text-brand">✓</span> One Page conversion
+                                focused</li>
+                            <li class="flex items-center gap-2"><span class="text-brand">✓</span> 48h Delivery</li>
+                            <li class="flex items-center gap-2"><span class="text-brand">✓</span> Fully Responsive
+                                (Mobile)</li>
+                            <li class="flex items-center gap-2"><span class="text-brand">✓</span> SEO Basic Setup</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="text-lg font-medium text-neutral-300 mb-4">Perfect for: <span
+                                class="text-white">Startups &
+                                MVPs</span></div>
+                        <a href="https://wa.me/${WHATSAPP_NUMBER}" rel="noopener noreferrer"
+                            aria-label="Start conversation on WhatsApp" onclick="trackContact()"
+                            class="w-full block text-center border-2 border-white text-white font-bold py-3 bg-neutral-900/50 hover:bg-white hover:text-black transition-colors">
+                            Get Started
+                        </a>
+                    </div>
+                </div>
+
+                <div
+                    class="border-2 border-brand bg-neutral-900 p-8 flex flex-col justify-between min-h-[400px] relative shadow-[0_0_20px_rgba(4,211,97,0.1)] reveal-on-scroll delay-200">
+                    <div class="absolute top-0 right-0 bg-accent text-black font-bold text-xs px-3 py-1 uppercase"
+                        aria-label="Best seller plan">Most Popular</div>
+                    <div>
+                        <span class="text-brand text-sm font-mono uppercase tracking-widest mb-4 block">Option 02</span>
+                        <h3 class="text-3xl font-bold mb-4 text-white">Brand Authority</h3>
+                        <ul class="space-y-3 text-neutral-300 mb-8">
+                            <li class="flex items-center gap-2"><span class="text-brand">✓</span> Multi-page Website
+                            </li>
+                            <li class="flex items-center gap-2"><span class="text-brand">✓</span> Premium Animations
+                            </li>
+                            <li class="flex items-center gap-2"><span class="text-brand">✓</span> CMS Content Management
+                            </li>
+                            <li class="flex items-center gap-2"><span class="text-brand">✓</span> 3-5 Days Delivery</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="text-lg font-medium text-neutral-300 mb-4">Perfect for: <span
+                                class="text-white">Businesses
+                                Scaling Up</span></div>
+                        <a href="https://wa.me/${WHATSAPP_NUMBER}" rel="noopener noreferrer"
+                            aria-label="Start conversation on WhatsApp" onclick="trackContact()"
+                            class="w-full block text-center bg-brand text-black font-bold py-3 hover:bg-green-400 transition-colors border border-transparent">
+                            Claim My Spot
+                        </a>
+                    </div>
+                </div>
+
+                <div
+                    class="border border-neutral-800 p-8 flex flex-col justify-between min-h-[400px] hover:border-neutral-600 transition-colors reveal-on-scroll delay-300 bg-neutral-950">
+                    <div>
+                        <span class="text-neutral-400 text-sm font-mono uppercase tracking-widest mb-4 block">Option
+                            03</span>
+                        <h3 class="text-3xl font-bold mb-4 text-white">Web Application</h3>
+                        <ul class="space-y-3 text-neutral-400 mb-8">
+                            <li class="flex items-center gap-2"><span class="text-brand">✓</span> Custom Functionality
+                            </li>
+                            <li class="flex items-center gap-2"><span class="text-brand">✓</span> Dashboards & Login
+                                Areas</li>
+                            <li class="flex items-center gap-2"><span class="text-brand">✓</span> Database Integration
+                            </li>
+                            <li class="flex items-center gap-2"><span class="text-brand">✓</span> Complex Logic</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="text-lg font-medium text-neutral-300 mb-4">Perfect for: <span
+                                class="text-white">SaaS &
+                                Tools</span></div>
+                        <a href="https://wa.me/${WHATSAPP_NUMBER}" rel="noopener noreferrer"
+                            aria-label="Start conversation on WhatsApp" onclick="trackContact()"
+                            class="w-full block text-center border-2 border-white text-white font-bold py-3 bg-neutral-900/50 hover:bg-white hover:text-black transition-colors">
+                            Build My App
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center space-y-8 reveal-on-scroll delay-400">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12 max-w-4xl mx-auto border-y border-neutral-800 py-12">
+                    <div class="flex flex-col items-center">
+                        <span class="text-3xl md:text-4xl font-black text-brand">50+</span>
+                        <span class="text-xs uppercase tracking-widest text-neutral-500 font-bold mt-2">Sites Delivered</span>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <span class="text-3xl md:text-4xl font-black text-brand">100%</span>
+                        <span class="text-xs uppercase tracking-widest text-neutral-500 font-bold mt-2">Satisfaction</span>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <span class="text-3xl md:text-4xl font-black text-brand">24/7</span>
+                        <span class="text-xs uppercase tracking-widest text-neutral-500 font-bold mt-2">Support</span>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <span class="text-3xl md:text-4xl font-black text-brand">48h</span>
+                        <span class="text-xs uppercase tracking-widest text-neutral-500 font-bold mt-2">Avg. Delivery</span>
+                    </div>
+                </div>
+
+                <div class="bg-green-950/20 border border-green-900/50 p-8 inline-block rounded-sm max-w-4xl w-full">
+                    <p class="text-brand font-bold text-xl md:text-3xl leading-tight mb-4">
+                        "Flexible pricing for smart clients."
+                    </p>
+                    <p class="text-neutral-400 md:text-lg">
+                        Have a specific budget in mind? Tell us.<br>
+                        We will tailor the scope to fit your wallet without compromising quality.
+                    </p>
+                    <a href="https://wa.me/${WHATSAPP_NUMBER}" rel="noopener noreferrer"
+                        aria-label="Start conversation on WhatsApp" onclick="trackContact()"
+                        class="inline-block mt-6 text-white border-b border-brand pb-0.5 hover:text-brand transition-colors">
+                        Let's talk about values →
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section class="border-t border-neutral-800" aria-labelledby="about-heading">
+            <h2 id="about-heading" class="sr-only">About us</h2>
+            <div
+                class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-neutral-800">
+                <div class="p-12 flex flex-col gap-6 reveal-on-scroll">
+                    <div class="w-24 h-24 bg-neutral-800 rounded-full overflow-hidden grayscale hover:grayscale-0 transition-all duration-500"
+                        role="img" aria-label="Kaio Avatar">
+                        <img src="fotos/kaio.jpeg" alt="Kaio" class="w-full h-full object-cover" loading="lazy" width="96" height="96" decoding="async" />
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold mb-2">Kaio</h3>
+                        <p class="text-neutral-400 leading-relaxed">
+                            Head of Growth. Strategist focused on delivering high-converting digital solutions for the European market.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="p-12 flex flex-col gap-6 reveal-on-scroll delay-200">
+                    <div class="w-24 h-24 bg-neutral-800 rounded-full overflow-hidden grayscale hover:grayscale-0 transition-all duration-500"
+                        role="img" aria-label="Vinícius Avatar">
+                        <img src="fotos/vinicius.jpeg" alt="Vinícius" class="w-full h-full object-cover"
+                            loading="lazy" width="96" height="96" decoding="async" />
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold mb-2">Vinícius</h3>
+                        <p class="text-neutral-400 leading-relaxed">
+                            Lead Developer. Technical engine ensuring 100/100 performance for European businesses.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="px-6 md:px-12 py-24 max-w-7xl mx-auto" aria-labelledby="testimonials-heading">
+            <h2 id="testimonials-heading"
+                class="text-3xl font-bold mb-12 text-center text-neutral-500 reveal-on-scroll">The "Aha" Moment: Real Results</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-neutral-900/50 p-8 border border-neutral-800 hover:border-brand transition-colors reveal-on-scroll delay-100">
+                    <div class="text-brand font-black text-4xl mb-2">36h</div>
+                    <p class="text-lg italic mb-4 text-white">"From idea to live site in less than two days. Already generated 12k € in sales."</p>
+                    <cite class="text-neutral-500 not-italic font-bold block">— Coach Portugal</cite>
+                </div>
+
+                <div class="bg-neutral-900/50 p-8 border border-neutral-800 hover:border-brand transition-colors reveal-on-scroll delay-200">
+                    <div class="text-brand font-black text-4xl mb-2">100/100</div>
+                    <p class="text-lg italic mb-4 text-white">"Best PageSpeed I've ever seen. Faster than any local agency."</p>
+                    <cite class="text-neutral-500 not-italic font-bold block">— Digital Nomad Germany</cite>
+                </div>
+
+                <div class="bg-neutral-900/50 p-8 border-2 border-brand reveal-on-scroll delay-300 shadow-[0_0_20px_rgba(4,211,97,0.1)]">
+                    <div class="text-accent font-black text-4xl mb-2">10k €/mo</div>
+                    <p class="text-lg font-black text-white mb-4">"Scale from zero to 10k/month gross in under 60 days."</p>
+                    <cite class="text-neutral-500 not-italic font-bold block">(Real Metric • E-commerce)</cite>
+                </div>
+            </div>
+        </section>
+
+        <section class="border-t border-neutral-800 px-6 md:px-12 py-24 max-w-7xl mx-auto"
+            aria-labelledby="faq-heading">
+            <h2 id="faq-heading" class="text-3xl font-bold mb-16 text-center text-neutral-500 reveal-on-scroll">
+                Frequently Asked Questions</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+                <div class="reveal-on-scroll delay-100">
+                    <h3 class="text-xl font-bold text-white mb-4">Do I own the domain and code?</h3>
+                    <p class="text-neutral-400 leading-relaxed">Yes. You own 100% of the assets. We transfer everything
+                        to you upon completion.</p>
+                </div>
+
+                <div class="reveal-on-scroll delay-200">
+                    <h3 class="text-xl font-bold text-white mb-4">What if I don't like the design?</h3>
+                    <p class="text-neutral-400 leading-relaxed">You don't pay the final 50%. We revise it until you love
+                        it, or we refund your deposit. No hard feelings.</p>
+                </div>
+
+                <div class="reveal-on-scroll delay-300">
+                    <h3 class="text-xl font-bold text-white mb-4">Are there monthly fees?</h3>
+                    <p class="text-neutral-400 leading-relaxed">No mandatory fees. The site is yours. We offer an
+                        optional maintenance plan if you want total peace of mind.</p>
+                </div>
+            </div>
+        </section>
+
+        <footer class="border-t border-neutral-800 py-16 px-6 text-center bg-neutral-950">
+            <div class="max-w-4xl mx-auto flex flex-col items-center gap-8 reveal-on-scroll">
+                <h2 class="text-4xl md:text-5xl font-black tracking-tighter">Ready to scale?</h2>
+
+                <a href="https://wa.me/${WHATSAPP_NUMBER}" rel="noopener noreferrer"
+                    aria-label="Start conversation on WhatsApp (opens in new window)"
+                    title="Start conversation on WhatsApp" onclick="trackContact()"
+                    class="w-full md:w-auto text-center inline-block bg-brand hover:bg-green-400 text-black text-xl md:text-2xl font-bold py-5 px-10 rounded-none transition-transform hover:-translate-y-1 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)] focus:outline-none">
+                    Book free call (15 min)
+                </a>
+                
+                <div class="flex items-center gap-2 text-neutral-500 text-xs mt-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-brand"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    <span>Secure connection · Direct to developer</span>
+                </div>
+
+                <p class="text-sm text-neutral-400 mt-4">50% only after approval · Full refund if you don't love it</p>
+
+                <div class="text-neutral-500 text-xs mt-12 flex flex-col items-center gap-2">
+                    <p>CNPJ: 51.583.473/0001-90 · VibeWeb Partners LTDA</p>
+                    <p>São Paulo, Brazil · Lisbon, Portugal</p>
+                </div>
+
+                <p class="text-neutral-500 text-sm mt-8">
+                    Copyright © 2025 VibeWeb Partners · Made with <span class="text-brand">code</span> & 🇧🇷 in Brazil.
+                </p>
+            </div>
+        </footer>
+    </main>
+
+    <script>
+        // Scroll Reveal Logic
+        (function() {
+            const observers = document.querySelectorAll('.reveal-on-scroll');
+            
+            if (observers.length === 0) return;
+
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+
+            const intersectionObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                        // Stop observing once visible to save resources
+                        intersectionObserver.unobserve(entry.target);
+                    }
+                });
+            }, observerOptions);
+
+            observers.forEach(el => intersectionObserver.observe(el));
+        })();
+
+        // Conversion Tracking
+        function trackContact() {
+            if (typeof fbq === 'function') {
+                fbq('track', 'Contact');
+            }
+        }
+    </script>
+</body>
+
+</html>
