@@ -1006,13 +1006,7 @@ DEPLOY CHECKLIST (before Meta Ads campaign):
     </nav>
 
     <main id="main-content">
-        <header class="relative w-full min-h-[600px] md:min-h-[800px] flex items-center overflow-hidden bg-neutral-950">
-            <!-- Background Image -->
-            <div class="absolute inset-0 z-0">
-                <img src="fotos/hero.png" alt="" class="w-full h-full object-cover opacity-20" fetchpriority="high" decoding="async">
-                <div class="absolute inset-0 bg-gradient-to-b from-neutral-950/80 via-neutral-900/60 to-neutral-950"></div>
-            </div>
-
+        <header class="relative w-full min-h-[600px] md:min-h-[800px] flex items-center overflow-hidden bg-neutral-950 bg-gradient-to-b from-neutral-950 via-neutral-900 to-neutral-950">
             <div class="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-12 pt-12 pb-24 md:pt-24 md:pb-32">
                 <div class="flex flex-col items-start gap-8">
                     <h1
@@ -1037,15 +1031,9 @@ DEPLOY CHECKLIST (before Meta Ads campaign):
                             <span class="w-2 h-2 bg-brand rounded-full animate-pulse"></span>
                             Only 2 spots left for this week to maintain 48h delivery
                         </p>
-                        <div class="flex items-center gap-4 mt-4 opacity-60 grayscale hover:grayscale-0 transition-all duration-300">
-                            <span class="text-[10px] uppercase tracking-widest font-bold text-neutral-400">Accepted:</span>
-                            <div class="flex items-center gap-3">
-                                <svg class="h-4 w-auto" viewBox="0 0 512 214" fill="currentColor" aria-label="Stripe payment accepted"><path d="M512 110.08c0-36.409-17.636-65.138-51.342-65.138-33.85 0-54.33 28.73-54.33 64.854c0 42.808 24.179 64.426 58.88 64.426 16.925 0 29.725-3.84 39.396-9.244v-28.445c-9.67 4.836-20.764 7.823-34.844 7.823-13.796 0-26.027-4.836-27.591-21.618h69.547c0-1.85.284-9.245.284-12.658m-70.258-13.511c0-16.071 9.814-22.756 18.774-22.756 8.675 0 17.92 6.685 17.92 22.756zm-90.31-51.627c-13.939 0-22.899 6.542-27.876 11.094l-1.85-8.818h-31.288v165.83l35.555-7.537l.143-40.249c5.12 3.698 12.657 8.96 25.173 8.96c25.458 0 48.64-20.48 48.64-65.564c-.142-41.245-23.609-63.716-48.498-63.716m-8.534 97.991c-8.391 0-13.37-2.986-16.782-6.684l-.143-52.765c3.698-4.124 8.818-6.968 16.925-6.968c12.942 0 21.902 14.506 21.902 33.137c0 19.058-8.818 33.28-21.902 33.28M241.493 36.551l35.698-7.68V0l-35.698 7.538zm0 10.809h35.698v124.444h-35.698zm-38.257 10.524L200.96 47.36h-30.72v124.444h35.556V87.467c8.39-10.951 22.613-8.96 27.022-7.396V47.36c-4.551-1.707-21.191-4.836-29.582 10.524m-71.112-41.386l-34.702 7.395l-.142 113.92c0 21.05 15.787 36.551 36.836 36.551c11.662 0 20.195-2.133 24.888-4.693V140.8c-4.55 1.849-27.022 8.391-27.022-12.658V77.653h27.022V47.36h-27.022zM35.982 83.484c0-5.546 4.551-7.68 12.09-7.68c10.808 0 24.461 3.272 35.27 9.103V51.484c-11.804-4.693-23.466-6.542-35.27-6.542C19.2 44.942 0 60.018 0 85.192c0 39.252 54.044 32.995 54.044 49.92c0 6.541-5.688 8.675-13.653 8.675c-11.804 0-26.88-4.836-38.827-11.378v33.849c13.227 5.689 26.596 8.106 38.827 8.106c29.582 0 49.92-14.648 49.92-40.106c-.142-42.382-54.329-34.845-54.329-50.774"/></svg>
-                                <span class="text-[10px] font-bold tracking-tighter">PIX</span>
-                                <span class="text-[10px] font-bold tracking-tighter">VISA</span>
-                                <span class="text-[10px] font-bold tracking-tighter">MASTERCARD</span>
-                                <span class="text-[10px] font-bold tracking-tighter">APPLE PAY</span>
-                            </div>
+                        <div class="flex items-center gap-2 mt-4 opacity-60">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-brand"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                            <span class="text-[10px] uppercase tracking-widest font-bold text-neutral-400">Secure Payment via Wise</span>
                         </div>
                         <p class="text-xs text-neutral-400 mt-4">50% only after approval · Full refund if you don't love it</p>
                     </div>
@@ -1097,8 +1085,31 @@ DEPLOY CHECKLIST (before Meta Ads campaign):
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <a href="https://jcuts.io/" target="_blank" rel="noopener noreferrer"
+                <a href="https://dluxbarbearia.com.br/" target="_blank" rel="noopener noreferrer"
                     class="group relative bg-neutral-900 border border-neutral-800 hover:border-brand transition-colors duration-300 reveal-on-scroll delay-100 block">
+                    <div class="aspect-[4/3] w-full overflow-hidden bg-neutral-800 relative">
+                        <svg class="w-full h-full object-cover opacity-80 group-hover:opacity-40 transition-opacity duration-300"
+                            viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg" width="400"
+                            height="300" aria-hidden="true" role="img" aria-label="Dlux Barbearia platform preview">
+                            <rect width="400" height="300" fill="#111" />
+                            <rect x="50" y="50" width="300" height="200" rx="10" fill="#1a1a1a" />
+                            <path d="M150 120 L250 120 M150 150 L250 150 M150 180 L200 180" stroke="#04D361" stroke-width="4" />
+                            <circle cx="300" cy="100" r="20" fill="#04D361" fill-opacity="0.2" />
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-4 group-hover:translate-y-0"
+                            aria-hidden="true">
+                            <span class="bg-brand text-black font-bold px-6 py-3 uppercase tracking-wider text-sm">Live
+                                Demo →</span>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-white mb-1">Dlux Barbearia</h3>
+                        <p class="text-neutral-400 text-sm">Management Platform • SaaS & Bookings</p>
+                    </div>
+                </a>
+
+                <a href="https://jcuts.io/" target="_blank" rel="noopener noreferrer"
+                    class="group relative bg-neutral-900 border border-neutral-800 hover:border-brand transition-colors duration-300 reveal-on-scroll delay-200 block">
                     <div class="aspect-[4/3] w-full overflow-hidden bg-neutral-800 relative">
                         <svg class="w-full h-full object-cover opacity-80 group-hover:opacity-40 transition-opacity duration-300"
                             viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg" width="400"
@@ -1116,45 +1127,23 @@ DEPLOY CHECKLIST (before Meta Ads campaign):
                     </div>
                     <div class="p-6">
                         <h3 class="text-xl font-bold text-white mb-1">JCuts</h3>
-                        <p class="text-neutral-400 text-sm">Video Editing Landing • Professional</p>
+                        <p class="text-neutral-400 text-sm">Video Editor Portfolio • High Performance</p>
                     </div>
                 </a>
 
-                <a href="https://magic-portfolio.com/" target="_blank" rel="noopener noreferrer"
-                    class="group relative bg-neutral-900 border border-neutral-800 hover:border-brand transition-colors duration-300 reveal-on-scroll delay-200 block">
-                    <div class="aspect-[4/3] w-full overflow-hidden bg-neutral-800 relative">
-                        <svg class="w-full h-full object-cover opacity-80 group-hover:opacity-40 transition-opacity duration-300"
-                            viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg" width="400"
-                            height="300" aria-hidden="true" role="img" aria-label="Magic Portfolio website preview">
-                            <rect width="400" height="300" fill="#0A0A0A" />
-                            <circle cx="200" cy="120" r="50" fill="#333" />
-                            <rect x="100" y="190" width="200" height="16" fill="#262626" />
-                            <rect x="130" y="220" width="140" height="16" fill="#262626" />
-                        </svg>
-                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-4 group-hover:translate-y-0"
-                            aria-hidden="true">
-                            <span class="bg-brand text-black font-bold px-6 py-3 uppercase tracking-wider text-sm">Live
-                                Demo →</span>
-                        </div>
-                    </div>
-                    <div class="p-6">
-                        <h3 class="text-xl font-bold text-white mb-1">Magic Portfolio</h3>
-                        <p class="text-neutral-400 text-sm">Portfolio Template • Next.js</p>
-                    </div>
-                </a>
-
-                <a href="https://marcelobraz.vinicius.xyz/" target="_blank" rel="noopener noreferrer"
+                <a href="https://kaiopietro.info/" target="_blank" rel="noopener noreferrer"
                     class="group relative bg-neutral-900 border border-neutral-800 hover:border-brand transition-colors duration-300 reveal-on-scroll delay-300 block">
                     <div class="aspect-[4/3] w-full overflow-hidden bg-neutral-800 relative">
                         <svg class="w-full h-full object-cover opacity-80 group-hover:opacity-40 transition-opacity duration-300"
                             viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg" width="400"
                             height="300" aria-hidden="true" role="img"
-                            aria-label="Marcelo Braz fullstack website preview">
-                            <rect width="400" height="300" fill="#111" />
-                            <rect x="20" y="20" width="60" height="260" fill="#222" />
-                            <rect x="100" y="40" width="280" height="100" fill="#04D361" fill-opacity="0.2" />
-                            <rect x="100" y="160" width="130" height="100" fill="#222" />
-                            <rect x="250" y="160" width="130" height="100" fill="#222" />
+                            aria-label="Postaê Web automation preview">
+                            <rect width="400" height="300" fill="#050505" />
+                            <rect x="20" y="20" width="360" height="260" rx="4" fill="#111" />
+                            <circle cx="60" cy="80" r="30" fill="#04D361" fill-opacity="0.1" />
+                            <rect x="110" y="65" width="200" height="10" fill="#333" />
+                            <rect x="110" y="85" width="150" height="10" fill="#222" />
+                            <path d="M60 150 L340 150 M60 180 L340 180 M60 210 L200 210" stroke="#333" stroke-width="2" />
                         </svg>
                         <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-4 group-hover:translate-y-0"
                             aria-hidden="true">
@@ -1163,8 +1152,8 @@ DEPLOY CHECKLIST (before Meta Ads campaign):
                         </div>
                     </div>
                     <div class="p-6">
-                        <h3 class="text-xl font-bold text-white mb-1">Marcelo Braz</h3>
-                        <p class="text-neutral-400 text-sm">Fullstack App • Private Broker</p>
+                        <h3 class="text-xl font-bold text-white mb-1">Postaê Web</h3>
+                        <p class="text-neutral-400 text-sm">News Automation • AI & Python Systems</p>
                     </div>
                 </a>
             </div>
@@ -1343,20 +1332,20 @@ DEPLOY CHECKLIST (before Meta Ads campaign):
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div class="bg-neutral-900/50 p-8 border border-neutral-800 hover:border-brand transition-colors reveal-on-scroll delay-100">
                     <div class="text-brand font-black text-4xl mb-2">36h</div>
-                    <p class="text-lg italic mb-4 text-white">"From idea to live site in less than two days. Already generated 12k € in sales."</p>
-                    <cite class="text-neutral-500 not-italic font-bold block">— Coach Portugal</cite>
+                    <p class="text-lg italic mb-4 text-white">"Kaio delivered a modern barbershop platform with integrated bookings and finances. Simple for staff and clients."</p>
+                    <cite class="text-neutral-500 not-italic font-bold block">— Alafy Lima, Founder of Dlux Barbearia</cite>
                 </div>
 
                 <div class="bg-neutral-900/50 p-8 border border-neutral-800 hover:border-brand transition-colors reveal-on-scroll delay-200">
                     <div class="text-brand font-black text-4xl mb-2">100/100</div>
-                    <p class="text-lg italic mb-4 text-white">"Best PageSpeed I've ever seen. Faster than any local agency."</p>
-                    <cite class="text-neutral-500 not-italic font-bold block">— Digital Nomad Germany</cite>
+                    <p class="text-lg italic mb-4 text-white">"Fast, well-structured, and presents my work professionally. Communication was clear and on point."</p>
+                    <cite class="text-neutral-500 not-italic font-bold block">— Justin Rudi, Video Editor @ JCuts</cite>
                 </div>
 
                 <div class="bg-neutral-900/50 p-8 border-2 border-brand reveal-on-scroll delay-300 shadow-[0_0_20px_rgba(4,211,97,0.1)]">
-                    <div class="text-accent font-black text-4xl mb-2">10k €/mo</div>
-                    <p class="text-lg font-black text-white mb-4">"Scale from zero to 10k/month gross in under 60 days."</p>
-                    <cite class="text-neutral-500 not-italic font-bold block">(Real Metric • E-commerce)</cite>
+                    <div class="text-accent font-black text-4xl mb-2">Efficiency</div>
+                    <p class="text-lg font-black text-white mb-4">"We launch portfolios in minutes with great performance and polished UX. Consistent delivery and attention to detail."</p>
+                    <cite class="text-neutral-500 not-italic font-bold block">— Mara Collins, Product Lead @ Magic Portfolio</cite>
                 </div>
             </div>
         </section>
