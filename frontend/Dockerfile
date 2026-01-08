@@ -8,6 +8,7 @@ RUN chmod +x /entrypoint.sh
 
 WORKDIR /usr/share/nginx/html
 
+COPY index.html admin.html
 COPY index.html.template .
 COPY fotos ./fotos
 
