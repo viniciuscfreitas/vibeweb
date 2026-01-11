@@ -12,6 +12,10 @@
     />
     <meta name="theme-color" content="#ffffff" />
     <meta name="referrer" content="no-referrer-when-downgrade" />
+    <!-- Favicons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
     <!-- DNS prefetch para melhorar performance -->
     <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
     <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
@@ -22,14 +26,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!-- Fontes com display=swap - carregamento não-bloqueante via media="print" -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
       media="print"
       onload="this.media='all'"
     />
     <noscript>
       <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500&display=swap"
         rel="stylesheet"
       />
     </noscript>
@@ -191,26 +195,9 @@
     <div class="login-overlay" id="loginOverlay">
       <div class="login-container">
         <div class="login-brand">
-          <div class="brand-icon-large" aria-hidden="true">
-            <svg
-              viewBox="0 0 40 40"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              aria-hidden="true"
-            >
-              <title>VibeWeb OS Logo</title>
-              <path
-                d="M12 12L20 28L28 12"
-                stroke="white"
-                stroke-width="3"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                fill="none"
-              />
-            </svg>
-          </div>
-          <h1 class="login-title">VibeWeb OS</h1>
-          <p class="login-tagline">Painel de gerenciamento de projetos</p>
+          <img src="favicon.png" alt="" class="brand-logo-large" aria-hidden="true" />
+          <h1 class="login-title">VibeWeb</h1>
+          <p class="login-tagline">Gerenciamento Inteligente de Projetos</p>
         </div>
         <div class="login-card">
           <form
@@ -299,24 +286,7 @@
       Active state is managed by JS via updateNavButtons()
     -->
       <aside class="sidebar shell-bg">
-        <div class="brand-icon" aria-hidden="true">
-          <svg
-            viewBox="0 0 40 40"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
-          >
-            <title>VibeWeb OS Logo</title>
-            <path
-              d="M12 12L20 28L28 12"
-              stroke="white"
-              stroke-width="3"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              fill="none"
-            />
-          </svg>
-        </div>
+        <img src="favicon.png" alt="Logo VibeWeb" class="brand-logo-sidebar" />
         <nav
           class="nav-container"
           role="navigation"

@@ -428,10 +428,10 @@ function renderPieChart(distribution) {
   canvas.height = PIE_CHART_SIZE;
 
   const colors = [
-    'rgba(37, 99, 235, 0.8)',   // Primary - Discovery
-    'rgba(52, 211, 153, 0.8)',  // Success - Acordo
-    'rgba(251, 191, 36, 0.8)',  // Warning - Build
-    'rgba(168, 85, 247, 0.8)'   // Purple - Live
+    'rgba(4, 211, 97, 0.8)',    // Brand Green
+    'rgba(250, 204, 21, 0.8)',  // Accent Yellow
+    'rgba(14, 165, 233, 0.8)',  // Sky Blue
+    'rgba(168, 85, 247, 0.8)'   // Purple
   ];
 
   if (total === 0) {
