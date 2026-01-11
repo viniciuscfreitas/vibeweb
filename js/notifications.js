@@ -86,12 +86,6 @@ const NotificationManager = {
     return icons[type] || icons.info;
   },
 
-  escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  },
-
   success(message, duration) {
     return this.show(message, 'success', duration);
   },
@@ -108,49 +102,24 @@ const NotificationManager = {
     return this.show(message, 'info', duration);
   },
 
-  // Show notification with user avatar and name (for WebSocket activity notifications)
   showUserActivity(message, userName, userAvatarUrl, type = 'info', duration = 5000) {
     this.init();
 
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
-    // Removed role="alert" - container already has aria-live="polite"
 
-    // Use existing getInitials function (from auth.js or calculations.js)
-    const getInitialsFunc = typeof getInitials === 'function' ? getInitials : (name) => {
-      if (!name) return '?';
-      const parts = name.trim().split(/\s+/);
-      if (parts.length >= 2) {
-        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-      }
-      return name.substring(0, 2).toUpperCase();
-    };
-
-    const userInitials = userName ? getInitialsFunc(userName) : '?';
-    const escapedUserName = this.escapeHtml(userName || 'Usuário');
-    const escapedMessage = this.escapeHtml(message);
+    const userInitials = userName ? getInitials(userName) : '?';
+    const escapedUserName = escapeHtml(userName || 'Usuário');
+    const escapedMessage = escapeHtml(message);
     
-    // Format avatar URL if needed - use existing getApiBaseUrl from utils.js
     let avatarUrl = userAvatarUrl;
     if (avatarUrl && !avatarUrl.startsWith('http')) {
-      const apiBaseUrl = typeof getApiBaseUrl === 'function' ? getApiBaseUrl() : (() => {
-        const isLocalhost = window.location.hostname === 'localhost' ||
-                          window.location.hostname === '127.0.0.1' ||
-                          window.location.hostname === '';
-        return isLocalhost ? 'http://localhost:3000' : '';
-      })();
-      avatarUrl = `${apiBaseUrl}${avatarUrl}`;
+      avatarUrl = `${getApiBaseUrl()}${avatarUrl}`;
     }
 
-    // Sanitize avatar URL for CSS - escape single quotes and parentheses
-    const sanitizeCssUrl = (url) => {
-      if (!url) return '';
-      // Escape single quotes and parentheses that could break CSS
-      return url.replace(/'/g, "\\'").replace(/\)/g, '\\)');
-    };
-
+    const sanitizeCssUrl = (url) => url ? url.replace(/'/g, "\\'").replace(/\)/g, '\\)') : '';
     const sanitizedAvatarUrl = avatarUrl ? sanitizeCssUrl(avatarUrl) : null;
-    const escapedInitials = this.escapeHtml(userInitials);
+    const escapedInitials = escapeHtml(userInitials);
 
     const userBadgeHtml = sanitizedAvatarUrl
       ? `<div class="notification-user-badge" title="${escapedUserName}" style="background-image: url('${sanitizedAvatarUrl}'); background-size: cover; background-position: center; background-color: transparent; color: transparent;">${escapedInitials}</div>`
@@ -170,24 +139,17 @@ const NotificationManager = {
     `;
 
     const closeBtn = notification.querySelector('.notification-close');
-    const closeNotification = () => {
-      this.hide(notification);
-    };
+    const closeNotification = () => this.hide(notification);
 
     closeBtn.addEventListener('click', closeNotification);
     notification._closeHandler = closeNotification;
 
     this.container.appendChild(notification);
-
-    requestAnimationFrame(() => {
-      notification.classList.add('show');
-    });
+    requestAnimationFrame(() => notification.classList.add('show'));
 
     if (duration > 0) {
       setTimeout(() => {
-        if (notification.parentNode) {
-          this.hide(notification);
-        }
+        if (notification.parentNode) this.hide(notification);
       }, duration);
     }
 

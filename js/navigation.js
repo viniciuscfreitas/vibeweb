@@ -4,6 +4,7 @@ function getViewFromUrl(path = window.location.pathname) {
   if (path.endsWith('/login')) return 'login';
   if (path.endsWith('/dashboard')) return 'dashboard';
   if (path.endsWith('/financeiro')) return 'financial';
+  if (path.endsWith('/atividades')) return 'activities';
   if (path.match(/\/projetos\/(\d+|novo)$/)) return 'projects';
   return 'projects';
 }
@@ -13,6 +14,7 @@ function updateUrl(view, path = window.location.pathname) {
   if (view === 'login') newPath = '/login';
   else if (view === 'dashboard') newPath = '/dashboard';
   else if (view === 'financial') newPath = '/financeiro';
+  else if (view === 'activities') newPath = '/atividades';
   else if (view === 'projects') newPath = '/projetos';
 
   if (path !== newPath) window.history.pushState({ view }, '', newPath);
@@ -27,11 +29,12 @@ function fadeContainer(container, isFadeIn) {
 }
 
 function switchView(view) {
-  if (!DOM.boardContainer || !DOM.dashboardContainer || !DOM.financialContainer) return;
+  if (!DOM.boardContainer || !DOM.dashboardContainer || !DOM.financialContainer || !DOM.activitiesContainer) return;
   
-  const containers = [DOM.boardContainer, DOM.dashboardContainer, DOM.financialContainer];
+  const containers = [DOM.boardContainer, DOM.dashboardContainer, DOM.financialContainer, DOM.activitiesContainer];
   const activeContainer = view === 'dashboard' ? DOM.dashboardContainer : 
                           view === 'financial' ? DOM.financialContainer : 
+                          view === 'activities' ? DOM.activitiesContainer :
                           DOM.boardContainer;
 
   // Visual feedback for transition
@@ -67,13 +70,14 @@ function switchView(view) {
 function updateViewContent(view) {
   if (view === 'dashboard') renderDashboard();
   else if (view === 'financial') renderFinancial();
+  else if (view === 'activities') renderActivities();
   else renderBoard();
   
   if (typeof updateHeader === 'function') updateHeader(view);
 }
 
 function updateNavButtons(view) {
-  const views = ['projects', 'dashboard', 'financial'];
+  const views = ['projects', 'dashboard', 'financial', 'activities'];
   
   // Desktop Nav
   DOM.navButtons.forEach((btn, idx) => {
@@ -84,7 +88,7 @@ function updateNavButtons(view) {
   });
 
   // Mobile Nav
-  const mobileButtons = [DOM.bottomNavProjects, DOM.bottomNavDashboard, DOM.bottomNavFinancial];
+  const mobileButtons = [DOM.bottomNavProjects, DOM.bottomNavDashboard, DOM.bottomNavFinancial, DOM.bottomNavActivities];
   mobileButtons.forEach((btn, idx) => {
     if (!btn) return;
     const isActive = views[idx] === view;

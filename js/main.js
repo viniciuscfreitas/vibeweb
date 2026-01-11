@@ -26,6 +26,10 @@ function updateHeader(view) {
       renderFinancialHeader(metrics);
       if (DOM.btnNewProject) DOM.btnNewProject.style.display = "none";
       if (DOM.searchContainer) DOM.searchContainer.style.display = "flex";
+    } else if (view === "activities") {
+      if (DOM.headerInfo) DOM.headerInfo.innerHTML = "";
+      if (DOM.btnNewProject) DOM.btnNewProject.style.display = "none";
+      if (DOM.searchContainer) DOM.searchContainer.style.display = "none";
     } else {
       renderProjectsHeader();
       if (DOM.btnNewProject) DOM.btnNewProject.style.display = "flex";
@@ -54,7 +58,7 @@ function handleSearch() {
 function setupEventListeners() {
   // Navigation
   DOM.navButtons.forEach((btn, index) => {
-    const views = ["projects", "dashboard", "financial"];
+    const views = ["projects", "dashboard", "financial", "activities"];
     btn.addEventListener("click", () =>
       NavigationManager.switchView(views[index])
     );
@@ -64,9 +68,10 @@ function setupEventListeners() {
     DOM.bottomNavProjects,
     DOM.bottomNavDashboard,
     DOM.bottomNavFinancial,
+    DOM.bottomNavActivities,
   ].forEach((btn, idx) => {
     if (!btn) return;
-    const views = ["projects", "dashboard", "financial"];
+    const views = ["projects", "dashboard", "financial", "activities"];
     btn.addEventListener("click", (e) => {
       e.preventDefault();
       NavigationManager.switchView(views[idx]);
@@ -295,7 +300,9 @@ async function initApp() {
 
   ThemeManager.initTheme();
   SettingsManager.init();
+  if (typeof SubtaskManager !== "undefined") SubtaskManager.init();
   await renderUserAvatar();
+  if (typeof setupActivitiesListeners === "function") setupActivitiesListeners();
   setupEventListeners();
   startUpdateInterval();
 
@@ -380,5 +387,29 @@ function closeUserDropdown() {
 window.logout = logout;
 window.openModal = openModal;
 window.closeModal = closeModal;
+
+// Global Error Handling
+window.addEventListener('unhandledrejection', (event) => {
+  // Ignorar erros já tratados ou silenciosos
+  if (event.reason && event.reason.silent) return;
+  
+  console.error('Unhandled promise rejection:', event.reason);
+  if (typeof NotificationManager !== 'undefined') {
+    const message = event.reason?.message || 'Ocorreu um erro inesperado';
+    // Não repetir mensagens de sessão expirada (já tratadas no api.js)
+    if (!message.includes('Sessão expirada') && !message.includes('Não autenticado')) {
+      NotificationManager.error(message);
+    }
+  }
+});
+
+window.onerror = function(message, source, lineno, colno, error) {
+  console.error('Global error:', message, error);
+  if (typeof NotificationManager !== 'undefined') {
+    // Apenas mostrar erro genérico para erros de runtime não capturados
+    NotificationManager.error('Ocorreu um erro no sistema');
+  }
+  return false;
+};
 
 initAuth();

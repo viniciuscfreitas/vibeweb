@@ -19,52 +19,18 @@ function getHostingDisplayText(hosting) {
 }
 
 function calculateFinancialMetrics(tasks) {
-  let totalRevenue = 0;
-  let pendingRevenue = 0;
-  let paidCount = 0;
-  let pendingCount = 0;
-  let hostingActiveCount = 0;
-
-  tasks.forEach(task => {
-    const isPaid = task.payment_status === PAYMENT_STATUS_PAID || task.payment_status === PAYMENT_STATUS_PARTIAL;
-    const isPending = task.payment_status === PAYMENT_STATUS_PENDING;
-    const price = parseFloat(task.price) || 0;
-
-    if (isPaid) {
-      paidCount++;
-      totalRevenue += price;
-    } else if (isPending) {
-      pendingCount++;
-      pendingRevenue += price;
-    }
-
-    if (task.col_id === 3 && task.hosting === HOSTING_YES) {
-      hostingActiveCount++;
-    }
-  });
-
-  const settings = getSettings();
-  const hostingRevenue = hostingActiveCount * settings.hostingPrice;
-
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
-  const currentMonthRevenue = calculateRevenueForMonth(tasks, currentMonth, currentYear);
-  const lastMonthInfo = getLastMonthInfo(currentMonth, currentYear);
-  const lastMonthRevenue = calculateRevenueForMonth(tasks, lastMonthInfo.month, lastMonthInfo.year);
-  const revenueChange = calculateRevenueChange(currentMonthRevenue, lastMonthRevenue);
-
   const metrics = AppState.getCachedMetrics(() => calculateDashboardMetrics());
 
   return {
     mrr: metrics.mrr,
-    totalRevenue,
-    pendingRevenue,
-    hostingRevenue,
-    hostingActive: hostingActiveCount,
-    currentMonthRevenue,
-    revenueChange,
-    pendingCount,
-    paidCount
+    totalRevenue: metrics.totalRevenue,
+    pendingRevenue: metrics.pendingRevenue,
+    hostingRevenue: metrics.mrr,
+    hostingActive: metrics.hostingActive,
+    currentMonthRevenue: metrics.monthlyRevenue,
+    revenueChange: metrics.revenueChange,
+    pendingCount: metrics.pendingPayments,
+    paidCount: (AppState.getTasks().length - metrics.pendingPayments) // Simplificação, mas o Dashboard já calcula paidTasksCount se necessário
   };
 }
 
@@ -308,7 +274,7 @@ function updateFinancialRow(updatedTask) {
       const formattedPrice = formatCurrency(updatedTask.price);
       const paymentStatus = paymentStatusHtml[updatedTask.payment_status] || paymentStatusHtml[PAYMENT_STATUS_PENDING];
       const hosting = hostingHtml[updatedTask.hosting] || '';
-      const isUrgent = isTaskUrgent(updatedTask);
+      const isUrgent = isPaymentUrgent(updatedTask);
       const canMarkAsPaid = updatedTask.payment_status === PAYMENT_STATUS_PENDING;
       const canMarkAsPending = updatedTask.payment_status === PAYMENT_STATUS_PAID;
 
@@ -353,7 +319,7 @@ function updateFinancialRow(updatedTask) {
         const formattedPrice = formatCurrency(updatedTask.price);
         const paymentStatus = paymentStatusHtml[updatedTask.payment_status] || paymentStatusHtml[PAYMENT_STATUS_PENDING];
         const hosting = hostingHtml[updatedTask.hosting] || '';
-        const isUrgent = isTaskUrgent(updatedTask);
+        const isUrgent = isPaymentUrgent(updatedTask);
         const canMarkAsPaid = updatedTask.payment_status === PAYMENT_STATUS_PENDING;
         const canMarkAsPending = updatedTask.payment_status === PAYMENT_STATUS_PAID;
 
@@ -461,7 +427,7 @@ function updateFinancialRow(updatedTask) {
   }
 }
 
-function isTaskUrgent(task) {
+function isPaymentUrgent(task) {
   if (task.payment_status !== PAYMENT_STATUS_PENDING) return false;
 
   const cacheKey = task.id;
@@ -730,7 +696,7 @@ function renderProjectsTable(tasks, showNoResults = false) {
     const formattedPrice = formatCurrency(task.price);
     const paymentStatus = paymentStatusHtml[task.payment_status] || paymentStatusHtml[PAYMENT_STATUS_PENDING];
     const hosting = hostingHtml[task.hosting] || '';
-    const isUrgent = isTaskUrgent(task);
+    const isUrgent = isPaymentUrgent(task);
     const canMarkAsPaid = task.payment_status === PAYMENT_STATUS_PENDING;
     const canMarkAsPending = task.payment_status === PAYMENT_STATUS_PAID;
 

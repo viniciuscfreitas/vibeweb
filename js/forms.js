@@ -252,6 +252,11 @@ function openModal(task = null) {
 
     updateFormProgress();
 
+    if (typeof SubtaskManager !== 'undefined') {
+      DOM.subtasksSection?.classList.remove('hidden');
+      SubtaskManager.loadSubtasks(task.id);
+    }
+
     setTimeout(() => {
       const firstEmptyField = findFirstEmptyField();
       if (firstEmptyField) {
@@ -280,6 +285,8 @@ function openModal(task = null) {
         DOM.formClient.focus();
       }
     }, 100);
+
+    DOM.subtasksSection?.classList.add('hidden');
   }
 
   setupInlineValidation();
@@ -319,6 +326,7 @@ function closeModal() {
   DOM.modalOverlay.classList.remove('open');
   DOM.modalOverlay.setAttribute('aria-hidden', 'true');
   clearFormErrors();
+  if (DOM.subtaskList) DOM.subtaskList.innerHTML = '';
   AppState.currentTaskId = null;
   releaseFocusFromModal();
 
@@ -901,6 +909,7 @@ async function saveForm() {
       const updatedTasks = tasks.map(t => t.id === AppState.currentTaskId ? normalizedTask : t);
       AppState.setTasks(updatedTasks);
       AppState.log('Task updated', { taskId: AppState.currentTaskId });
+      NotificationManager.success(`Projeto ${normalizedTask.client} atualizado!`);
 
       clearFormDraft();
       closeModal();
@@ -929,11 +938,14 @@ async function saveForm() {
       const updatedTasks = [...tasks, normalizedNewTask];
       AppState.setTasks(updatedTasks);
       AppState.log('Task created', { taskId: normalizedNewTask.id });
+      NotificationManager.success(`Projeto ${normalizedNewTask.client} criado com sucesso!`);
 
       clearFormDraft();
       clearFormErrors();
-      AppState.currentTaskId = null;
-      closeModal();
+      
+      // Instead of closing modal, open it in edit mode for the new task
+      // This allows adding subtasks immediately
+      openModal(normalizedNewTask);
     }
 
     renderBoard();
@@ -1015,6 +1027,7 @@ function deleteItem() {
       const updatedTasks = tasks.filter(t => t.id !== taskId);
       AppState.setTasks(updatedTasks);
       AppState.log('Task deleted', { taskId });
+      NotificationManager.success('Projeto arquivado com sucesso!');
 
       closeModal();
       renderBoard();

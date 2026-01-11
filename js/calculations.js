@@ -167,30 +167,34 @@ function calculateDashboardMetrics() {
   const tasks = AppState.getTasks();
   const settings = getSettings();
   const now = Date.now();
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
-  let mrr = 0;
-  let totalRevenue = 0;
-  let paidTasksCount = 0;
-  let pendingPaymentsCount = 0;
-  const projectCounts = { discoveryCount: 0, agreementCount: 0, buildCount: 0, liveCount: 0 };
-  const paidTasks = [];
-  const pendingTasks = [];
-  const upsellPending = [];
-  const statusDistribution = COLUMNS.map(col => ({ name: col.name, count: 0, value: 0 }));
-
   const today = new Date();
   const todayDay = today.getDate();
   const todayMonth = today.getMonth();
   const todayYear = today.getFullYear();
-  let leadsToday = 0;
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
 
+  let mrr = 0;
+  let totalRevenue = 0;
+  let pendingRevenue = 0;
+  let paidTasksCount = 0;
+  let pendingPaymentsCount = 0;
+  let hostingActiveCount = 0;
+  let leadsToday = 0;
+  
+  const projectCounts = { discoveryCount: 0, agreementCount: 0, buildCount: 0, liveCount: 0 };
+  const statusDistribution = COLUMNS.map(col => ({ name: col.name, count: 0, value: 0 }));
   const monthRevenueMap = new Map();
+  const upsellPending = [];
+
   tasks.forEach(task => {
     const colId = task.col_id || 0;
-    
-    // Contagem de leads de hoje
+    const price = parseFloat(task.price) || 0;
+    const isPaid = task.payment_status === PAYMENT_STATUS_PAID || task.payment_status === PAYMENT_STATUS_PARTIAL;
+    const isPending = task.payment_status === PAYMENT_STATUS_PENDING;
     const taskDate = parseTaskDate(task.created_at);
+
+    // Leads today
     if (taskDate && (task.type === 'Lead Externo' || task.type === 'WhatsApp')) {
       if (taskDate.getDate() === todayDay && 
           taskDate.getMonth() === todayMonth && 
@@ -199,32 +203,27 @@ function calculateDashboardMetrics() {
       }
     }
 
+    // Project counts and distribution
     if (colId >= 0 && colId <= 3) {
       const countKeys = ['discoveryCount', 'agreementCount', 'buildCount', 'liveCount'];
       projectCounts[countKeys[colId]]++;
       statusDistribution[colId].count++;
-      statusDistribution[colId].value += parseFloat(task.price) || 0;
+      statusDistribution[colId].value += price;
     }
 
+    // MRR
     if (colId === 3 && task.hosting === HOSTING_YES) {
       mrr += settings.hostingPrice;
+      hostingActiveCount++;
     }
 
-    const isPaid = task.payment_status === PAYMENT_STATUS_PAID || task.payment_status === PAYMENT_STATUS_PARTIAL;
-    const isPending = task.payment_status === PAYMENT_STATUS_PENDING;
-
+    // Revenue
     if (isPaid) {
-      paidTasks.push(task);
       paidTasksCount++;
-      const price = parseFloat(task.price) || 0;
       totalRevenue += price;
 
-      const taskDate = parseTaskDate(task.created_at);
       if (taskDate) {
-        const taskMonth = taskDate.getMonth();
-        const taskYear = taskDate.getFullYear();
-        const monthKey = `${taskYear}-${taskMonth}`;
-
+        const monthKey = `${taskDate.getFullYear()}-${taskDate.getMonth()}`;
         let taskRevenue = price;
         if (task.payment_status === PAYMENT_STATUS_PARTIAL) {
           taskRevenue = taskRevenue / 2;
@@ -233,9 +232,10 @@ function calculateDashboardMetrics() {
       }
     } else if (isPending) {
       pendingPaymentsCount++;
-      pendingTasks.push(task);
+      pendingRevenue += price;
     }
 
+    // Upsell
     if (task.hosting === HOSTING_LATER && colId >= 1) {
       upsellPending.push(task);
     }
@@ -243,17 +243,11 @@ function calculateDashboardMetrics() {
 
   const mrrGaps = calculateMRRGaps(mrr, settings.hostingPrice);
   const lastMonthInfo = getLastMonthInfo(currentMonth, currentYear);
-
   const currentMonthKey = `${currentYear}-${currentMonth}`;
   const lastMonthKey = `${lastMonthInfo.year}-${lastMonthInfo.month}`;
+  
   const monthlyRevenue = monthRevenueMap.get(currentMonthKey) || 0;
   const lastMonthRevenue = monthRevenueMap.get(lastMonthKey) || 0;
-  const revenueChange = calculateRevenueChange(monthlyRevenue, lastMonthRevenue);
-
-  const averageTicket = paidTasksCount > 0 ? totalRevenue / paidTasksCount : 0;
-  const activeProjects = projectCounts.agreementCount + projectCounts.buildCount;
-  const urgentProjects = calculateUrgentProjects(tasks);
-  // Activities will be loaded asynchronously in dashboard
 
   return {
     mrr,
@@ -263,18 +257,20 @@ function calculateDashboardMetrics() {
     upsellsNeeded20k: mrrGaps.upsellsNeeded20k,
     monthlyRevenue,
     lastMonthRevenue,
-    revenueChange,
-    averageTicket,
+    revenueChange: calculateRevenueChange(monthlyRevenue, lastMonthRevenue),
+    averageTicket: paidTasksCount > 0 ? totalRevenue / paidTasksCount : 0,
     totalRevenue,
-    activeProjects,
+    activeProjects: projectCounts.agreementCount + projectCounts.buildCount,
     discoveryCount: projectCounts.discoveryCount,
     agreementCount: projectCounts.agreementCount,
     buildCount: projectCounts.buildCount,
     liveCount: projectCounts.liveCount,
     pendingPayments: pendingPaymentsCount,
+    pendingRevenue,
+    hostingActive: hostingActiveCount,
     cacAverage: DEFAULT_CAC,
-    urgentCount: urgentProjects.length,
-    urgentProjects,
+    urgentCount: calculateUrgentProjects(tasks).length,
+    urgentProjects: calculateUrgentProjects(tasks),
     upsellPending,
     statusDistribution,
     leadsToday

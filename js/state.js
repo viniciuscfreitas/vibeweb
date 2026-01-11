@@ -31,6 +31,12 @@ const AppState = {
     return this.tasks;
   },
 
+  getTaskById(id) {
+    if (!id) return null;
+    const numericId = typeof id === 'string' ? parseInt(id) : id;
+    return this.tasks.find(t => t.id === numericId);
+  },
+
   getCachedMetrics(calculator) {
     if (this._metricsCache) {
       return this._metricsCache;

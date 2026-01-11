@@ -4,6 +4,9 @@ const DOM = {
   boardContainer: null,
   dashboardContainer: null,
   financialContainer: null,
+  activitiesContainer: null,
+  activitiesListFull: null,
+  activitiesLoadMore: null,
   searchContainer: null,
   searchBtn: null,
   searchInput: null,
@@ -26,6 +29,11 @@ const DOM = {
   formRecurring: null,
   formPublic: null,
   formAssetsLink: null,
+  subtasksSection: null,
+  subtasksProgress: null,
+  subtaskList: null,
+  subtaskNewTitle: null,
+  btnAddTaskSubtask: null,
   errorClient: null,
   errorContact: null,
   errorDomain: null,
@@ -68,6 +76,7 @@ const DOM = {
   bottomNavProjects: null,
   bottomNavDashboard: null,
   bottomNavFinancial: null,
+  bottomNavActivities: null,
   bottomNavAvatar: null,
   profileModalOverlay: null,
   profileModalAvatar: null,
@@ -95,6 +104,9 @@ const DOM = {
     this.boardContainer = document.getElementById('boardContainer');
     this.dashboardContainer = document.getElementById('dashboardContainer');
     this.financialContainer = document.getElementById('financialContainer');
+    this.activitiesContainer = document.getElementById('activitiesContainer');
+    this.activitiesListFull = document.getElementById('activitiesListFull');
+    this.activitiesLoadMore = document.getElementById('activitiesLoadMore');
     this.searchContainer = document.getElementById('searchContainer');
     this.searchBtn = document.getElementById('searchBtn');
     this.searchInput = document.getElementById('searchInput');
@@ -117,6 +129,11 @@ const DOM = {
     this.formRecurring = document.getElementById('formRecurring');
     this.formPublic = document.getElementById('formPublic');
     this.formAssetsLink = document.getElementById('formAssetsLink');
+    this.subtasksSection = document.getElementById('subtasksSection');
+    this.subtasksProgress = document.getElementById('subtasksProgress');
+    this.subtaskList = document.getElementById('subtaskList');
+    this.subtaskNewTitle = document.getElementById('subtaskNewTitle');
+    this.btnAddTaskSubtask = document.getElementById('btnAddTaskSubtask');
     this.errorClient = document.getElementById('errorClient');
     this.errorContact = document.getElementById('errorContact');
     this.errorDomain = document.getElementById('errorDomain');
@@ -159,6 +176,7 @@ const DOM = {
     this.bottomNavProjects = document.getElementById('bottomNavProjects');
     this.bottomNavDashboard = document.getElementById('bottomNavDashboard');
     this.bottomNavFinancial = document.getElementById('bottomNavFinancial');
+    this.bottomNavActivities = document.getElementById('bottomNavActivities');
     this.bottomNavAvatar = document.getElementById('bottomNavAvatar');
     this.profileModalOverlay = document.getElementById('profileModalOverlay');
     this.profileModalAvatar = document.getElementById('profileModalAvatar');

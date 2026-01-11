@@ -99,6 +99,7 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString, io) {
   router.get('/activities/recent', (req, res) => {
     try {
       const limit = parseInt(req.query.limit) || 50;
+      const offset = parseInt(req.query.offset) || 0;
       const taskIdParam = req.query.task_id;
       let taskId = null;
 
@@ -112,9 +113,12 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString, io) {
       const params = [];
       let query = `
         SELECT
+          al.id,
           al.task_id,
           al.action_type,
           al.action_description,
+          al.old_data,
+          al.new_data,
           al.created_at,
           u.name as user_name,
           u.avatar_url as user_avatar_url
@@ -127,8 +131,8 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString, io) {
         params.push(taskId);
       }
 
-      query += ' ORDER BY al.created_at DESC LIMIT ?';
-      params.push(limit);
+      query += ' ORDER BY al.created_at DESC LIMIT ? OFFSET ?';
+      params.push(limit, offset);
 
       db.all(query, params, (err, activities) => {
         if (err) {
@@ -156,7 +160,11 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString, io) {
   router.get('/', (req, res) => {
     try {
       db.all(
-        'SELECT * FROM tasks ORDER BY col_id, order_position',
+        `SELECT t.*, 
+                (SELECT COUNT(*) FROM subtasks s WHERE s.task_id = t.id) as subtask_count,
+                (SELECT COUNT(*) FROM subtasks s WHERE s.task_id = t.id AND s.completed = 1) as completed_subtask_count
+         FROM tasks t 
+         ORDER BY t.col_id, t.order_position`,
         [],
         (err, tasks) => {
           if (err) {
@@ -190,7 +198,11 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString, io) {
       }
 
       db.get(
-        'SELECT * FROM tasks WHERE id = ?',
+        `SELECT t.*, 
+                (SELECT COUNT(*) FROM subtasks s WHERE s.task_id = t.id) as subtask_count,
+                (SELECT COUNT(*) FROM subtasks s WHERE s.task_id = t.id AND s.completed = 1) as completed_subtask_count
+         FROM tasks t 
+         WHERE t.id = ?`,
         [taskId],
         (err, task) => {
           if (err) {
@@ -425,7 +437,14 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString, io) {
       }
 
       // Verify task exists (shared access - team collaboration)
-      db.get('SELECT * FROM tasks WHERE id = ?', [taskId], (err, existing) => {
+      db.get(
+        `SELECT t.*, 
+                (SELECT COUNT(*) FROM subtasks s WHERE s.task_id = t.id) as subtask_count,
+                (SELECT COUNT(*) FROM subtasks s WHERE s.task_id = t.id AND s.completed = 1) as completed_subtask_count
+         FROM tasks t 
+         WHERE t.id = ?`,
+        [taskId],
+        (err, existing) => {
         if (err) {
           return sendDbError(res, err, NODE_ENV, 'UpdateTask');
         }
@@ -559,7 +578,9 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString, io) {
               is_recurring: isRecurringValue,
               assets_link: assetsLinkSanitized !== null ? assetsLinkSanitized : existing.assets_link,
               public_uuid: publicUuidSanitized !== null ? publicUuidSanitized : existing.public_uuid,
-              updated_at: new Date().toISOString().replace('T', ' ').substring(0, 19)
+              updated_at: new Date().toISOString().replace('T', ' ').substring(0, 19),
+              subtask_count: existing.subtask_count || 0,
+              completed_subtask_count: existing.completed_subtask_count || 0
             };
 
             // Log activity - detect what changed with specific descriptions
@@ -806,45 +827,26 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString, io) {
   router.patch('/:id/move', (req, res) => {
     try {
       const taskId = parseInt(req.params.id);
-      if (isNaN(taskId)) {
-        return res.status(400).json({ success: false, error: 'ID inválido' });
-      }
+      if (isNaN(taskId)) return res.status(400).json({ success: false, error: 'ID inválido' });
 
-      // Validate request body exists
-      if (!req.body || typeof req.body !== 'object') {
-        return res.status(400).json({ success: false, error: 'Corpo da requisição inválido' });
-      }
+      if (!req.body || typeof req.body !== 'object') return res.status(400).json({ success: false, error: 'Corpo da requisição inválido' });
 
       const { col_id, order_position } = req.body;
-
       const colIdNum = parseInt(col_id);
-      if (isNaN(colIdNum) || colIdNum < 0 || colIdNum > 3) {
-        return res.status(400).json({ success: false, error: 'col_id deve ser 0, 1, 2 ou 3' });
-      }
-
       const orderNum = parseInt(order_position);
-      if (isNaN(orderNum) || orderNum < 0) {
-        return res.status(400).json({ success: false, error: 'order_position deve ser >= 0' });
-      }
 
-      // Verify task exists (shared access - team collaboration)
+      if (isNaN(colIdNum) || colIdNum < 0 || colIdNum > 3) return res.status(400).json({ success: false, error: 'col_id deve ser 0, 1, 2 ou 3' });
+      if (isNaN(orderNum) || orderNum < 0) return res.status(400).json({ success: false, error: 'order_position deve ser >= 0' });
+
       db.get('SELECT * FROM tasks WHERE id = ?', [taskId], (err, task) => {
-        if (err) {
-          return sendDbError(res, err, NODE_ENV, 'MoveTask');
-        }
+        if (err) return sendDbError(res, err, NODE_ENV, 'MoveTask');
+        if (!task) return res.status(404).json({ success: false, error: 'Recurso não encontrado' });
 
-        if (!task) {
-          return res.status(404).json({ success: false, error: 'Recurso não encontrado' });
-        }
-
-        // Update task position
         db.run(
           'UPDATE tasks SET col_id = ?, order_position = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
           [colIdNum, orderNum, taskId],
           function (err) {
-            if (err) {
-              return sendDbError(res, err, NODE_ENV, 'MoveTask');
-            }
+            if (err) return sendDbError(res, err, NODE_ENV, 'MoveTask');
 
             const updatedTask = {
               ...task,
@@ -861,147 +863,67 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString, io) {
                 const toCol = colNames[colIdNum] || colIdNum;
                 const actionDescription = `Moveu projeto ${task.client} de ${fromCol} para ${toCol}`;
 
-                logActivity(
-                  db,
-                  req.user.id,
-                  taskId,
-                  'move',
-                  actionDescription,
+                logActivity(db, req.user.id, taskId, 'move', actionDescription, 
                   { col_id: task.col_id, client: task.client },
                   { col_id: colIdNum, client: task.client }
                 );
 
                 if (io) {
                   getUserInfoForNotification(req.user.id, (err, userInfo) => {
-                    const emitData = {
+                    io.emit('task:moved', {
                       task: updatedTask,
                       userId: req.user.id,
                       userName: userInfo?.name || null,
                       userAvatarUrl: userInfo?.avatarUrl || null,
-                      actionDescription: actionDescription
-                    };
-                    if (NODE_ENV === 'development') {
-                      console.log('[WebSocket] 📤 Emitting task:moved', {
-                        taskId: updatedTask.id,
-                        client: updatedTask.client,
-                        fromCol: task.col_id,
-                        toCol: colIdNum,
-                        userId: req.user.id
-                      });
-                    }
-                    io.emit('task:moved', emitData);
+                      actionDescription
+                    });
                   });
                 }
               } else {
-                // Task moved within same column (just position change)
                 const colName = colNames[colIdNum] || colIdNum;
                 if (io) {
                   getUserInfoForNotification(req.user.id, (err, userInfo) => {
-                    const emitData = {
+                    io.emit('task:moved', {
                       task: updatedTask,
                       userId: req.user.id,
                       userName: userInfo?.name || null,
                       userAvatarUrl: userInfo?.avatarUrl || null,
                       actionDescription: `Reordenou ${task.client} em ${colName}`
-                    };
-                    if (NODE_ENV === 'development') {
-                      console.log('[WebSocket] 📤 Emitting task:moved', {
-                        taskId: updatedTask.id,
-                        client: updatedTask.client,
-                        fromCol: task.col_id,
-                        toCol: colIdNum,
-                        userId: req.user.id
-                      });
-                    }
-                    io.emit('task:moved', emitData);
+                    });
                   });
                 }
               }
             });
 
-            // Check if task was moved to col_id = 3 (Suporte / Live) and is recurring
             if (colIdNum === 3 && task.is_recurring === 1) {
-              // Calculate new date: use deadline_timestamp if exists, otherwise created_at + 30 days
-              let baseDate;
-              if (task.deadline_timestamp) {
-                baseDate = new Date(task.deadline_timestamp);
-              } else if (task.created_at) {
-                baseDate = new Date(task.created_at);
-              } else {
-                baseDate = new Date(); // Fallback para hoje
-              }
-
-              // Validate date
-              if (isNaN(baseDate.getTime())) {
-                baseDate = new Date(); // Fallback se data inválida
-              }
+              let baseDate = task.deadline_timestamp ? new Date(task.deadline_timestamp) : (task.created_at ? new Date(task.created_at) : new Date());
+              if (isNaN(baseDate.getTime())) baseDate = new Date();
 
               const newDeadlineDate = new Date(baseDate);
               newDeadlineDate.setDate(newDeadlineDate.getDate() + 30);
 
-              // Calculate deadline_timestamp for new task
-              const newDeadlineTimestamp = newDeadlineDate.getTime();
-
-              // Create new cloned task (don't block response if it fails)
               db.run(
                 `INSERT INTO tasks (
                   user_id, client, contact, type, stack, domain, description,
                   price, payment_status, deadline, deadline_timestamp, hosting,
                   col_id, order_position, is_recurring, assets_link, public_uuid
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [
-                  task.user_id,
-                  task.client,
-                  task.contact,
-                  task.type,
-                  task.stack,
-                  task.domain,
-                  task.description,
-                  task.price,
-                  'Pendente', // Reset payment status
-                  null, // Deadline will be calculated via timestamp
-                  newDeadlineTimestamp,
-                  task.hosting,
-                  0, // New task in Descoberta column
-                  0, // Order position will be adjusted
-                  1, // Keep is_recurring = true
-                  task.assets_link || null,
-                  task.public_uuid || null
-                ],
-                function (err) {
-                  if (err) {
-                    // Log error but don't fail movement of original task
-                    console.error('[RecurringTask] Error cloning task:', {
-                      originalTaskId: task.id,
-                      error: err.message
-                    });
-                  } else {
-                    console.log('[RecurringTask] Successfully cloned task', {
-                      originalTaskId: task.id,
-                      newTaskId: this.lastID
-                    });
-                  }
+                [task.user_id, task.client, task.contact, task.type, task.stack, task.domain, task.description, 
+                 task.price, 'Pendente', null, newDeadlineDate.getTime(), task.hosting, 0, 0, 1, 
+                 task.assets_link || null, task.public_uuid || null],
+                (err) => {
+                  if (err) console.error('[RecurringTask] Error cloning task:', err.message);
                 }
               );
             }
 
-            res.json({
-              success: true,
-              data: updatedTask
-            });
+            res.json({ success: true, data: updatedTask });
           }
         );
       });
     } catch (error) {
-      console.error('[MoveTask] Unexpected error:', {
-        error: error.message,
-        taskId: req.params.id,
-        stack: NODE_ENV === 'development' ? error.stack : undefined
-      });
-      res.status(500).json({
-        success: false,
-        error: NODE_ENV === 'production' ? 'Erro interno do servidor' : error.message
-      });
+      console.error('[MoveTask] Unexpected error:', error.message);
+      res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   });
 
@@ -1094,6 +1016,19 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString, io) {
                   success: true,
                   data: subtask
                 });
+
+                // Log activity
+                setImmediate(() => {
+                  logActivity(
+                    db,
+                    req.user.id,
+                    taskId,
+                    'update',
+                    `Adicionou subtarefa "${titleSanitized}" em ${task.client || 'OS #' + taskId}`,
+                    null,
+                    { subtask_id: subtask.id, title: titleSanitized }
+                  );
+                });
               });
             }
           );
@@ -1160,6 +1095,25 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString, io) {
                 success: true,
                 data: subtask
               });
+
+              // Log activity if completion status changed
+              if (completed !== undefined && existing.completed !== completedNum) {
+                setImmediate(() => {
+                  // Need task client name for better log message
+                  db.get('SELECT client FROM tasks WHERE id = ?', [existing.task_id], (err, task) => {
+                    const statusText = completedNum === 1 ? 'concluiu' : 'desmarcou';
+                    logActivity(
+                      db,
+                      req.user.id,
+                      existing.task_id,
+                      'update',
+                      `${statusText} subtarefa "${subtask.title}" em ${task?.client || 'OS #' + existing.task_id}`,
+                      { subtask_id: subtaskId, completed: existing.completed },
+                      { subtask_id: subtaskId, completed: completedNum }
+                    );
+                  });
+                });
+              }
             });
           }
         );
@@ -1185,12 +1139,12 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString, io) {
         return res.status(400).json({ success: false, error: 'ID inválido' });
       }
 
-      db.get('SELECT id FROM subtasks WHERE id = ?', [subtaskId], (err, subtask) => {
+      db.get('SELECT * FROM subtasks WHERE id = ?', [subtaskId], (err, existingSubtask) => {
         if (err) {
           return sendDbError(res, err, NODE_ENV, 'DeleteSubtask');
         }
 
-        if (!subtask) {
+        if (!existingSubtask) {
           return res.status(404).json({ success: false, error: 'Subtask não encontrada' });
         }
 
@@ -1202,6 +1156,21 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString, io) {
           res.json({
             success: true,
             data: { message: 'Subtask deletada com sucesso' }
+          });
+
+          // Log activity
+          setImmediate(() => {
+            db.get('SELECT client FROM tasks WHERE id = ?', [existingSubtask.task_id], (err, task) => {
+              logActivity(
+                db,
+                req.user.id,
+                existingSubtask.task_id,
+                'update',
+                `Removeu subtarefa "${existingSubtask.title}" em ${task?.client || 'OS #' + existingSubtask.task_id}`,
+                { subtask_id: subtaskId, title: existingSubtask.title },
+                null
+              );
+            });
           });
         });
       });

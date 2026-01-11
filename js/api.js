@@ -10,7 +10,7 @@ if (isFileProtocol) {
 }
 const TOKEN_STORAGE_KEY = 'vibeTasks_token';
 
-async function apiRequest(method, endpoint, data = null, requiresAuth = true) {
+async function apiRequest(method, endpoint, data = null, requiresAuth = true, silent = false) {
   const url = `${API_BASE_URL}${endpoint}`;
   const options = {
     method,
@@ -22,7 +22,9 @@ async function apiRequest(method, endpoint, data = null, requiresAuth = true) {
   if (requiresAuth) {
     const token = localStorage.getItem(TOKEN_STORAGE_KEY);
     if (!token) {
-      throw new Error('Não autenticado');
+      const authError = new Error('Não autenticado');
+      if (!silent) NotificationManager.error(authError.message);
+      throw authError;
     }
     options.headers['Authorization'] = `Bearer ${token}`;
   }
@@ -79,11 +81,15 @@ async function apiRequest(method, endpoint, data = null, requiresAuth = true) {
         } catch (e) {
           // Ignore if logout not available yet
         }
-        throw new Error('Sessão expirada. Por favor, faça login novamente.');
+        const authError = new Error('Sessão expirada. Por favor, faça login novamente.');
+        if (!silent) NotificationManager.error(authError.message);
+        throw authError;
       }
 
       // For login endpoint, show the actual error message from backend
-      throw new Error(result.error || `Erro ${response.status}: ${response.statusText}`);
+      const errorMsg = result.error || `Erro ${response.status}: ${response.statusText}`;
+      if (!silent) NotificationManager.error(errorMsg);
+      throw new Error(errorMsg);
     }
 
     return result;
@@ -91,7 +97,9 @@ async function apiRequest(method, endpoint, data = null, requiresAuth = true) {
     clearTimeout(timeoutId);
 
     if (error.name === 'AbortError') {
-      throw new Error('Timeout: A requisição demorou muito para responder');
+      const timeoutError = new Error('Timeout: A requisição demorou muito para responder');
+      if (!silent) NotificationManager.error(timeoutError.message);
+      throw timeoutError;
     }
 
     // Log full error for debugging
@@ -107,22 +115,24 @@ async function apiRequest(method, endpoint, data = null, requiresAuth = true) {
     });
 
     // More specific error message based on error type
+    let finalError;
     if (error.message.includes('Failed to fetch') ||
         error.message.includes('NetworkError') ||
         error.name === 'TypeError') {
       if (isLocalhost) {
-        throw new Error('Não foi possível conectar ao servidor. Verifique se o backend está rodando na porta 3000 (http://localhost:3000)');
+        finalError = new Error('Não foi possível conectar ao servidor. Verifique se o backend está rodando na porta 3000 (http://localhost:3000)');
       } else {
-        throw new Error('Erro de rede. Verifique sua conexão e se o servidor está acessível.');
+        finalError = new Error('Erro de rede. Verifique sua conexão e se o servidor está acessível.');
       }
+    } else {
+      finalError = error;
     }
 
-    // Preserve original error message if it exists
-    if (error.message) {
-      throw error;
+    if (!silent && finalError.message && !finalError.message.includes('Sessão expirada')) {
+      NotificationManager.error(finalError.message);
     }
 
-    throw new Error('Erro de rede. Verifique sua conexão.');
+    throw finalError;
   }
 }
 
@@ -134,7 +144,7 @@ const api = {
     // This avoids frontend misclassification issues
     const payload = { email: emailOrUsername, password };
 
-    const result = await apiRequest('POST', '/api/auth/login', payload, false);
+    const result = await apiRequest('POST', '/api/auth/login', payload, false, true);
 
     if (result.success && result.data.token) {
       localStorage.setItem(TOKEN_STORAGE_KEY, result.data.token);
@@ -145,7 +155,7 @@ const api = {
 
   async getCurrentUser() {
     try {
-      const result = await apiRequest('GET', '/api/auth/me');
+      const result = await apiRequest('GET', '/api/auth/me', null, true, true);
       return result.data.user;
     } catch (error) {
       localStorage.removeItem(TOKEN_STORAGE_KEY);
@@ -234,10 +244,13 @@ const api = {
     return result.data;
   },
 
-  async getActivities(limit = 50, taskId = null) {
+  async getActivities(limit = 50, offset = 0, taskId = null) {
     const params = new URLSearchParams();
     if (limit !== null && limit !== undefined) {
       params.append('limit', limit);
+    }
+    if (offset !== null && offset !== undefined) {
+      params.append('offset', offset);
     }
     if (taskId !== null && taskId !== undefined) {
       params.append('task_id', taskId);

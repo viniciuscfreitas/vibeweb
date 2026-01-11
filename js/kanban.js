@@ -238,6 +238,12 @@ function createCardElement(task, isExpanded = false, now = null) {
   const deadlineDisplay = formatDeadlineDisplay(task.deadline, task.deadline_timestamp);
   const deadlineHtml = deadlineDisplay ? `<span class="deadline" data-deadline="${escapeHtml(task.deadline || '')}" data-timestamp="${task.deadline_timestamp || ''}">${escapeHtml(deadlineDisplay)}</span>` : '';
 
+  const subtasksHtml = (task.subtask_count > 0) 
+    ? `<span class="card-subtasks" title="Subtarefas: ${task.completed_subtask_count}/${task.subtask_count}">
+         <i class="fa-solid fa-list-check"></i> ${task.completed_subtask_count}/${task.subtask_count}
+       </span>` 
+    : '';
+
   const badgeHtml = task.type ? `<span class="card-badge">${escapeHtml(task.type)}</span>` : '';
 
   if (isExpanded) {
@@ -310,6 +316,7 @@ function createCardElement(task, isExpanded = false, now = null) {
         ${actionButtonsHtml}
         <div class="card-meta">
           <span class="price">${formattedPrice}</span>
+          ${subtasksHtml}
           ${deadlineHtml}
         </div>
       </div>
@@ -797,10 +804,7 @@ function updateCardInPlace(cardElement, updatedTask) {
   const oldColId = parseInt(cardElement.dataset.colId) || 0;
   const newColId = updatedTask.col_id || 0;
   
-  // If card moved to different column, need full re-render
   if (oldColId !== newColId) {
-    // Card will be moved by SortableJS, so we need to re-render
-    // But we can still update the card element if it's still in DOM
     const tasks = AppState.getTasks();
     const updatedTasks = tasks.map(t => t.id === updatedTask.id ? updatedTask : t);
     AppState.setTasks(updatedTasks);
@@ -808,18 +812,15 @@ function updateCardInPlace(cardElement, updatedTask) {
     return;
   }
   
-  // Update card data attributes
   cardElement.dataset.colId = newColId;
-  if (updatedTask.deadline_timestamp) {
-    cardElement.dataset.deadlineTimestamp = updatedTask.deadline_timestamp;
-  }
+  if (updatedTask.deadline_timestamp) cardElement.dataset.deadlineTimestamp = updatedTask.deadline_timestamp;
+  
   if (updatedTask.uptime_status) {
     cardElement.dataset.uptimeStatus = updatedTask.uptime_status;
   } else {
     delete cardElement.dataset.uptimeStatus;
   }
   
-  // Update urgent status
   const now = Date.now();
   if (isTaskUrgent(updatedTask, now)) {
     cardElement.dataset.urgent = 'true';
@@ -827,18 +828,34 @@ function updateCardInPlace(cardElement, updatedTask) {
     delete cardElement.dataset.urgent;
   }
   
-  // Update aria-label
   const deadlineInfo = updatedTask.deadline ? `, prazo: ${updatedTask.deadline}` : '';
   const colName = COLUMNS_MAP.get(newColId)?.name || '';
   cardElement.setAttribute('aria-label', `Projeto ${updatedTask.client}, ${formatPrice(updatedTask.price)}${deadlineInfo}, coluna: ${colName}. Use setas esquerda e direita para mover entre colunas, Enter ou Espaço para editar`);
   
-  // Update price if visible
   const priceEl = cardElement.querySelector('.price');
-  if (priceEl) {
-    priceEl.textContent = formatPrice(updatedTask.price);
-  }
+  if (priceEl) priceEl.textContent = formatPrice(updatedTask.price);
   
-  // Update deadline if visible
+  let subtasksEl = cardElement.querySelector('.card-subtasks');
+  if (updatedTask.subtask_count > 0) {
+    const subtasksHtml = `
+         <i class="fa-solid fa-list-check"></i> ${updatedTask.completed_subtask_count}/${updatedTask.subtask_count}
+       `;
+    if (!subtasksEl) {
+      const metaEl = cardElement.querySelector('.card-meta');
+      if (metaEl) {
+        subtasksEl = document.createElement('span');
+        subtasksEl.className = 'card-subtasks';
+        metaEl.insertBefore(subtasksEl, metaEl.querySelector('.deadline') || null);
+      }
+    }
+    if (subtasksEl) {
+      subtasksEl.innerHTML = subtasksHtml;
+      subtasksEl.title = `Subtarefas: ${updatedTask.completed_subtask_count}/${updatedTask.subtask_count}`;
+    }
+  } else if (subtasksEl) {
+    subtasksEl.remove();
+  }
+
   const deadlineEl = cardElement.querySelector('.deadline');
   if (deadlineEl && updatedTask.deadline_timestamp) {
     const display = formatDeadlineDisplay(updatedTask.deadline, updatedTask.deadline_timestamp);
@@ -946,11 +963,12 @@ function updateColumnCounts() {
   }
 }
 
-function exportKanbanData() {
-  const tasks = AppState.getTasks();
-  const csv = 'Cliente,Contato,Domínio,Stack,Tipo,Preço,Status Pagamento,Deadline,Hosting\n' +
-    tasks.map(t =>
-      `"${t.client || ''}","${t.contact || ''}","${t.domain || ''}","${t.stack || ''}","${t.type || ''}",${t.price || 0},"${t.payment_status || ''}","${t.deadline || ''}","${t.hosting || 'não'}"`
-    ).join('\n');
-  downloadCSV(csv, `vibeos-kanban-${new Date().toISOString().split('T')[0]}.csv`);
-}
+// Export to global scope for other modules (like SubtaskManager)
+window.renderBoard = renderBoard;
+window.updateCardInPlace = updateCardInPlace;
+window.updateColumnCounts = updateColumnCounts;
+window.filterKanbanByStatus = filterKanbanByStatus;
+window.filterKanbanByActiveJobs = filterKanbanByActiveJobs;
+window.filterKanbanByPendingPayments = filterKanbanByPendingPayments;
+window.clearKanbanFilter = clearKanbanFilter;
+window.exportKanbanData = exportKanbanData;

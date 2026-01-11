@@ -9,6 +9,7 @@ const { Server } = require("socket.io");
 
 const { initDatabase } = require("./db");
 const { sanitizeString } = require("./utils/validation");
+const backupDatabase = require("./scripts/backup");
 
 const app = express();
 const {
@@ -145,6 +146,14 @@ function startUptimeMonitor(db) {
   console.log("[UptimeMonitor] Active");
 }
 
+function startBackupManager() {
+  // Initial backup on startup
+  backupDatabase();
+  // Automation: Backup every 24 hours
+  setInterval(backupDatabase, 24 * 60 * 60 * 1000);
+  console.log("[BackupManager] Active (24h interval)");
+}
+
 // Authentication Middleware
 function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];
@@ -170,7 +179,10 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-initDatabase(startUptimeMonitor)
+initDatabase((db) => {
+  startUptimeMonitor(db);
+  startBackupManager();
+})
   .then((database) => {
     const db = database;
     const deps = {
