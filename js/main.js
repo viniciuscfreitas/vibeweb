@@ -280,6 +280,7 @@ async function initApp() {
   }
 
   ThemeManager.initTheme();
+  SettingsManager.init();
   await renderUserAvatar();
   setupEventListeners();
   startUpdateInterval();

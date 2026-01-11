@@ -167,8 +167,7 @@ async function saveSettingsFromForm() {
   }
 }
 
-// Add avatar preview listener
-document.addEventListener('DOMContentLoaded', () => {
+function initSettings() {
   if (DOM.profileAvatar) {
     DOM.profileAvatar.addEventListener('change', (e) => {
       const file = e.target.files[0];
@@ -183,9 +182,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
-});
+}
 
 window.SettingsManager = {
+  init: initSettings,
   getSettings,
   saveSettings,
   openSettingsModal,
