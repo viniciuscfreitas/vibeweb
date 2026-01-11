@@ -1,10 +1,7 @@
 // Tasks Routes - VibeWeb OS
 // Grug Rule: Separated from server.js for better organization (>300 lines rule)
 
-const URL_PATTERN = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i;
-const SIMPLE_DOMAIN_PATTERN = /^([\da-z\.-]+)\.([a-z\.]{2,6})$/i;
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const CONTACT_PATTERN = /^[@]?[\w\-\.]+$/;
+const { validateUrl, validateContact, validateEmail, sanitizeString } = require('../utils/validation');
 
 function parseDeadlineHours(deadlineStr) {
   if (!deadlineStr) return null;
@@ -275,18 +272,14 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString, io) {
 
       // Validate domain if provided
       const domainSanitized = domain ? sanitizeString(domain, 255) : null;
-      if (domainSanitized) {
-        if (!URL_PATTERN.test(domainSanitized) && !SIMPLE_DOMAIN_PATTERN.test(domainSanitized)) {
-          return res.status(400).json({ success: false, error: 'Formato de URL/domínio inválido' });
-        }
+      if (domainSanitized && !validateUrl(domainSanitized)) {
+        return res.status(400).json({ success: false, error: 'Formato de URL/domínio inválido' });
       }
 
       // Validate contact if provided
       const contactSanitized = contact ? sanitizeString(contact, 255) : null;
-      if (contactSanitized) {
-        if (!EMAIL_PATTERN.test(contactSanitized) && !CONTACT_PATTERN.test(contactSanitized)) {
-          return res.status(400).json({ success: false, error: 'Formato de contato inválido. Use email ou @username' });
-        }
+      if (contactSanitized && !validateContact(contactSanitized)) {
+        return res.status(400).json({ success: false, error: 'Formato de contato inválido. Use email ou @username' });
       }
 
       // Generate ID if not provided
@@ -490,18 +483,14 @@ function createTasksRoutes(db, NODE_ENV, sanitizeString, io) {
 
         // Validate domain if provided
         const domainSanitized = domain ? sanitizeString(domain, 255) : null;
-        if (domainSanitized) {
-          if (!URL_PATTERN.test(domainSanitized) && !SIMPLE_DOMAIN_PATTERN.test(domainSanitized)) {
-            return res.status(400).json({ success: false, error: 'Formato de URL/domínio inválido' });
-          }
+        if (domainSanitized && !validateUrl(domainSanitized)) {
+          return res.status(400).json({ success: false, error: 'Formato de URL/domínio inválido' });
         }
 
         // Validate contact if provided
         const contactSanitized = contact ? sanitizeString(contact, 255) : null;
-        if (contactSanitized) {
-          if (!EMAIL_PATTERN.test(contactSanitized) && !CONTACT_PATTERN.test(contactSanitized)) {
-            return res.status(400).json({ success: false, error: 'Formato de contato inválido. Use email ou @username' });
-          }
+        if (contactSanitized && !validateContact(contactSanitized)) {
+          return res.status(400).json({ success: false, error: 'Formato de contato inválido. Use email ou @username' });
         }
 
         const descriptionSanitized = description ? sanitizeString(description, 5000) : null;

@@ -1,98 +1,120 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="description" content="Painel de gerenciamento de projetos e ordens de serviço - VibeWeb OS">
-  <meta name="theme-color" content="#ffffff">
-  <meta name="referrer" content="no-referrer-when-downgrade">
-  <!-- DNS prefetch para melhorar performance -->
-  <link rel="dns-prefetch" href="https://fonts.googleapis.com">
-  <link rel="dns-prefetch" href="https://fonts.gstatic.com">
-  <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
-  <title>VibeWeb OS - Vanilla</title>
-  <!-- Preconnect para melhorar performance de fontes -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <!-- Fontes com display=swap - carregamento não-bloqueante via media="print" -->
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
-    rel="stylesheet" media="print" onload="this.media='all'">
-  <noscript>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta
+      name="description"
+      content="Painel de gerenciamento de projetos e ordens de serviço - VibeWeb OS"
+    />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="referrer" content="no-referrer-when-downgrade" />
+    <!-- DNS prefetch para melhorar performance -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" />
+    <title>VibeWeb OS - Vanilla</title>
+    <!-- Preconnect para melhorar performance de fontes -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Fontes com display=swap - carregamento não-bloqueante via media="print" -->
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
-      rel="stylesheet">
-  </noscript>
-  <!-- Font Awesome com preconnect e crossorigin - carregamento não-bloqueante -->
-  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    crossorigin="anonymous" referrerpolicy="no-referrer" media="print" onload="this.media='all'">
-  <noscript>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-      crossorigin="anonymous" referrerpolicy="no-referrer">
-  </noscript>
-  <link rel="stylesheet" href="css/styles.css">
-  <script>
-    // Prevent login flick on page load - check auth synchronously before rendering
-    (function() {
-      try {
-        const token = localStorage.getItem('vibeTasks_token');
-        if (token) {
-          document.documentElement.setAttribute('data-authenticated', 'true');
+      rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
+    <!-- Font Awesome com preconnect e crossorigin - carregamento não-bloqueante -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        crossorigin="anonymous"
+        referrerpolicy="no-referrer"
+      />
+    </noscript>
+    <link rel="stylesheet" href="css/styles.css" />
+    <script>
+      // Prevent login flick on page load - check auth synchronously before rendering
+      (function () {
+        try {
+          const token = localStorage.getItem("vibeTasks_token");
+          if (token) {
+            document.documentElement.setAttribute("data-authenticated", "true");
+          }
+        } catch (e) {
+          // localStorage might not be available in some contexts
         }
-      } catch (e) {
-        // localStorage might not be available in some contexts
-      }
-    })();
+      })();
 
-    (function() {
-      const ua = window.navigator.userAgent;
-      const isIOS = /iPad|iPhone|iPod/.test(ua);
-      const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS|OPiOS/.test(ua);
-      const isSafariIOS = isIOS && isSafari;
+      (function () {
+        const ua = window.navigator.userAgent;
+        const isIOS = /iPad|iPhone|iPod/.test(ua);
+        const isSafari =
+          /Safari/.test(ua) && !/Chrome|CriOS|FxiOS|OPiOS/.test(ua);
+        const isSafariIOS = isIOS && isSafari;
 
-      if (!isSafariIOS) {
-        return;
-      }
-
-      // Fix viewport height for Safari iOS
-      function setViewportHeight() {
-        const height = window.innerHeight || window.visualViewport?.height || 0;
-        if (height > 0) {
-          const vh = height * 0.01;
-          document.documentElement.style.setProperty('--vh', vh + 'px');
-        }
-      }
-      setViewportHeight();
-      window.addEventListener('resize', setViewportHeight);
-      window.addEventListener('orientationchange', function() {
-        setTimeout(setViewportHeight, 100);
-      });
-
-      let styleElement = null;
-      let lastMobileState = null;
-      let resizeTimeout = null;
-
-      function forceMobileLayout() {
-        const width = window.innerWidth || document.documentElement.clientWidth;
-        const isMobile = width <= 767;
-
-        if (isMobile === lastMobileState) {
+        if (!isSafariIOS) {
           return;
         }
 
-        lastMobileState = isMobile;
+        // Fix viewport height for Safari iOS
+        function setViewportHeight() {
+          const height =
+            window.innerHeight || window.visualViewport?.height || 0;
+          if (height > 0) {
+            const vh = height * 0.01;
+            document.documentElement.style.setProperty("--vh", vh + "px");
+          }
+        }
+        setViewportHeight();
+        window.addEventListener("resize", setViewportHeight);
+        window.addEventListener("orientationchange", function () {
+          setTimeout(setViewportHeight, 100);
+        });
 
-        const htmlEl = document.documentElement;
+        let styleElement = null;
+        let lastMobileState = null;
+        let resizeTimeout = null;
 
-        if (isMobile) {
-          htmlEl.classList.add('safari-mobile');
+        function forceMobileLayout() {
+          const width =
+            window.innerWidth || document.documentElement.clientWidth;
+          const isMobile = width <= 767;
 
-          if (!styleElement) {
-            styleElement = document.createElement('style');
-            styleElement.id = 'safari-mobile-fix';
-            styleElement.textContent = `
+          if (isMobile === lastMobileState) {
+            return;
+          }
+
+          lastMobileState = isMobile;
+
+          const htmlEl = document.documentElement;
+
+          if (isMobile) {
+            htmlEl.classList.add("safari-mobile");
+
+            if (!styleElement) {
+              styleElement = document.createElement("style");
+              styleElement.id = "safari-mobile-fix";
+              styleElement.textContent = `
               .safari-mobile .bottom-nav {
                 display: flex !important;
                 position: fixed !important;
@@ -120,137 +142,265 @@
               .safari-mobile .board-container { padding: 1rem !important; }
               .safari-mobile .btn-primary#btnNewProject { display: none !important; }
             `;
-            document.head.appendChild(styleElement);
+              document.head.appendChild(styleElement);
+            }
+          } else {
+            htmlEl.classList.remove("safari-mobile");
           }
+        }
+
+        function throttledForceMobileLayout() {
+          if (resizeTimeout) {
+            clearTimeout(resizeTimeout);
+          }
+          resizeTimeout = setTimeout(forceMobileLayout, 150);
+        }
+
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", forceMobileLayout);
         } else {
-          htmlEl.classList.remove('safari-mobile');
+          forceMobileLayout();
         }
-      }
 
-      function throttledForceMobileLayout() {
-        if (resizeTimeout) {
-          clearTimeout(resizeTimeout);
-        }
-        resizeTimeout = setTimeout(forceMobileLayout, 150);
-      }
+        window.addEventListener("resize", throttledForceMobileLayout, {
+          passive: true,
+        });
+        window.addEventListener(
+          "orientationchange",
+          function () {
+            setTimeout(forceMobileLayout, 200);
+          },
+          { passive: true }
+        );
+      })();
+    </script>
+  </head>
 
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', forceMobileLayout);
-      } else {
-        forceMobileLayout();
-      }
-
-      window.addEventListener('resize', throttledForceMobileLayout, { passive: true });
-      window.addEventListener('orientationchange', function() {
-        setTimeout(forceMobileLayout, 200);
-      }, { passive: true });
-    })();
-  </script>
-</head>
-
-<body>
-  <a href="#main-content" class="skip-link">Pular para o conteúdo principal</a>
-  <!-- Screen reader announcements for dynamic content changes -->
-  <div id="ariaLiveRegion" class="sr-only" aria-live="polite" aria-atomic="true"></div>
-  <!-- LOGIN SCREEN -->
-  <div class="login-overlay" id="loginOverlay">
-    <div class="login-container">
-      <div class="login-brand">
-        <div class="brand-icon-large" aria-hidden="true">
-          <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <title>VibeWeb OS Logo</title>
-            <path d="M12 12L20 28L28 12" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
-              fill="none" />
-          </svg>
+  <body>
+    <a href="#main-content" class="skip-link"
+      >Pular para o conteúdo principal</a
+    >
+    <!-- Screen reader announcements for dynamic content changes -->
+    <div
+      id="ariaLiveRegion"
+      class="sr-only"
+      aria-live="polite"
+      aria-atomic="true"
+    ></div>
+    <!-- LOGIN SCREEN -->
+    <div class="login-overlay" id="loginOverlay">
+      <div class="login-container">
+        <div class="login-brand">
+          <div class="brand-icon-large" aria-hidden="true">
+            <svg
+              viewBox="0 0 40 40"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <title>VibeWeb OS Logo</title>
+              <path
+                d="M12 12L20 28L28 12"
+                stroke="white"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                fill="none"
+              />
+            </svg>
+          </div>
+          <h1 class="login-title">VibeWeb OS</h1>
+          <p class="login-tagline">Painel de gerenciamento de projetos</p>
         </div>
-        <h1 class="login-title">VibeWeb OS</h1>
-        <p class="login-tagline">Painel de gerenciamento de projetos</p>
-      </div>
-      <div class="login-card">
-        <form class="login-form" id="loginForm" method="post" novalidate aria-label="Formulário de login">
-          <div class="form-group">
-            <label for="loginEmail" class="sr-only">Email ou usuário</label>
-            <input type="email" class="form-input" id="loginEmail" name="email" placeholder="Email ou usuário" required
-              autocomplete="username" aria-required="true" aria-invalid="false" aria-describedby="errorLoginEmail"
-              spellcheck="false" autocapitalize="off" inputmode="email">
-            <div class="form-error" id="errorLoginEmail" role="alert" aria-live="polite"></div>
-          </div>
-          <div class="form-group">
-            <label for="loginPassword" class="sr-only">Senha</label>
-            <input type="password" class="form-input" id="loginPassword" name="password" placeholder="Senha" required
-              autocomplete="current-password" aria-required="true" aria-invalid="false"
-              aria-describedby="errorLoginPassword" spellcheck="false" autocapitalize="off">
-            <div class="form-error" id="errorLoginPassword" role="alert" aria-live="polite"></div>
-          </div>
-          <div class="form-error" id="errorLoginGeneral" role="alert" aria-live="assertive"></div>
-          <button type="submit" class="btn-login-primary" aria-label="Acessar painel" id="loginSubmitBtn">
-            <span class="btn-text-content">Acessar Painel</span>
-            <span class="btn-loading-spinner hidden" aria-hidden="true">
-              <i class="fa-solid fa-spinner fa-spin"></i>
-            </span>
-          </button>
-        </form>
+        <div class="login-card">
+          <form
+            class="login-form"
+            id="loginForm"
+            method="post"
+            novalidate
+            aria-label="Formulário de login"
+          >
+            <div class="form-group">
+              <label for="loginEmail" class="sr-only">Email ou usuário</label>
+              <input
+                type="email"
+                class="form-input"
+                id="loginEmail"
+                name="email"
+                placeholder="Email ou usuário"
+                required
+                autocomplete="username"
+                aria-required="true"
+                aria-invalid="false"
+                aria-describedby="errorLoginEmail"
+                spellcheck="false"
+                autocapitalize="off"
+                inputmode="email"
+              />
+              <div
+                class="form-error"
+                id="errorLoginEmail"
+                role="alert"
+                aria-live="polite"
+              ></div>
+            </div>
+            <div class="form-group">
+              <label for="loginPassword" class="sr-only">Senha</label>
+              <input
+                type="password"
+                class="form-input"
+                id="loginPassword"
+                name="password"
+                placeholder="Senha"
+                required
+                autocomplete="current-password"
+                aria-required="true"
+                aria-invalid="false"
+                aria-describedby="errorLoginPassword"
+                spellcheck="false"
+                autocapitalize="off"
+              />
+              <div
+                class="form-error"
+                id="errorLoginPassword"
+                role="alert"
+                aria-live="polite"
+              ></div>
+            </div>
+            <div
+              class="form-error"
+              id="errorLoginGeneral"
+              role="alert"
+              aria-live="assertive"
+            ></div>
+            <button
+              type="submit"
+              class="btn-login-primary"
+              aria-label="Acessar painel"
+              id="loginSubmitBtn"
+            >
+              <span class="btn-text-content">Acessar Painel</span>
+              <span class="btn-loading-spinner hidden" aria-hidden="true">
+                <i class="fa-solid fa-spinner fa-spin"></i>
+              </span>
+            </button>
+          </form>
+        </div>
       </div>
     </div>
-  </div>
-  <!-- MAIN APP (hidden until authenticated) -->
-  <div class="app-container hidden" id="appContainer">
-    <!-- SIDEBAR (Shell) -->
-    <!--
+    <!-- MAIN APP (hidden until authenticated) -->
+    <div class="app-container hidden" id="appContainer">
+      <!-- SIDEBAR (Shell) -->
+      <!--
       Sidebar structure:
       - Brand icon at top
       - Navigation buttons (Projects, Dashboard, Financial)
       - User profile at bottom with dropdown menu
       Active state is managed by JS via updateNavButtons()
     -->
-    <aside class="sidebar shell-bg">
-      <div class="brand-icon" aria-hidden="true">
-        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <title>VibeWeb OS Logo</title>
-          <path d="M12 12L20 28L28 12" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
-            fill="none" />
-        </svg>
-      </div>
-      <nav class="nav-container" role="navigation" aria-label="Navegação principal">
-        <button class="nav-btn active" aria-label="Projetos - página atual" aria-current="page" title="Projetos"><i class="fa-solid fa-layer-group"
-            aria-hidden="true"></i></button>
-        <button class="nav-btn" aria-label="Painel" title="Painel de controle"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i></button>
-        <button class="nav-btn" aria-label="Financeiro" title="Financeiro"><i class="fa-solid fa-euro-sign"
-            aria-hidden="true"></i></button>
-      </nav>
-      <div class="nav-footer">
-        <div class="user-profile" id="userProfile">
-          <div class="avatar" id="userAvatar" title="" role="button" aria-label="Abrir menu do usuário" tabindex="0"></div>
-          <div class="user-dropdown hidden" id="userDropdown" role="menu" aria-label="Menu do usuário">
-            <div class="dropdown-header">
-              <div class="dropdown-avatar" id="dropdownAvatar"></div>
-              <div class="dropdown-info">
-                <div class="dropdown-name" id="dropdownName"></div>
+      <aside class="sidebar shell-bg">
+        <div class="brand-icon" aria-hidden="true">
+          <svg
+            viewBox="0 0 40 40"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <title>VibeWeb OS Logo</title>
+            <path
+              d="M12 12L20 28L28 12"
+              stroke="white"
+              stroke-width="3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              fill="none"
+            />
+          </svg>
+        </div>
+        <nav
+          class="nav-container"
+          role="navigation"
+          aria-label="Navegação principal"
+        >
+          <button
+            class="nav-btn active"
+            aria-label="Projetos - página atual"
+            aria-current="page"
+            title="Projetos"
+          >
+            <i class="fa-solid fa-layer-group" aria-hidden="true"></i>
+          </button>
+          <button
+            class="nav-btn"
+            aria-label="Painel"
+            title="Painel de controle"
+          >
+            <i class="fa-solid fa-chart-pie" aria-hidden="true"></i>
+          </button>
+          <button class="nav-btn" aria-label="Financeiro" title="Financeiro">
+            <i class="fa-solid fa-euro-sign" aria-hidden="true"></i>
+          </button>
+        </nav>
+        <div class="nav-footer">
+          <div class="user-profile" id="userProfile">
+            <div
+              class="avatar"
+              id="userAvatar"
+              title=""
+              role="button"
+              aria-label="Abrir menu do usuário"
+              tabindex="0"
+            ></div>
+            <div
+              class="user-dropdown hidden"
+              id="userDropdown"
+              role="menu"
+              aria-label="Menu do usuário"
+            >
+              <div class="dropdown-header">
+                <div class="dropdown-avatar" id="dropdownAvatar"></div>
+                <div class="dropdown-info">
+                  <div class="dropdown-name" id="dropdownName"></div>
+                </div>
               </div>
-            </div>
-            <div class="dropdown-divider"></div>
-            <div class="dropdown-menu">
-              <button class="dropdown-item" id="dropdownSettings" role="menuitem" aria-label="Abrir configurações">
-                <i class="fa-solid fa-gear"></i>
-                <span>Configurações</span>
-              </button>
-              <button class="dropdown-item" id="dropdownTheme" role="menuitem" aria-label="Alternar tema">
-                <i class="fa-solid fa-moon" id="dropdownThemeIcon"></i>
-                <span id="dropdownThemeText">Tema Escuro</span>
-              </button>
-              <button class="dropdown-item" id="dropdownLogout" role="menuitem" aria-label="Sair da aplicação">
-                <i class="fa-solid fa-sign-out-alt"></i>
-                <span>Sair</span>
-              </button>
+              <div class="dropdown-divider"></div>
+              <div class="dropdown-menu">
+                <button
+                  class="dropdown-item"
+                  id="dropdownSettings"
+                  role="menuitem"
+                  aria-label="Abrir configurações"
+                >
+                  <i class="fa-solid fa-gear"></i>
+                  <span>Configurações</span>
+                </button>
+                <button
+                  class="dropdown-item"
+                  id="dropdownTheme"
+                  role="menuitem"
+                  aria-label="Alternar tema"
+                >
+                  <i class="fa-solid fa-moon" id="dropdownThemeIcon"></i>
+                  <span id="dropdownThemeText">Tema Escuro</span>
+                </button>
+                <button
+                  class="dropdown-item"
+                  id="dropdownLogout"
+                  role="menuitem"
+                  aria-label="Sair da aplicação"
+                >
+                  <i class="fa-solid fa-sign-out-alt"></i>
+                  <span>Sair</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </aside>
-    <!-- MAIN CONTENT -->
-    <main class="main-content" id="main-content" role="main">
-      <!-- HEADER (Shell) -->
-      <!--
+      </aside>
+      <!-- MAIN CONTENT -->
+      <main class="main-content" id="main-content" role="main">
+        <!-- HEADER (Shell) -->
+        <!--
         Header structure:
         - Left side (header-info): Displays stats that vary by view (Projects/Dashboard/Financial)
           Content is dynamically injected by JS functions:
@@ -260,427 +410,914 @@
         - Right side (header-actions): Search, export, and new project buttons
           Visibility of buttons changes based on current view
       -->
-      <header class="header shell-bg">
-        <!-- Stats display area (left side) - content injected by JS -->
-        <div class="header-info" id="headerInfo" role="region" aria-label="Estatísticas do painel">
-          <div class="header-stat">
-            <span class="header-stat-label">Total:</span>
-            <span class="header-stat-value" id="statTotalValue">€0</span>
-          </div>
-        </div>
-        <!-- Actions area (right side) -->
-        <div class="header-actions" role="toolbar" aria-label="Ações do cabeçalho">
-          <div class="header-actions-group">
-            <div class="search-container" id="searchContainer">
-              <button class="search-btn" id="searchBtn" aria-label="Buscar projeto" title="Buscar projeto (/)">
-                <i class="fa-solid fa-search search-btn-icon" aria-hidden="true"></i>
-              </button>
-              <label for="searchInput" class="sr-only">Buscar projeto</label>
-              <i class="fa-solid fa-search search-icon" aria-hidden="true"></i>
-              <input type="text" class="search-input" placeholder="Buscar projeto... (/) " id="searchInput"
-                autocomplete="off" inputmode="search" aria-label="Buscar projeto" title="Buscar projeto (/)">
+        <header class="header shell-bg">
+          <!-- Stats display area (left side) - content injected by JS -->
+          <div
+            class="header-info"
+            id="headerInfo"
+            role="region"
+            aria-label="Estatísticas do painel"
+          >
+            <div class="header-stat">
+              <span class="header-stat-label">Total:</span>
+              <span class="header-stat-value" id="statTotalValue">€0</span>
             </div>
-            <button class="export-icon-btn" id="exportBtn" aria-label="Exportar dados para CSV" title="Exportar dados para CSV">
-              <i class="fa-solid fa-download" aria-hidden="true"></i>
-            </button>
           </div>
-          <button class="btn-primary" id="btnNewProject" aria-label="Novo Projeto (Ctrl+N)">
-            <i class="fa-solid fa-plus" aria-hidden="true"></i> Novo Projeto
-          </button>
-        </div>
-      </header>
-      <div class="board-container" id="boardContainer" role="region" aria-label="Quadro de projetos">
-        <div class="board-grid" id="boardGrid" role="group" aria-label="Colunas do quadro kanban">
-        </div>
-      </div>
-      <div class="financial-container hidden" id="financialContainer" role="region" aria-label="Painel financeiro"
-        aria-hidden="true">
-        <!-- Financial content will be generated by JS -->
-      </div>
-      <div class="dashboard-container hidden" id="dashboardContainer" role="region" aria-label="Painel de controle"
-        aria-hidden="true">
-        <!-- Stats Cards -->
-        <div class="stats-grid" id="statsGrid">
-          <!-- Stats cards will be generated by JS -->
-        </div>
-        <!-- Charts Grid -->
-        <div class="dashboard-grid">
-          <div class="dashboard-card">
-            <div class="dashboard-card-header">
-              <h3 class="dashboard-card-title">Receita</h3>
-              <div class="chart-toggle" role="tablist" aria-label="Alternar visualização do gráfico">
-                <button class="chart-toggle-btn active" id="chartToggleHistory" data-view="history" role="tab" aria-selected="true" aria-controls="revenueChart">
-                  Histórico
+          <!-- Actions area (right side) -->
+          <div
+            class="header-actions"
+            role="toolbar"
+            aria-label="Ações do cabeçalho"
+          >
+            <div class="header-actions-group">
+              <div class="search-container" id="searchContainer">
+                <button
+                  class="search-btn"
+                  id="searchBtn"
+                  aria-label="Buscar projeto"
+                  title="Buscar projeto (/)"
+                >
+                  <i
+                    class="fa-solid fa-search search-btn-icon"
+                    aria-hidden="true"
+                  ></i>
                 </button>
-                <button class="chart-toggle-btn" id="chartToggleProjection" data-view="projection" role="tab" aria-selected="false" aria-controls="revenueChart">
-                  Projeção
+                <label for="searchInput" class="sr-only">Buscar projeto</label>
+                <i
+                  class="fa-solid fa-search search-icon"
+                  aria-hidden="true"
+                ></i>
+                <input
+                  type="text"
+                  class="search-input"
+                  placeholder="Buscar projeto... (/) "
+                  id="searchInput"
+                  autocomplete="off"
+                  inputmode="search"
+                  aria-label="Buscar projeto"
+                  title="Buscar projeto (/)"
+                />
+              </div>
+              <button
+                class="export-icon-btn"
+                id="exportBtn"
+                aria-label="Exportar dados para CSV"
+                title="Exportar dados para CSV"
+              >
+                <i class="fa-solid fa-download" aria-hidden="true"></i>
+              </button>
+            </div>
+            <button
+              class="btn-primary"
+              id="btnNewProject"
+              aria-label="Novo Projeto (Ctrl+N)"
+            >
+              <i class="fa-solid fa-plus" aria-hidden="true"></i> Novo Projeto
+            </button>
+          </div>
+        </header>
+        <div
+          class="board-container"
+          id="boardContainer"
+          role="region"
+          aria-label="Quadro de projetos"
+        >
+          <div
+            class="board-grid"
+            id="boardGrid"
+            role="group"
+            aria-label="Colunas do quadro kanban"
+          ></div>
+        </div>
+        <div
+          class="financial-container hidden"
+          id="financialContainer"
+          role="region"
+          aria-label="Painel financeiro"
+          aria-hidden="true"
+        >
+          <!-- Financial content will be generated by JS -->
+        </div>
+        <div
+          class="dashboard-container hidden"
+          id="dashboardContainer"
+          role="region"
+          aria-label="Painel de controle"
+          aria-hidden="true"
+        >
+          <!-- Stats Cards -->
+          <div class="stats-grid" id="statsGrid">
+            <!-- Stats cards will be generated by JS -->
+          </div>
+          <!-- Charts Grid -->
+          <div class="dashboard-grid">
+            <div class="dashboard-card">
+              <div class="dashboard-card-header">
+                <h3 class="dashboard-card-title">Receita</h3>
+                <div
+                  class="chart-toggle"
+                  role="tablist"
+                  aria-label="Alternar visualização do gráfico"
+                >
+                  <button
+                    class="chart-toggle-btn active"
+                    id="chartToggleHistory"
+                    data-view="history"
+                    role="tab"
+                    aria-selected="true"
+                    aria-controls="revenueChart"
+                  >
+                    Histórico
+                  </button>
+                  <button
+                    class="chart-toggle-btn"
+                    id="chartToggleProjection"
+                    data-view="projection"
+                    role="tab"
+                    aria-selected="false"
+                    aria-controls="revenueChart"
+                  >
+                    Projeção
+                  </button>
+                </div>
+              </div>
+              <div
+                class="chart-container"
+                id="revenueChart"
+                style="position: relative"
+                role="img"
+                aria-label="Gráfico de barras de receita mensal"
+                aria-describedby="revenueChartDescription"
+              >
+                <!-- Chart bars will be generated by JS -->
+                <div id="revenueChartDescription" class="sr-only"></div>
+              </div>
+              <div class="chart-legend">
+                <div class="chart-legend-item">
+                  <div class="chart-legend-color"></div>
+                  <span id="chartLegendText">Receita Mensal</span>
+                </div>
+              </div>
+            </div>
+            <div class="dashboard-card">
+              <div class="dashboard-card-header">
+                <h3 class="dashboard-card-title">Pipeline</h3>
+              </div>
+              <div class="pie-chart-container" id="pieChartContainer">
+                <canvas
+                  class="pie-chart-canvas"
+                  id="pieChart"
+                  role="img"
+                  aria-label="Gráfico de pizza mostrando distribuição de projetos por status"
+                ></canvas>
+              </div>
+              <div class="pie-chart-legend" id="pieChartLegend">
+                <!-- Legend will be generated by JS -->
+              </div>
+            </div>
+          </div>
+          <!-- Urgentes + Atividades -->
+          <div class="dashboard-grid">
+            <div class="dashboard-card" id="urgentCard">
+              <div class="dashboard-card-header">
+                <h3 class="dashboard-card-title">Urgentes</h3>
+                <button
+                  class="expand-btn"
+                  id="expandUrgentBtn"
+                  aria-label="Expandir lista de urgentes"
+                  title="Expandir"
+                >
+                  <i class="fa-solid fa-expand" aria-hidden="true"></i>
                 </button>
               </div>
+              <div class="urgent-list" id="urgentList">
+                <!-- Urgent items will be generated by JS -->
+              </div>
             </div>
-            <div class="chart-container" id="revenueChart" style="position: relative;" role="img" aria-label="Gráfico de barras de receita mensal" aria-describedby="revenueChartDescription">
-              <!-- Chart bars will be generated by JS -->
-              <div id="revenueChartDescription" class="sr-only"></div>
-            </div>
-            <div class="chart-legend">
-              <div class="chart-legend-item">
-                <div class="chart-legend-color"></div>
-                <span id="chartLegendText">Receita Mensal</span>
+            <div class="dashboard-card" id="activityCard">
+              <div class="dashboard-card-header">
+                <h3 class="dashboard-card-title">Atividades</h3>
+                <button
+                  class="expand-btn"
+                  id="expandActivityBtn"
+                  aria-label="Expandir lista de atividades"
+                  title="Expandir"
+                >
+                  <i class="fa-solid fa-expand" aria-hidden="true"></i>
+                </button>
+              </div>
+              <div class="activity-list" id="activityList">
+                <!-- Activity items will be generated by JS -->
               </div>
             </div>
           </div>
-          <div class="dashboard-card">
-            <div class="dashboard-card-header">
-              <h3 class="dashboard-card-title">Pipeline</h3>
+        </div>
+      </main>
+      <!-- BOTTOM NAVIGATION (Mobile) -->
+      <nav class="bottom-nav" role="navigation" aria-label="Navegação móvel">
+        <button
+          class="bottom-nav-item"
+          id="bottomNavProjects"
+          data-view="projects"
+          aria-label="Projetos"
+        >
+          <i class="fa-solid fa-layer-group" aria-hidden="true"></i>
+        </button>
+        <button
+          class="bottom-nav-item"
+          id="bottomNavDashboard"
+          data-view="dashboard"
+          aria-label="Painel"
+        >
+          <i class="fa-solid fa-chart-pie" aria-hidden="true"></i>
+        </button>
+        <button
+          class="bottom-nav-item central"
+          id="bottomNavCentral"
+          aria-label="Novo Projeto"
+          style="display: none"
+        ></button>
+        <button
+          class="bottom-nav-item"
+          id="bottomNavFinancial"
+          data-view="financial"
+          aria-label="Financeiro"
+        >
+          <i class="fa-solid fa-euro-sign" aria-hidden="true"></i>
+        </button>
+        <button
+          class="bottom-nav-item"
+          id="bottomNavProfile"
+          aria-label="Perfil"
+        >
+          <div class="bottom-nav-avatar" id="bottomNavAvatar"></div>
+        </button>
+      </nav>
+      <!-- MODAL -->
+      <div
+        class="modal-overlay"
+        id="modalOverlay"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modalTitle"
+        aria-describedby="modalDescription"
+        aria-hidden="true"
+      >
+        <div class="modal-card">
+          <div class="modal-header">
+            <div>
+              <div class="modal-subtitle">
+                <i class="fa-solid fa-file-invoice"></i>
+                <span>Ficha de OS</span>
+                <span
+                  class="modal-edit-badge hidden"
+                  id="modalEditBadge"
+                  aria-label="Modo de edição"
+                  >Editando</span
+                >
+              </div>
+              <h2 class="modal-title" id="modalTitle">Novo Projeto</h2>
+              <div
+                class="modal-preview hidden"
+                id="modalPreview"
+                role="status"
+                aria-live="polite"
+              ></div>
+              <p class="sr-only" id="modalDescription">
+                Formulário para criar ou editar projeto. Use Tab para navegar
+                entre campos, Ctrl+Enter para salvar, Esc para cancelar.
+              </p>
             </div>
-            <div class="pie-chart-container" id="pieChartContainer">
-              <canvas class="pie-chart-canvas" id="pieChart" role="img"
-                aria-label="Gráfico de pizza mostrando distribuição de projetos por status"></canvas>
+            <button
+              type="button"
+              class="btn-text"
+              id="btnCloseModal"
+              aria-label="Fechar modal"
+            >
+              <i class="fa-solid fa-xmark close-icon"></i>
+            </button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="formId" />
+            <div
+              class="form-progress"
+              id="formProgress"
+              role="status"
+              aria-live="polite"
+            >
+              <span id="formProgressText"
+                >2 de 3 campos obrigatórios preenchidos</span
+              >
             </div>
-            <div class="pie-chart-legend" id="pieChartLegend">
-              <!-- Legend will be generated by JS -->
+            <div>
+              <h3 class="form-section-title">Informações Básicas</h3>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="formClient"
+                    >Nome / Empresa
+                    <span class="required-asterisk">*</span></label
+                  >
+                  <input
+                    type="text"
+                    class="form-input"
+                    id="formClient"
+                    placeholder="Ex: JCuts"
+                    aria-required="true"
+                    aria-invalid="false"
+                    aria-describedby="errorClient"
+                    data-paste-enabled="true"
+                    data-required="true"
+                  />
+                  <div
+                    class="form-error"
+                    id="errorClient"
+                    role="alert"
+                    aria-live="polite"
+                  ></div>
+                </div>
+                <div class="form-group">
+                  <label for="formContact"
+                    >Contato
+                    <span class="optional-label">(opcional)</span></label
+                  >
+                  <input
+                    type="text"
+                    inputmode="email"
+                    class="form-input"
+                    id="formContact"
+                    placeholder="exemplo@email.com ou @username"
+                    aria-invalid="false"
+                    aria-describedby="errorContact"
+                    data-paste-enabled="true"
+                  />
+                  <div
+                    class="form-error"
+                    id="errorContact"
+                    role="alert"
+                    aria-live="polite"
+                  ></div>
+                </div>
+                <div class="form-group">
+                  <label for="formType"
+                    >Tipo <span class="required-asterisk">*</span></label
+                  >
+                  <select
+                    class="form-input"
+                    id="formType"
+                    aria-label="Tipo de projeto"
+                    aria-required="true"
+                    data-required="true"
+                  >
+                    <option>Landing Essencial</option>
+                    <option>Autoridade de Marca</option>
+                    <option>Aplicação Web</option>
+                    <option>Manutenção</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="formPrice"
+                    >Preço (€) <span class="required-asterisk">*</span></label
+                  >
+                  <input
+                    type="number"
+                    class="form-input"
+                    id="formPrice"
+                    inputmode="numeric"
+                    aria-required="true"
+                    aria-invalid="false"
+                    aria-describedby="errorPrice"
+                    data-paste-enabled="true"
+                    data-required="true"
+                    min="0"
+                    step="0.01"
+                  />
+                  <div
+                    class="form-error"
+                    id="errorPrice"
+                    role="alert"
+                    aria-live="polite"
+                  ></div>
+                </div>
+              </div>
+            </div>
+            <div class="form-advanced-section">
+              <button
+                type="button"
+                class="form-advanced-toggle"
+                id="formAdvancedToggle"
+                aria-expanded="false"
+                aria-controls="formAdvancedContent"
+              >
+                <span>Mais opções</span>
+                <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+              </button>
+              <div
+                class="form-advanced-content"
+                id="formAdvancedContent"
+                aria-hidden="true"
+              >
+                <div>
+                  <h3 class="form-section-title">Técnico</h3>
+                  <div class="form-grid">
+                    <div class="form-group">
+                      <label for="formStack"
+                        >Stack
+                        <span class="optional-label">(opcional)</span></label
+                      >
+                      <input
+                        type="text"
+                        class="form-input"
+                        id="formStack"
+                        placeholder="React, Node..."
+                        aria-label="Stack tecnológico"
+                        data-paste-enabled="true"
+                      />
+                    </div>
+                    <div class="form-group">
+                      <label for="formDeadline"
+                        >Prazo
+                        <span class="optional-label">(opcional)</span></label
+                      >
+                      <input
+                        type="text"
+                        class="form-input"
+                        id="formDeadline"
+                        placeholder="Ex: 48h, 1 semana, 15 dias"
+                        aria-label="Prazo de entrega"
+                      />
+                    </div>
+                    <div class="form-group col-span-2">
+                      <label for="formDomain"
+                        >Domínio (URL)
+                        <span class="optional-label">(opcional)</span></label
+                      >
+                      <input
+                        type="url"
+                        class="form-input domain-input"
+                        id="formDomain"
+                        placeholder="https://exemplo.com"
+                        aria-invalid="false"
+                        aria-describedby="errorDomain"
+                        aria-label="Domínio ou URL do projeto"
+                        data-paste-enabled="true"
+                      />
+                      <div
+                        class="form-error"
+                        id="errorDomain"
+                        role="alert"
+                        aria-live="polite"
+                      ></div>
+                    </div>
+                    <div class="form-group col-span-2">
+                      <label for="formDesc"
+                        >Detalhes
+                        <span class="optional-label">(opcional)</span></label
+                      >
+                      <textarea
+                        class="form-input"
+                        id="formDesc"
+                        rows="3"
+                        placeholder="Escopo e detalhes do projeto..."
+                        aria-label="Detalhes e escopo do projeto"
+                        data-paste-enabled="true"
+                      ></textarea>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h3 class="form-section-title">Comercial</h3>
+                  <div class="form-grid">
+                    <div class="form-group">
+                      <label for="formPayment"
+                        >Pagamento
+                        <span class="optional-label">(opcional)</span></label
+                      >
+                      <select
+                        class="form-input"
+                        id="formPayment"
+                        aria-label="Status de pagamento"
+                      >
+                        <option>Pendente</option>
+                        <option>50% Após Aprovação</option>
+                        <option>Pago 100%</option>
+                      </select>
+                    </div>
+                    <div class="form-group col-span-2">
+                      <label for="formHosting" class="checkbox-label">
+                        <input
+                          type="checkbox"
+                          id="formHosting"
+                          class="checkbox-input"
+                          aria-describedby="formHostingDesc"
+                        />
+                        <span>Incluir hospedagem (€29/mês)</span>
+                      </label>
+                      <div id="formHostingDesc" class="sr-only">
+                        Ativa assinatura mensal de hospedagem para este projeto
+                      </div>
+                    </div>
+                    <div class="form-group col-span-2">
+                      <label for="formRecurring" class="checkbox-label">
+                        <input
+                          type="checkbox"
+                          id="formRecurring"
+                          class="checkbox-input"
+                          aria-describedby="formRecurringDesc"
+                        />
+                        <span>Criar task automática ao finalizar</span>
+                      </label>
+                      <div id="formRecurringDesc" class="sr-only">
+                        Quando marcado, uma nova task será criada
+                        automaticamente na coluna Descoberta quando esta task
+                        for movida para Suporte / Live
+                      </div>
+                    </div>
+                    <div class="form-group col-span-2">
+                      <label for="formPublic" class="checkbox-label">
+                        <input
+                          type="checkbox"
+                          id="formPublic"
+                          class="checkbox-input"
+                          aria-describedby="formPublicDesc"
+                        />
+                        <span>Gerar link compartilhável</span>
+                      </label>
+                      <div id="formPublicDesc" class="sr-only">
+                        Gera um link único que permite ao cliente visualizar o
+                        status do projeto sem necessidade de login
+                      </div>
+                    </div>
+                    <div class="form-group col-span-2">
+                      <label for="formAssetsLink"
+                        >Links de Anexos
+                        <span class="optional-label">(opcional)</span></label
+                      >
+                      <textarea
+                        class="form-input"
+                        id="formAssetsLink"
+                        rows="2"
+                        placeholder="https://drive.google.com/...&#10;https://figma.com/..."
+                        aria-label="Links de anexos, um por linha ou separados por vírgula"
+                      ></textarea>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-        <!-- Urgentes + Atividades -->
-        <div class="dashboard-grid">
-          <div class="dashboard-card" id="urgentCard">
-            <div class="dashboard-card-header">
-              <h3 class="dashboard-card-title">Urgentes</h3>
-              <button class="expand-btn" id="expandUrgentBtn" aria-label="Expandir lista de urgentes" title="Expandir">
-                <i class="fa-solid fa-expand" aria-hidden="true"></i>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn-danger btn-delete-visible"
+              id="btnDelete"
+              aria-label="Arquivar projeto"
+            >
+              Arquivar
+            </button>
+            <div class="form-actions">
+              <button
+                type="button"
+                class="btn-secondary btn-generate-pdf hidden"
+                id="btnGeneratePDF"
+                aria-label="Gerar PDF da proposta"
+              >
+                <i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Gerar
+                PDF
+              </button>
+              <button
+                type="button"
+                class="btn-text"
+                id="btnCancel"
+                aria-label="Cancelar e fechar formulário"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                class="btn-primary btn-save-primary"
+                id="btnSave"
+                aria-label="Salvar projeto"
+              >
+                Salvar
               </button>
             </div>
-            <div class="urgent-list" id="urgentList">
-              <!-- Urgent items will be generated by JS -->
+          </div>
+        </div>
+      </div>
+      <!-- SETTINGS MODAL -->
+      <div
+        class="modal-overlay"
+        id="settingsModalOverlay"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settingsModalTitle"
+        aria-describedby="settingsModalDescription"
+        aria-hidden="true"
+      >
+        <div class="modal-card">
+          <div class="modal-header">
+            <div>
+              <div class="modal-subtitle">
+                <i class="fa-solid fa-gear"></i> Configurações do Sistema
+              </div>
+              <h2 class="modal-title" id="settingsModalTitle">Configurações</h2>
+              <p class="sr-only" id="settingsModalDescription">
+                Configurações importantes do sistema. Use Tab para navegar entre
+                campos, Esc para cancelar.
+              </p>
+            </div>
+            <button
+              type="button"
+              class="btn-text"
+              id="btnCloseSettingsModal"
+              aria-label="Fechar configurações"
+            >
+              <i class="fa-solid fa-xmark close-icon"></i>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div>
+              <h3 class="form-section-title">Financeiro</h3>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="settingsHostingPrice"
+                    >Preço de Hospedagem (€/mês)</label
+                  >
+                  <input
+                    type="number"
+                    class="form-input"
+                    id="settingsHostingPrice"
+                    inputmode="numeric"
+                    placeholder="29"
+                    min="0"
+                    step="0.01"
+                    aria-label="Preço mensal de hospedagem"
+                  />
+                  <div class="form-hint">
+                    Valor padrão usado para cálculos de MRR
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="settingsDefaultTicket"
+                    >Ticket Médio Padrão (€)</label
+                  >
+                  <input
+                    type="number"
+                    class="form-input"
+                    id="settingsDefaultTicket"
+                    inputmode="numeric"
+                    placeholder="1500"
+                    min="0"
+                    step="0.01"
+                    aria-label="Valor médio padrão de projetos"
+                  />
+                  <div class="form-hint">
+                    Usado quando não há dados suficientes
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h3 class="form-section-title">Interface</h3>
+              <div class="form-grid">
+                <div class="form-group col-span-2">
+                  <label for="settingsAutoUpdate" class="checkbox-label">
+                    <input
+                      type="checkbox"
+                      id="settingsAutoUpdate"
+                      class="checkbox-input"
+                      checked
+                    />
+                    <span>Atualização Automática</span>
+                  </label>
+                  <div class="form-hint">
+                    Atualiza dados automaticamente a cada minuto quando a página
+                    está visível
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h3 class="form-section-title">Notificações</h3>
+              <div class="form-grid">
+                <div class="form-group col-span-2">
+                  <label for="settingsShowUrgent" class="checkbox-label">
+                    <input
+                      type="checkbox"
+                      id="settingsShowUrgent"
+                      class="checkbox-input"
+                      checked
+                    />
+                    <span>Mostrar Alertas de Urgência</span>
+                  </label>
+                  <div class="form-hint">
+                    Destaca projetos com prazo de 48h ou menos
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="settingsUrgentHours">Horas para Urgência</label>
+                  <input
+                    type="number"
+                    class="form-input"
+                    id="settingsUrgentHours"
+                    inputmode="numeric"
+                    placeholder="48"
+                    min="1"
+                    step="1"
+                    aria-label="Número de horas para considerar urgente"
+                  />
+                  <div class="form-hint">
+                    Projetos com menos horas serão marcados como urgentes
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h3 class="form-section-title">Perfil</h3>
+              <div class="form-grid">
+                <div class="form-group col-span-2">
+                  <label for="profileAvatar">Foto de Perfil</label>
+                  <div style="display: flex; align-items: center; gap: 1rem">
+                    <div
+                      class="avatar"
+                      id="profileAvatarPreview"
+                      style="width: 80px; height: 80px; font-size: 2rem"
+                    ></div>
+                    <div style="flex: 1">
+                      <input
+                        type="file"
+                        class="form-input"
+                        id="profileAvatar"
+                        accept="image/*"
+                        style="padding: 0.5rem"
+                      />
+                      <div class="form-hint">
+                        Formatos aceitos: JPG, PNG, GIF (máx. 2MB)
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="profileName">Nome</label>
+                  <input
+                    type="text"
+                    class="form-input"
+                    id="profileName"
+                    placeholder="Seu nome"
+                    maxlength="100"
+                    aria-required="true"
+                    aria-invalid="false"
+                    aria-describedby="errorProfileName"
+                  />
+                  <div
+                    class="form-error"
+                    id="errorProfileName"
+                    role="alert"
+                    aria-live="polite"
+                  ></div>
+                </div>
+                <div class="form-group">
+                  <label for="profileEmail">Email</label>
+                  <input
+                    type="email"
+                    class="form-input"
+                    id="profileEmail"
+                    placeholder="seu@email.com"
+                    maxlength="255"
+                    aria-required="true"
+                    aria-invalid="false"
+                    aria-describedby="errorProfileEmail"
+                  />
+                  <div
+                    class="form-error"
+                    id="errorProfileEmail"
+                    role="alert"
+                    aria-live="polite"
+                  ></div>
+                </div>
+                <div class="form-group">
+                  <label for="profileCurrentPassword">Senha Atual</label>
+                  <input
+                    type="password"
+                    class="form-input"
+                    id="profileCurrentPassword"
+                    placeholder="Digite sua senha atual"
+                    aria-describedby="errorProfilePassword"
+                  />
+                  <div
+                    class="form-error"
+                    id="errorProfilePassword"
+                    role="alert"
+                    aria-live="polite"
+                  ></div>
+                </div>
+                <div class="form-group">
+                  <label for="profileNewPassword">Nova Senha</label>
+                  <input
+                    type="password"
+                    class="form-input"
+                    id="profileNewPassword"
+                    placeholder="Digite a nova senha"
+                    minlength="6"
+                    maxlength="128"
+                    aria-describedby="errorProfileNewPassword"
+                  />
+                  <div
+                    class="form-error"
+                    id="errorProfileNewPassword"
+                    role="alert"
+                    aria-live="polite"
+                  ></div>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="dashboard-card" id="activityCard">
-            <div class="dashboard-card-header">
-              <h3 class="dashboard-card-title">Atividades</h3>
-              <button class="expand-btn" id="expandActivityBtn" aria-label="Expandir lista de atividades" title="Expandir">
-                <i class="fa-solid fa-expand" aria-hidden="true"></i>
+          <div class="modal-footer">
+            <div class="form-actions">
+              <button
+                type="button"
+                class="btn-text"
+                id="btnCancelSettings"
+                aria-label="Cancelar e fechar configurações"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                class="btn-primary"
+                id="btnSaveSettings"
+                aria-label="Salvar configurações"
+              >
+                Salvar
               </button>
             </div>
-            <div class="activity-list" id="activityList">
-              <!-- Activity items will be generated by JS -->
-            </div>
           </div>
         </div>
       </div>
-    </main>
-    <!-- BOTTOM NAVIGATION (Mobile) -->
-    <nav class="bottom-nav" role="navigation" aria-label="Navegação móvel">
-      <button class="bottom-nav-item" id="bottomNavProjects" data-view="projects" aria-label="Projetos">
-        <i class="fa-solid fa-layer-group" aria-hidden="true"></i>
-      </button>
-      <button class="bottom-nav-item" id="bottomNavDashboard" data-view="dashboard" aria-label="Painel">
-        <i class="fa-solid fa-chart-pie" aria-hidden="true"></i>
-      </button>
-      <button class="bottom-nav-item central" id="bottomNavCentral" aria-label="Novo Projeto" style="display: none;"></button>
-      <button class="bottom-nav-item" id="bottomNavFinancial" data-view="financial" aria-label="Financeiro">
-        <i class="fa-solid fa-euro-sign" aria-hidden="true"></i>
-      </button>
-      <button class="bottom-nav-item" id="bottomNavProfile" aria-label="Perfil">
-        <div class="bottom-nav-avatar" id="bottomNavAvatar"></div>
-      </button>
-    </nav>
-    <!-- MODAL -->
-    <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle"
-      aria-describedby="modalDescription" aria-hidden="true">
-      <div class="modal-card">
-        <div class="modal-header">
-          <div>
-            <div class="modal-subtitle">
-              <i class="fa-solid fa-file-invoice"></i>
-              <span>Ficha de OS</span>
-              <span class="modal-edit-badge hidden" id="modalEditBadge" aria-label="Modo de edição">Editando</span>
+      <!-- PROFILE MODAL (Mobile) -->
+      <div
+        class="profile-modal-overlay hidden"
+        id="profileModalOverlay"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menu de Perfil"
+        aria-hidden="true"
+      >
+        <div class="profile-modal-sheet">
+          <div class="profile-modal-header">
+            <div class="profile-modal-avatar-container">
+              <div class="profile-modal-avatar" id="profileModalAvatar"></div>
+              <div class="profile-modal-name" id="profileModalName"></div>
             </div>
-            <h2 class="modal-title" id="modalTitle">Novo Projeto</h2>
-            <div class="modal-preview hidden" id="modalPreview" role="status" aria-live="polite"></div>
-            <p class="sr-only" id="modalDescription">Formulário para criar ou editar projeto. Use Tab para navegar entre campos, Ctrl+Enter para salvar, Esc para cancelar.</p>
-          </div>
-          <button type="button" class="btn-text" id="btnCloseModal" aria-label="Fechar modal"><i
-              class="fa-solid fa-xmark close-icon"></i></button>
-        </div>
-        <div class="modal-body">
-          <input type="hidden" id="formId">
-          <div class="form-progress" id="formProgress" role="status" aria-live="polite">
-            <span id="formProgressText">2 de 3 campos obrigatórios preenchidos</span>
-          </div>
-          <div>
-            <h3 class="form-section-title">Informações Básicas</h3>
-            <div class="form-grid">
-              <div class="form-group">
-                <label for="formClient">Nome / Empresa <span class="required-asterisk">*</span></label>
-                <input type="text" class="form-input" id="formClient" placeholder="Ex: JCuts" aria-required="true"
-                  aria-invalid="false" aria-describedby="errorClient" data-paste-enabled="true" data-required="true">
-                <div class="form-error" id="errorClient" role="alert" aria-live="polite"></div>
-              </div>
-              <div class="form-group">
-                <label for="formContact">Contato <span class="optional-label">(opcional)</span></label>
-                <input type="text" inputmode="email" class="form-input" id="formContact" placeholder="exemplo@email.com ou @username" aria-invalid="false"
-                  aria-describedby="errorContact" data-paste-enabled="true">
-                <div class="form-error" id="errorContact" role="alert" aria-live="polite"></div>
-              </div>
-              <div class="form-group">
-                <label for="formType">Tipo <span class="required-asterisk">*</span></label>
-                <select class="form-input" id="formType" aria-label="Tipo de projeto" aria-required="true" data-required="true">
-                  <option>Landing Essencial</option>
-                  <option>Autoridade de Marca</option>
-                  <option>Aplicação Web</option>
-                  <option>Manutenção</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label for="formPrice">Preço (€) <span class="required-asterisk">*</span></label>
-                <input type="number" class="form-input" id="formPrice" inputmode="numeric" aria-required="true" aria-invalid="false"
-                  aria-describedby="errorPrice" data-paste-enabled="true" data-required="true" min="0" step="0.01">
-                <div class="form-error" id="errorPrice" role="alert" aria-live="polite"></div>
-              </div>
-            </div>
-          </div>
-          <div class="form-advanced-section">
-            <button type="button" class="form-advanced-toggle" id="formAdvancedToggle" aria-expanded="false" aria-controls="formAdvancedContent">
-              <span>Mais opções</span>
-              <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+            <button
+              type="button"
+              class="btn-text"
+              id="btnCloseProfileModal"
+              aria-label="Fechar perfil"
+            >
+              <i class="fa-solid fa-xmark close-icon"></i>
             </button>
-            <div class="form-advanced-content" id="formAdvancedContent" aria-hidden="true">
-              <div>
-                <h3 class="form-section-title">Técnico</h3>
-                <div class="form-grid">
-                  <div class="form-group">
-                    <label for="formStack">Stack <span class="optional-label">(opcional)</span></label>
-                    <input type="text" class="form-input" id="formStack" placeholder="React, Node..." aria-label="Stack tecnológico" data-paste-enabled="true">
-                  </div>
-                  <div class="form-group">
-                    <label for="formDeadline">Prazo <span class="optional-label">(opcional)</span></label>
-                    <input type="text" class="form-input" id="formDeadline" placeholder="Ex: 48h, 1 semana, 15 dias" aria-label="Prazo de entrega">
-                  </div>
-                  <div class="form-group col-span-2">
-                    <label for="formDomain">Domínio (URL) <span class="optional-label">(opcional)</span></label>
-                    <input type="url" class="form-input domain-input" id="formDomain" placeholder="https://exemplo.com"
-                      aria-invalid="false" aria-describedby="errorDomain" aria-label="Domínio ou URL do projeto" data-paste-enabled="true">
-                    <div class="form-error" id="errorDomain" role="alert" aria-live="polite"></div>
-                  </div>
-                  <div class="form-group col-span-2">
-                    <label for="formDesc">Detalhes <span class="optional-label">(opcional)</span></label>
-                    <textarea class="form-input" id="formDesc" rows="3" placeholder="Escopo e detalhes do projeto..." aria-label="Detalhes e escopo do projeto" data-paste-enabled="true"></textarea>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <h3 class="form-section-title">Comercial</h3>
-                <div class="form-grid">
-                  <div class="form-group">
-                    <label for="formPayment">Pagamento <span class="optional-label">(opcional)</span></label>
-                    <select class="form-input" id="formPayment" aria-label="Status de pagamento">
-                      <option>Pendente</option>
-                      <option>50% Após Aprovação</option>
-                      <option>Pago 100%</option>
-                    </select>
-                  </div>
-                  <div class="form-group col-span-2">
-                    <label for="formHosting" class="checkbox-label">
-                      <input type="checkbox" id="formHosting" class="checkbox-input" aria-describedby="formHostingDesc">
-                      <span>Incluir hospedagem (€29/mês)</span>
-                    </label>
-                    <div id="formHostingDesc" class="sr-only">Ativa assinatura mensal de hospedagem para este projeto</div>
-                  </div>
-                  <div class="form-group col-span-2">
-                    <label for="formRecurring" class="checkbox-label">
-                      <input type="checkbox" id="formRecurring" class="checkbox-input" aria-describedby="formRecurringDesc">
-                      <span>Criar task automática ao finalizar</span>
-                    </label>
-                    <div id="formRecurringDesc" class="sr-only">Quando marcado, uma nova task será criada automaticamente na coluna Descoberta quando esta task for movida para Suporte / Live</div>
-                  </div>
-                  <div class="form-group col-span-2">
-                    <label for="formPublic" class="checkbox-label">
-                      <input type="checkbox" id="formPublic" class="checkbox-input" aria-describedby="formPublicDesc">
-                      <span>Gerar link compartilhável</span>
-                    </label>
-                    <div id="formPublicDesc" class="sr-only">Gera um link único que permite ao cliente visualizar o status do projeto sem necessidade de login</div>
-                  </div>
-                  <div class="form-group col-span-2">
-                    <label for="formAssetsLink">Links de Anexos <span class="optional-label">(opcional)</span></label>
-                    <textarea class="form-input" id="formAssetsLink" rows="2" placeholder="https://drive.google.com/...&#10;https://figma.com/..." aria-label="Links de anexos, um por linha ou separados por vírgula"></textarea>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn-danger btn-delete-visible" id="btnDelete" aria-label="Arquivar projeto">Arquivar</button>
-          <div class="form-actions">
-            <button type="button" class="btn-secondary btn-generate-pdf hidden" id="btnGeneratePDF" aria-label="Gerar PDF da proposta">
-              <i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Gerar PDF
+          <div class="profile-modal-menu">
+            <button class="profile-modal-item" id="profileModalSettings">
+              <i class="fa-solid fa-gear"></i>
+              <span>Configurações</span>
             </button>
-            <button type="button" class="btn-text" id="btnCancel"
-              aria-label="Cancelar e fechar formulário">Cancelar</button>
-            <button type="button" class="btn-primary btn-save-primary" id="btnSave" aria-label="Salvar projeto">Salvar</button>
+            <button class="profile-modal-item" id="profileModalTheme">
+              <i class="fa-solid fa-moon" id="profileModalThemeIcon"></i>
+              <span id="profileModalThemeText">Tema Escuro</span>
+            </button>
+            <button class="profile-modal-item" id="profileModalLogout">
+              <i class="fa-solid fa-sign-out-alt"></i>
+              <span>Sair</span>
+            </button>
           </div>
         </div>
       </div>
     </div>
-    <!-- SETTINGS MODAL -->
-    <div class="modal-overlay" id="settingsModalOverlay" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle"
-      aria-describedby="settingsModalDescription" aria-hidden="true">
-      <div class="modal-card">
-        <div class="modal-header">
-          <div>
-            <div class="modal-subtitle">
-              <i class="fa-solid fa-gear"></i> Configurações do Sistema
-            </div>
-            <h2 class="modal-title" id="settingsModalTitle">Configurações</h2>
-            <p class="sr-only" id="settingsModalDescription">Configurações importantes do sistema. Use Tab para navegar entre campos, Esc para cancelar.</p>
-          </div>
-          <button type="button" class="btn-text" id="btnCloseSettingsModal" aria-label="Fechar configurações"><i
-              class="fa-solid fa-xmark close-icon"></i></button>
-        </div>
-        <div class="modal-body">
-          <div>
-            <h3 class="form-section-title">Financeiro</h3>
-            <div class="form-grid">
-              <div class="form-group">
-                <label for="settingsHostingPrice">Preço de Hospedagem (€/mês)</label>
-                <input type="number" class="form-input" id="settingsHostingPrice" inputmode="numeric" placeholder="29" min="0" step="0.01"
-                  aria-label="Preço mensal de hospedagem">
-                <div class="form-hint">Valor padrão usado para cálculos de MRR</div>
-              </div>
-              <div class="form-group">
-                <label for="settingsDefaultTicket">Ticket Médio Padrão (€)</label>
-                <input type="number" class="form-input" id="settingsDefaultTicket" inputmode="numeric" placeholder="1500" min="0" step="0.01"
-                  aria-label="Valor médio padrão de projetos">
-                <div class="form-hint">Usado quando não há dados suficientes</div>
-              </div>
-            </div>
-          </div>
-          <div>
-            <h3 class="form-section-title">Interface</h3>
-            <div class="form-grid">
-              <div class="form-group col-span-2">
-                <label for="settingsAutoUpdate" class="checkbox-label">
-                  <input type="checkbox" id="settingsAutoUpdate" class="checkbox-input" checked>
-                  <span>Atualização Automática</span>
-                </label>
-                <div class="form-hint">Atualiza dados automaticamente a cada minuto quando a página está visível</div>
-              </div>
-            </div>
-          </div>
-          <div>
-            <h3 class="form-section-title">Notificações</h3>
-            <div class="form-grid">
-              <div class="form-group col-span-2">
-                <label for="settingsShowUrgent" class="checkbox-label">
-                  <input type="checkbox" id="settingsShowUrgent" class="checkbox-input" checked>
-                  <span>Mostrar Alertas de Urgência</span>
-                </label>
-                <div class="form-hint">Destaca projetos com prazo de 48h ou menos</div>
-              </div>
-              <div class="form-group">
-                <label for="settingsUrgentHours">Horas para Urgência</label>
-                <input type="number" class="form-input" id="settingsUrgentHours" inputmode="numeric" placeholder="48" min="1" step="1"
-                  aria-label="Número de horas para considerar urgente">
-                <div class="form-hint">Projetos com menos horas serão marcados como urgentes</div>
-              </div>
-            </div>
-          </div>
-          <div>
-            <h3 class="form-section-title">Perfil</h3>
-            <div class="form-grid">
-              <div class="form-group col-span-2">
-                <label for="profileAvatar">Foto de Perfil</label>
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                  <div class="avatar" id="profileAvatarPreview" style="width: 80px; height: 80px; font-size: 2rem;"></div>
-                  <div style="flex: 1;">
-                    <input type="file" class="form-input" id="profileAvatar" accept="image/*" style="padding: 0.5rem;">
-                    <div class="form-hint">Formatos aceitos: JPG, PNG, GIF (máx. 2MB)</div>
-                  </div>
-                </div>
-              </div>
-              <div class="form-group">
-                <label for="profileName">Nome</label>
-                <input type="text" class="form-input" id="profileName" placeholder="Seu nome" maxlength="100"
-                  aria-required="true" aria-invalid="false" aria-describedby="errorProfileName">
-                <div class="form-error" id="errorProfileName" role="alert" aria-live="polite"></div>
-              </div>
-              <div class="form-group">
-                <label for="profileEmail">Email</label>
-                <input type="email" class="form-input" id="profileEmail" placeholder="seu@email.com" maxlength="255"
-                  aria-required="true" aria-invalid="false" aria-describedby="errorProfileEmail">
-                <div class="form-error" id="errorProfileEmail" role="alert" aria-live="polite"></div>
-              </div>
-              <div class="form-group">
-                <label for="profileCurrentPassword">Senha Atual</label>
-                <input type="password" class="form-input" id="profileCurrentPassword" placeholder="Digite sua senha atual"
-                  aria-describedby="errorProfilePassword">
-                <div class="form-error" id="errorProfilePassword" role="alert" aria-live="polite"></div>
-              </div>
-              <div class="form-group">
-                <label for="profileNewPassword">Nova Senha</label>
-                <input type="password" class="form-input" id="profileNewPassword" placeholder="Digite a nova senha"
-                  minlength="6" maxlength="128" aria-describedby="errorProfileNewPassword">
-                <div class="form-error" id="errorProfileNewPassword" role="alert" aria-live="polite"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <div class="form-actions">
-            <button type="button" class="btn-text" id="btnCancelSettings"
-              aria-label="Cancelar e fechar configurações">Cancelar</button>
-            <button type="button" class="btn-primary" id="btnSaveSettings" aria-label="Salvar configurações">Salvar</button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- PROFILE MODAL (Mobile) -->
-    <div class="profile-modal-overlay hidden" id="profileModalOverlay" role="dialog" aria-modal="true" aria-label="Menu de Perfil" aria-hidden="true">
-      <div class="profile-modal-sheet">
-        <div class="profile-modal-header">
-          <div class="profile-modal-avatar-container">
-            <div class="profile-modal-avatar" id="profileModalAvatar"></div>
-            <div class="profile-modal-name" id="profileModalName"></div>
-          </div>
-          <button type="button" class="btn-text" id="btnCloseProfileModal" aria-label="Fechar perfil">
-            <i class="fa-solid fa-xmark close-icon"></i>
-          </button>
-        </div>
-        <div class="profile-modal-menu">
-          <button class="profile-modal-item" id="profileModalSettings">
-            <i class="fa-solid fa-gear"></i>
-            <span>Configurações</span>
-          </button>
-          <button class="profile-modal-item" id="profileModalTheme">
-            <i class="fa-solid fa-moon" id="profileModalThemeIcon"></i>
-            <span id="profileModalThemeText">Tema Escuro</span>
-          </button>
-          <button class="profile-modal-item" id="profileModalLogout">
-            <i class="fa-solid fa-sign-out-alt"></i>
-            <span>Sair</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-  <!-- JavaScript Modules -->
-  <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-  <script src="/socket.io/socket.io.js" onerror="console.error('[WebSocket] Failed to load socket.io from server:', this.src)"></script>
-  <script src="js/constants.js"></script>
-  <script src="js/state.js"></script>
-  <script src="js/api.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/dom.js"></script>
-  <script src="js/utils.js"></script>
-  <script src="js/calculations.js"></script>
-  <script src="js/notifications.js"></script>
-  <script src="js/forms.js"></script>
-  <script src="js/kanban.js"></script>
-  <script src="js/dashboard.js"></script>
-  <script src="js/financial.js"></script>
-  <script src="js/websocket.js"></script>
-  <script src="js/main.js"></script>
-</body>
-
+    <!-- JavaScript Modules -->
+    <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script
+      src="/socket.io/socket.io.js"
+      onerror="console.error('[WebSocket] Failed to load socket.io from server:', this.src)"
+    ></script>
+    <script src="js/constants.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/dom.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/calculations.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/forms.js"></script>
+    <script src="js/kanban.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/financial.js"></script>
+    <script src="js/websocket.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/navigation.js"></script>
+    <script src="js/main.js"></script>
+  </body>
 </html>

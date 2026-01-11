@@ -6,10 +6,10 @@ const bcrypt = require('bcrypt');
 const fs = require('fs');
 const path = require('path');
 
+const { validateEmail, sanitizeString, validateUsername } = require('../utils/validation');
+
 // Dummy hash válido de bcrypt para prevenir timing attacks
 const DUMMY_PASSWORD_HASH = '$2b$10$QifQjXA8GUTxPTixOWuG8eIaT0Grw/o9C1FkQye/KKnJy5hH6KWQe';
-
-const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,30}$/;
 
 const QUERY_USER_BY_EMAIL = 'SELECT * FROM users WHERE email = ?';
 const QUERY_USER_BY_USERNAME = 'SELECT * FROM users WHERE username = ?';
@@ -32,7 +32,7 @@ function getClientIp(req) {
 
 // Grug Rule: Group related parameters into config object (max 3-4 params)
 function createAuthRoutes(config) {
-  const { db, JWT_SECRET, NODE_ENV, checkRateLimit, validateEmail, sanitizeString, authenticateToken } = config;
+  const { db, JWT_SECRET, NODE_ENV, checkRateLimit, authenticateToken } = config;
   const router = require('express').Router();
 
   // Login route (no auth required)
@@ -66,7 +66,7 @@ function createAuthRoutes(config) {
       const isEmail = validateEmail(identifierTrimmed);
 
       if (!isEmail) {
-        if (!USERNAME_REGEX.test(identifierTrimmed)) {
+        if (!validateUsername(identifierTrimmed)) {
           return res.status(400).json({
             success: false,
             error: 'Formato de usuário inválido. Use apenas letras, números, underscore e hífen (3-30 caracteres)'
