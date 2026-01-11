@@ -1,5 +1,4 @@
 // Settings and Profile Management Module
-const SETTINGS_STORAGE_KEY = 'vibeTasks_settings';
 
 function getDefaultSettings() {
   return {

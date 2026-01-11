@@ -1,5 +1,4 @@
 // Theme Management Module
-const THEME_STORAGE_KEY = 'vibeTasks_theme';
 
 function getCurrentTheme() {
   const saved = localStorage.getItem(THEME_STORAGE_KEY);
