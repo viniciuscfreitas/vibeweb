@@ -8,9 +8,7 @@ RUN chmod +x /entrypoint.sh
 
 WORKDIR /usr/share/nginx/html
 
-COPY index.html admin.html
-COPY index.html.template .
-COPY fotos ./fotos
+COPY index.html .
 
 # Ensure css/js from dashboard are still accessible if needed
 # Although index.html is replaced, static assets might be useful
