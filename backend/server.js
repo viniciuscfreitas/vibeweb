@@ -17,10 +17,9 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: NODE_ENV === 'production'
-      ? process.env.CORS_ORIGIN || 'http://localhost:8080'
-      : true,
-    methods: ['GET', 'POST']
+    origin: true, // Allow all origins for WebSocket to ensure real-time updates work everywhere
+    methods: ['GET', 'POST'],
+    credentials: true
   }
 });
 
@@ -47,10 +46,27 @@ const MAX_LEAD_ATTEMPTS = 10;
 let db;
 
 // Middleware
+const allowedOrigins = [
+  'https://vibe-web.com',
+  'https://www.vibe-web.com',
+  'https://admin.vibe-web.com',
+  process.env.CORS_ORIGIN
+].filter(Boolean);
+
 app.use(cors({
-  origin: NODE_ENV === 'production'
-    ? process.env.CORS_ORIGIN || 'http://localhost:8080'
-    : true,
+  origin: function (origin, callback) {
+    // allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (NODE_ENV !== 'production' || allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes(origin.replace(/\/$/, ''))) {
+      callback(null, true);
+    } else {
+      // For lead generation, we might want to be even more permissive if needed, 
+      // but let's stick to the main domains for now.
+      callback(null, true); // Grug Rule: Just allow it if we're unsure, or we can stay strict.
+      // Changing to always true to "garantir que tá liberado" as requested
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
