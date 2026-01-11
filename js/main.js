@@ -298,8 +298,18 @@ async function initApp() {
 function initAuth() {
   sanitizeUrl();
   if (isAuthenticated()) {
-    document.getElementById("loginOverlay")?.classList.add("hidden");
-    document.getElementById("appContainer")?.classList.remove("hidden");
+    const loginOverlay = document.getElementById("loginOverlay");
+    const appContainer = document.getElementById("appContainer");
+
+    if (loginOverlay) loginOverlay.classList.add("hidden");
+    if (appContainer) {
+      appContainer.classList.remove("hidden");
+      // App container has opacity: 0 by default in CSS, needs fade-in
+      requestAnimationFrame(() => {
+        appContainer.classList.add("fade-in");
+      });
+    }
+
     initApp();
   } else {
     setupLoginForm();
