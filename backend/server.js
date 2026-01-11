@@ -193,7 +193,7 @@ initDatabase(startUptimeMonitor).then(database => {
     db, JWT_SECRET: ACTUAL_JWT_SECRET, NODE_ENV, checkRateLimit, authenticateToken
   }));
 
-  app.use('/api/leads', require('./routes/leads')(db, NODE_ENV, sanitizeString, checkLeadRateLimit));
+  app.use('/api/leads', require('./routes/leads')(db, NODE_ENV, sanitizeString, checkLeadRateLimit, io));
 
   app.get('/api/tasks/view/:uuid', (req, res) => {
     const uuid = req.params.uuid;

@@ -228,18 +228,21 @@ function renderStatsCards(metrics) {
   const currentStats = {
     monthlyRevenue: metrics.monthlyRevenue || 0,
     activeProjects: metrics.activeProjects || 0,
-    pendingPayments: metrics.pendingPayments || 0
+    pendingPayments: metrics.pendingPayments || 0,
+    leadsToday: metrics.leadsToday || 0
   };
 
   const valuesChanged = !lastRenderedStats ||
     lastRenderedStats.monthlyRevenue !== currentStats.monthlyRevenue ||
     lastRenderedStats.activeProjects !== currentStats.activeProjects ||
-    lastRenderedStats.pendingPayments !== currentStats.pendingPayments;
+    lastRenderedStats.pendingPayments !== currentStats.pendingPayments ||
+    lastRenderedStats.leadsToday !== currentStats.leadsToday;
 
   if (!valuesChanged && DOM.statsGrid.children.length > 0) {
     const faturadoCard = document.getElementById('stat-faturado');
     const activeJobsCard = document.getElementById('stat-active-jobs');
     const pendingPaymentsCard = document.getElementById('stat-pending-payments');
+    const leadsTodayCard = document.getElementById('stat-leads-today');
 
     if (faturadoCard) {
       const valueEl = faturadoCard.querySelector('.stat-card-value');
@@ -260,6 +263,10 @@ function renderStatsCards(metrics) {
       if (ariaLabel) {
         pendingPaymentsCard.setAttribute('aria-label', `Pagamentos Pendentes: ${currentStats.pendingPayments}. Clique para filtrar.`);
       }
+    }
+    if (leadsTodayCard) {
+      const valueEl = leadsTodayCard.querySelector('.stat-card-value');
+      if (valueEl) valueEl.textContent = currentStats.leadsToday;
     }
 
     lastRenderedStats = currentStats;
@@ -290,6 +297,14 @@ function renderStatsCards(metrics) {
       icon: 'fa-clock',
       iconClass: 'warning',
       clickable: true
+    },
+    {
+      id: 'stat-leads-today',
+      label: 'Leads Hoje',
+      value: currentStats.leadsToday,
+      icon: 'fa-user-plus',
+      iconClass: 'accent',
+      clickable: false
     }
   ];
 

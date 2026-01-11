@@ -1953,6 +1953,10 @@ html[data-authenticated="true"] #appContainer.hidden {
   color: var(--danger);
 }
 
+.stat-card-icon.accent {
+  color: #a855f7;
+}
+
 .stat-card-value {
   font-size: 1.5rem;
   font-weight: 700;

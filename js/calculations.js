@@ -179,9 +179,26 @@ function calculateDashboardMetrics() {
   const upsellPending = [];
   const statusDistribution = COLUMNS.map(col => ({ name: col.name, count: 0, value: 0 }));
 
+  const today = new Date();
+  const todayDay = today.getDate();
+  const todayMonth = today.getMonth();
+  const todayYear = today.getFullYear();
+  let leadsToday = 0;
+
   const monthRevenueMap = new Map();
   tasks.forEach(task => {
     const colId = task.col_id || 0;
+    
+    // Contagem de leads de hoje
+    const taskDate = parseTaskDate(task.created_at);
+    if (taskDate && (task.type === 'Lead Externo' || task.type === 'WhatsApp')) {
+      if (taskDate.getDate() === todayDay && 
+          taskDate.getMonth() === todayMonth && 
+          taskDate.getFullYear() === todayYear) {
+        leadsToday++;
+      }
+    }
+
     if (colId >= 0 && colId <= 3) {
       const countKeys = ['discoveryCount', 'agreementCount', 'buildCount', 'liveCount'];
       projectCounts[countKeys[colId]]++;
@@ -259,7 +276,8 @@ function calculateDashboardMetrics() {
     urgentCount: urgentProjects.length,
     urgentProjects,
     upsellPending,
-    statusDistribution
+    statusDistribution,
+    leadsToday
   };
 }
 

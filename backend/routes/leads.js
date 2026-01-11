@@ -19,7 +19,7 @@ function getClientIp(req) {
   return req.connection?.remoteAddress || 'unknown';
 }
 
-function createLeadsRoutes(db, NODE_ENV, sanitizeString, checkLeadRateLimit) {
+function createLeadsRoutes(db, NODE_ENV, sanitizeString, checkLeadRateLimit, io) {
   const router = require('express').Router();
 
   // Public webhook for leads (no authentication, but with rate limiting)
@@ -42,13 +42,17 @@ function createLeadsRoutes(db, NODE_ENV, sanitizeString, checkLeadRateLimit) {
 
       const { client, contact, description, source } = req.body;
 
-      // Validate and sanitize all fields
-      const clientSanitized = sanitizeString(client, 255);
-      const contactSanitized = contact ? sanitizeString(contact, 255) : null;
-      const descriptionSanitized = description ? sanitizeString(description, 5000) : null;
+      const isWhatsAppClick = source === 'WhatsApp' && !client && !contact;
+      
+      const clientName = client || (isWhatsAppClick ? 'Visitante WhatsApp' : null);
+      const contactInfo = contact || (isWhatsAppClick ? 'Clique no Botão' : null);
+      const leadDescription = description || (isWhatsAppClick ? 'Interesse via clique no botão do WhatsApp pelo site.' : null);
+
+      const clientSanitized = clientName ? sanitizeString(clientName, 255) : null;
+      const contactSanitized = contactInfo ? sanitizeString(contactInfo, 255) : null;
+      const descriptionSanitized = leadDescription ? sanitizeString(leadDescription, 5000) : null;
       const sourceSanitized = source ? sanitizeString(source, 100) : null;
 
-      // Validate required fields
       if (!clientSanitized || clientSanitized.trim().length === 0) {
         return res.status(400).json({ success: false, error: 'Campo client é obrigatório' });
       }
@@ -56,13 +60,11 @@ function createLeadsRoutes(db, NODE_ENV, sanitizeString, checkLeadRateLimit) {
         return res.status(400).json({ success: false, error: 'Campo contact é obrigatório' });
       }
 
-      // Validate sizes
       if (clientSanitized.length > 255 || contactSanitized.length > 255 || (descriptionSanitized && descriptionSanitized.length > 5000)) {
         return res.status(400).json({ success: false, error: 'Campos excedem tamanho máximo permitido' });
       }
 
-      // Validate contact format
-      if (!EMAIL_PATTERN.test(contactSanitized) && !CONTACT_PATTERN.test(contactSanitized)) {
+      if (!isWhatsAppClick && !EMAIL_PATTERN.test(contactSanitized) && !CONTACT_PATTERN.test(contactSanitized)) {
         return res.status(400).json({ success: false, error: 'Formato de contato inválido. Use email ou @username' });
       }
 
@@ -105,11 +107,37 @@ function createLeadsRoutes(db, NODE_ENV, sanitizeString, checkLeadRateLimit) {
               });
             }
 
+            const taskId = this.lastID;
+
+            if (io) {
+              const newTask = {
+                id: taskId,
+                user_id: userId,
+                client: clientSanitized,
+                contact: contactSanitized,
+                description: descriptionSanitized,
+                price: 0,
+                payment_status: 'Pendente',
+                col_id: 0,
+                order_position: 0,
+                type: sourceSanitized || 'Lead Externo',
+                created_at: new Date().toISOString().replace('T', ' ').substring(0, 19),
+                updated_at: new Date().toISOString().replace('T', ' ').substring(0, 19)
+              };
+
+              io.emit('task:created', {
+                task: newTask,
+                userId: userId,
+                userName: 'Sistema (GTM)',
+                actionDescription: `Novo lead de ${clientSanitized} via ${sourceSanitized || 'Site'}`
+              });
+            }
+
             res.json({
               success: true,
               data: {
                 message: 'Lead criado com sucesso',
-                taskId: this.lastID
+                taskId: taskId
               }
             });
           }
