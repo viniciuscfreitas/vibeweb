@@ -57,16 +57,20 @@ function handleRateLimit(map, ip, limit, windowMs) {
   return true;
 }
 
-const checkRateLimit = (ip) => handleRateLimit(loginAttempts, ip, 5, 15 * 60 * 1000);
-const checkLeadRateLimit = (ip) => handleRateLimit(leadAttempts, ip, 10, 60 * 60 * 1000);
+const checkRateLimit = (ip) =>
+  handleRateLimit(loginAttempts, ip, 5, 15 * 60 * 1000);
+const checkLeadRateLimit = (ip) =>
+  handleRateLimit(leadAttempts, ip, 10, 60 * 60 * 1000);
 
 // Global Middlewares
-app.use(cors({
-  origin: true, // Reflect request origin to allow all domains (CORS "liberado")
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-}));
+app.use(
+  cors({
+    origin: true, // Reflect request origin to allow all domains (CORS "liberado")
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 app.use(express.json({ limit: "10mb" }));
 app.disable("x-powered-by");
@@ -92,14 +96,17 @@ function checkDomain(domain, timeoutMs = 5000) {
 
     const timer = setTimeout(() => done("down"), timeoutMs);
 
-    const req = https.request({
-      hostname: cleanDomain,
-      method: "HEAD",
-      timeout: timeoutMs,
-      rejectUnauthorized: false,
-    }, (res) => {
-      done(res.statusCode >= 200 && res.statusCode < 400 ? "up" : "down");
-    });
+    const req = https.request(
+      {
+        hostname: cleanDomain,
+        method: "HEAD",
+        timeout: timeoutMs,
+        rejectUnauthorized: false,
+      },
+      (res) => {
+        done(res.statusCode >= 200 && res.statusCode < 400 ? "up" : "down");
+      }
+    );
 
     req.on("error", () => done("down"));
     req.end();
@@ -108,21 +115,32 @@ function checkDomain(domain, timeoutMs = 5000) {
 
 function startUptimeMonitor(db) {
   setInterval(async () => {
-    db.all("SELECT id, domain FROM tasks WHERE domain IS NOT NULL AND domain != '' LIMIT 100", [], async (err, tasks) => {
-      if (err || !tasks?.length) return;
+    db.all(
+      "SELECT id, domain FROM tasks WHERE domain IS NOT NULL AND domain != '' LIMIT 100",
+      [],
+      async (err, tasks) => {
+        if (err || !tasks?.length) return;
 
-      const batchSize = 10;
-      for (let i = 0; i < tasks.length; i += batchSize) {
-        const batch = tasks.slice(i, i + batchSize);
-        const results = await Promise.all(batch.map(t => checkDomain(t.domain).then(s => ({ id: t.id, s }))));
-        
-        const stmt = db.prepare("UPDATE tasks SET uptime_status = ? WHERE id = ?");
-        results.forEach(r => stmt.run([r.s, r.id]));
-        stmt.finalize();
+        const batchSize = 10;
+        for (let i = 0; i < tasks.length; i += batchSize) {
+          const batch = tasks.slice(i, i + batchSize);
+          const results = await Promise.all(
+            batch.map((t) =>
+              checkDomain(t.domain).then((s) => ({ id: t.id, s }))
+            )
+          );
 
-        if (i + batchSize < tasks.length) await new Promise(r => setTimeout(r, 200));
+          const stmt = db.prepare(
+            "UPDATE tasks SET uptime_status = ? WHERE id = ?"
+          );
+          results.forEach((r) => stmt.run([r.s, r.id]));
+          stmt.finalize();
+
+          if (i + batchSize < tasks.length)
+            await new Promise((r) => setTimeout(r, 200));
+        }
       }
-    });
+    );
   }, 5 * 60 * 1000);
   console.log("[UptimeMonitor] Active");
 }
@@ -132,10 +150,12 @@ function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];
   const token = authHeader?.split(" ")[1];
 
-  if (!token) return res.status(401).json({ success: false, error: "Não autenticado" });
+  if (!token)
+    return res.status(401).json({ success: false, error: "Não autenticado" });
 
   jwt.verify(token, ACTUAL_JWT_SECRET, (err, decoded) => {
-    if (err) return res.status(401).json({ success: false, error: "Token inválido" });
+    if (err)
+      return res.status(401).json({ success: false, error: "Token inválido" });
     req.user = { id: decoded.userId, email: decoded.email };
     next();
   });
@@ -143,67 +163,113 @@ function authenticateToken(req, res, next) {
 
 // API Routes
 app.get("/api/health", (req, res) => {
-  res.json({ success: true, status: "healthy", time: new Date().toISOString() });
+  res.json({
+    success: true,
+    status: "healthy",
+    time: new Date().toISOString(),
+  });
 });
 
-initDatabase(startUptimeMonitor).then((database) => {
-  const db = database;
-  const deps = { db, JWT_SECRET: ACTUAL_JWT_SECRET, NODE_ENV, sanitizeString, io };
+initDatabase(startUptimeMonitor)
+  .then((database) => {
+    const db = database;
+    const deps = {
+      db,
+      JWT_SECRET: ACTUAL_JWT_SECRET,
+      NODE_ENV,
+      sanitizeString,
+      io,
+    };
 
-  app.use("/api/auth", require("./routes/auth")({ ...deps, checkRateLimit, authenticateToken }));
-  app.use("/api/leads", require("./routes/leads")(db, NODE_ENV, sanitizeString, checkLeadRateLimit, io));
-  app.use("/api/tasks", authenticateToken, require("./routes/tasks")(db, NODE_ENV, sanitizeString, io));
+    app.use(
+      "/api/auth",
+      require("./routes/auth")({ ...deps, checkRateLimit, authenticateToken })
+    );
+    app.use(
+      "/api/leads",
+      require("./routes/leads")(
+        db,
+        NODE_ENV,
+        sanitizeString,
+        checkLeadRateLimit,
+        io
+      )
+    );
+    app.use(
+      "/api/tasks",
+      authenticateToken,
+      require("./routes/tasks")(db, NODE_ENV, sanitizeString, io)
+    );
 
-  // Public Task View
-  app.get("/api/tasks/view/:uuid", (req, res) => {
-    const uuid = req.params.uuid;
-    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    
-    if (!UUID_REGEX.test(uuid)) return res.status(400).json({ success: false, error: "UUID inválido" });
+    // Public Task View
+    app.get("/api/tasks/view/:uuid", (req, res) => {
+      const uuid = req.params.uuid;
+      const UUID_REGEX =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-    db.get("SELECT client, col_id, updated_at FROM tasks WHERE public_uuid = ?", [uuid], (err, task) => {
-      if (err || !task) return res.status(404).json({ success: false, error: "Não encontrado" });
-      
-      const columns = ["Descoberta", "Acordo", "Construir e Entregar", "Suporte / Live"];
-      res.json({
-        success: true,
-        data: {
-          client: task.client,
-          status: columns[task.col_id] || "Desconhecido",
-          progress: Math.round((task.col_id / 3) * 100),
-          updated_at: task.updated_at
+      if (!UUID_REGEX.test(uuid))
+        return res.status(400).json({ success: false, error: "UUID inválido" });
+
+      db.get(
+        "SELECT client, col_id, updated_at FROM tasks WHERE public_uuid = ?",
+        [uuid],
+        (err, task) => {
+          if (err || !task)
+            return res
+              .status(404)
+              .json({ success: false, error: "Não encontrado" });
+
+          const columns = [
+            "Descoberta",
+            "Acordo",
+            "Construir e Entregar",
+            "Suporte / Live",
+          ];
+          res.json({
+            success: true,
+            data: {
+              client: task.client,
+              status: columns[task.col_id] || "Desconhecido",
+              progress: Math.round((task.col_id / 3) * 100),
+              updated_at: task.updated_at,
+            },
+          });
         }
+      );
+    });
+
+    // Error Handlers
+    app.use((err, req, res, next) => {
+      console.error("[Fatal]", err.message);
+      res.status(err.status || 500).json({
+        success: false,
+        error: NODE_ENV === "production" ? "Erro interno" : err.message,
       });
     });
-  });
 
-  // Error Handlers
-  app.use((err, req, res, next) => {
-    console.error("[Fatal]", err.message);
-    res.status(err.status || 500).json({ 
-      success: false, 
-      error: NODE_ENV === "production" ? "Erro interno" : err.message 
+    app.use((req, res) =>
+      res.status(404).json({ success: false, error: "Não encontrado" })
+    );
+
+    // WebSocket Security
+    io.use((socket, next) => {
+      const token =
+        socket.handshake.auth.token ||
+        socket.handshake.headers.authorization?.split(" ")[1];
+      if (!token) return next(new Error("Auth error"));
+      jwt.verify(token, ACTUAL_JWT_SECRET, (err, decoded) => {
+        if (err) return next(new Error("Auth error"));
+        socket.userId = decoded.userId;
+        next();
+      });
     });
+
+    server.listen(PORT, () => console.log(`Server: ${PORT} [${NODE_ENV}]`));
+  })
+  .catch((err) => {
+    console.error("DB Init Failed:", err);
+    process.exit(1);
   });
-
-  app.use((req, res) => res.status(404).json({ success: false, error: "Não encontrado" }));
-
-  // WebSocket Security
-  io.use((socket, next) => {
-    const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.split(" ")[1];
-    if (!token) return next(new Error("Auth error"));
-    jwt.verify(token, ACTUAL_JWT_SECRET, (err, decoded) => {
-      if (err) return next(new Error("Auth error"));
-      socket.userId = decoded.userId;
-      next();
-    });
-  });
-
-  server.listen(PORT, () => console.log(`Server: ${PORT} [${NODE_ENV}]`));
-}).catch((err) => {
-  console.error("DB Init Failed:", err);
-  process.exit(1);
-});
 
 // Graceful Shutdown
 const shutdown = () => {
