@@ -9,6 +9,9 @@ RUN chmod +x /entrypoint.sh
 WORKDIR /usr/share/nginx/html
 
 COPY index.html .
+COPY favicon*.png .
+COPY apple-touch-icon.png .
+COPY icon-192.png .
 
 # Ensure css/js from dashboard are still accessible if needed
 # Although index.html is replaced, static assets might be useful
