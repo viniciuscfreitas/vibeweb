@@ -4,7 +4,7 @@
 // UI Constants
 const SEARCH_DEBOUNCE_MS = 200;
 const DISCOVERY_COLUMN_ID = 0;
-const STORAGE_KEY = 'vibeTasks_Vanilla';
+const STORAGE_KEY = 'vibeTasks_VibeWeb';
 
 // Business Rule: Urgent deadline keywords - these are always considered urgent
 const URGENT_DEADLINES = ['48h', '24h', 'Hoje'];

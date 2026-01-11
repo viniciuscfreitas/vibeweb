@@ -1319,11 +1319,13 @@ body {
 }
 
 .user-profile {
-  display: none;
+  display: flex;
   position: relative;
   width: 100%;
   align-items: center;
   justify-content: center;
+  margin-top: auto;
+  padding-bottom: 0.5rem;
 }
 
 .avatar {

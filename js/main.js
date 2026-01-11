@@ -102,7 +102,7 @@ function setupEventListeners() {
     });
   }
 
-    // Modals & Actions
+  // Modals & Actions
   if (DOM.btnNewProject) {
     DOM.btnNewProject.addEventListener("click", () => openModal());
   }
