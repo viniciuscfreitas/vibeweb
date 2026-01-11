@@ -102,9 +102,23 @@ function setupEventListeners() {
     });
   }
 
-  // Modals & Actions
+    // Modals & Actions
   if (DOM.btnNewProject) {
     DOM.btnNewProject.addEventListener("click", () => openModal());
+  }
+
+  if (DOM.btnCloseModal) {
+    DOM.btnCloseModal.addEventListener("click", () => closeModal());
+  }
+
+  if (DOM.btnCancel) {
+    DOM.btnCancel.addEventListener("click", () => closeModal());
+  }
+
+  if (DOM.modalOverlay) {
+    DOM.modalOverlay.addEventListener("click", (e) => {
+      if (e.target === DOM.modalOverlay) closeModal();
+    });
   }
 
   if (DOM.exportBtn) {

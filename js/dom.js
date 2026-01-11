@@ -9,6 +9,8 @@ const DOM = {
   searchInput: null,
   modalOverlay: null,
   modalTitle: null,
+  btnCloseModal: null,
+  btnCancel: null,
   btnDelete: null,
   btnGeneratePDF: null,
   formClient: null,
@@ -98,6 +100,8 @@ const DOM = {
     this.searchInput = document.getElementById('searchInput');
     this.modalOverlay = document.getElementById('modalOverlay');
     this.modalTitle = document.getElementById('modalTitle');
+    this.btnCloseModal = document.getElementById('btnCloseModal');
+    this.btnCancel = document.getElementById('btnCancel');
     this.btnDelete = document.getElementById('btnDelete');
     this.btnGeneratePDF = document.getElementById('btnGeneratePDF');
     this.formClient = document.getElementById('formClient');

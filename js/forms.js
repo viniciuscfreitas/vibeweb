@@ -656,7 +656,7 @@ function handlePaste(e) {
   let parsed = false;
 
   try {
-    // Tentar parsear como JSON primeiro
+    // Try to parse as JSON first
     const jsonData = JSON.parse(pastedText);
     if (typeof jsonData === 'object' && jsonData !== null) {
       populateFieldsFromJson(jsonData);
@@ -666,10 +666,10 @@ function handlePaste(e) {
       return;
     }
   } catch (e) {
-    // Não é JSON, tentar formato de linhas
+    // Not JSON, try line format
   }
 
-  // Tentar formato de linhas: "Cliente: Nome\nPreço: R$ 1000\n..."
+  // Try line format: "Client: Name\nPrice: € 1000\n..."
   const lines = pastedText.split('\n').map(line => line.trim()).filter(Boolean);
   if (lines.length > 1) {
     const parsedData = parseLinesFormat(lines);
@@ -682,7 +682,7 @@ function handlePaste(e) {
     }
   }
 
-  // Se não conseguiu parsear, não fazer nada (comportamento silencioso é OK)
+  // If parsing failed, do nothing (silent fail is OK)
 }
 
 function parseLinesFormat(lines) {
@@ -697,11 +697,11 @@ function parseLinesFormat(lines) {
 
     if (!value) return;
 
-    // Mapear chaves em português para campos do formulário
+    // Map Portuguese keys to form fields
     if (key.includes('cliente') || key.includes('nome') || key.includes('empresa')) {
       data.client = value;
     } else if (key.includes('preço') || key.includes('preco') || key.includes('valor') || key.includes('price')) {
-      // Extrair números, ignorar "R$", "€", etc
+      // Extract numbers, ignore "R$", "€", etc
       const numbers = value.replace(/[^\d,.]/g, '').replace(',', '.');
       const numValue = parseFloat(numbers);
       if (!isNaN(numValue)) {
@@ -779,7 +779,7 @@ function getPublicUuidValue() {
       return generateUUID();
     }
   } else {
-    return null; // Sempre null se não marcado, nunca undefined
+    return null; // Always null if not checked, never undefined
   }
 }
 
