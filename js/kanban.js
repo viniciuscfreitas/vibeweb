@@ -963,6 +963,49 @@ function updateColumnCounts() {
   }
 }
 
+function exportKanbanData() {
+  const tasks = AppState.getTasks();
+  if (!tasks || tasks.length === 0) {
+    NotificationManager.warning('Nenhum projeto para exportar');
+    return;
+  }
+
+  const searchTerm = DOM.searchInput ? DOM.searchInput.value.toLowerCase().trim() : '';
+  const hasColumnFilter = AppState.filterByColumnId !== undefined && AppState.filterByColumnId !== null;
+  const hasCustomFilter = AppState.filterByCustomType !== undefined && AppState.filterByCustomType !== null;
+
+  const filteredTasks = tasks.filter(task => {
+    const colId = task.col_id || 0;
+    if (hasColumnFilter && colId !== AppState.filterByColumnId) return false;
+    if (hasCustomFilter) {
+      if (AppState.filterByCustomType === 'activeJobs' && colId !== 1 && colId !== 2) return false;
+      if (AppState.filterByCustomType === 'pendingPayments' && task.payment_status !== PAYMENT_STATUS_PENDING) return false;
+    }
+    if (searchTerm) {
+      const clientLower = task.client ? task.client.toLowerCase() : '';
+      const domainLower = task.domain ? task.domain.toLowerCase() : '';
+      if (!clientLower.includes(searchTerm) && !domainLower.includes(searchTerm)) return false;
+    }
+    return true;
+  });
+
+  if (filteredTasks.length === 0) {
+    NotificationManager.warning('Nenhum projeto filtrado para exportar');
+    return;
+  }
+
+  const csv = [
+    'ID,Cliente,Valor,Status Pagamento,Coluna,Prazo,Stack,Domínio,Hospedagem',
+    ...filteredTasks.map(t => {
+      const colName = COLUMNS_MAP.get(t.col_id)?.name || 'N/A';
+      const hosting = t.hosting === HOSTING_YES ? 'Sim' : (t.hosting === HOSTING_LATER ? 'Pendente' : 'Não');
+      return `${t.id},"${t.client}",€${(parseFloat(t.price) || 0)},"${t.payment_status}","${colName}","${t.deadline || ''}","${t.stack || ''}","${t.domain || ''}","${hosting}"`;
+    })
+  ].join('\n');
+
+  downloadCSV(csv, `vibeos-projetos-${new Date().toISOString().split('T')[0]}.csv`);
+}
+
 // Export to global scope for other modules (like SubtaskManager)
 window.renderBoard = renderBoard;
 window.updateCardInPlace = updateCardInPlace;

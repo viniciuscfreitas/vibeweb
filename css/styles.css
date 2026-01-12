@@ -3712,8 +3712,8 @@ html[data-authenticated="true"] #appContainer.hidden {
 }
 
 .activity-full-icon.create { background-color: rgba(var(--brand-rgb), 0.1); color: var(--success); }
-.activity-full-icon.move { background-color: rgba(14, 165, 233, 0.1); color: #0ea5e9; }
-.activity-full-icon.update { background-color: rgba(250, 204, 21, 0.1); color: var(--warning); }
+.activity-full-icon.move { background-color: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+.activity-full-icon.update { background-color: rgba(var(--accent-rgb), 0.1); color: var(--warning); }
 .activity-full-icon.delete { background-color: rgba(239, 68, 68, 0.1); color: var(--danger); }
 
 .activity-full-content {
