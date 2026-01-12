@@ -133,14 +133,6 @@ async function renderDashboard() {
     renderPieChart(metrics.statusDistribution);
     renderUrgentProjects(metrics.urgentProjects || []);
 
-    try {
-      const activities = await generateRecentActivities(tasks, true);
-      renderRecentActivities(activities || []);
-    } catch (error) {
-      console.error("[Dashboard] Error loading activities:", error);
-      renderRecentActivities([]);
-    }
-
     setupExpandButtons();
   } finally {
     renderDashboardInProgress = false;
@@ -805,14 +797,6 @@ function setupExpandButtons() {
     elements.expandUrgentBtn.removeEventListener("click", toggleUrgentExpand);
     elements.expandUrgentBtn.addEventListener("click", toggleUrgentExpand);
   }
-
-  if (elements.expandActivityBtn) {
-    elements.expandActivityBtn.removeEventListener(
-      "click",
-      toggleActivityExpand
-    );
-    elements.expandActivityBtn.addEventListener("click", toggleActivityExpand);
-  }
 }
 
 function toggleUrgentExpand() {
@@ -839,74 +823,4 @@ function toggleUrgentExpand() {
   }
 
   renderUrgentProjects(metrics.urgentProjects || []);
-}
-
-async function toggleActivityExpand() {
-  const elements = getExpandElements();
-  const activityCard = elements.activityCard;
-  const expandBtn = elements.expandActivityBtn;
-  const expandIcon = elements.expandActivityIcon;
-
-  if (!activityCard || !expandBtn || !expandIcon) return;
-
-  const isExpanded = activityCard.classList.contains("expanded");
-
-  if (isExpanded) {
-    activityCard.classList.remove("expanded");
-    expandIcon.className = "fa-solid fa-expand";
-    expandBtn.setAttribute("aria-label", "Expandir lista de atividades");
-    expandBtn.setAttribute("title", "Expandir");
-
-    const tasks = AppState.getTasks();
-    const activities = await generateRecentActivities(tasks, true);
-    renderRecentActivities(activities || []);
-  } else {
-    activityCard.classList.add("expanded");
-    expandIcon.className = "fa-solid fa-compress";
-    expandBtn.setAttribute("aria-label", "Recolher lista de atividades");
-    expandBtn.setAttribute("title", "Recolher");
-
-    const allActivities = await api.getActivities(100);
-    if (
-      allActivities &&
-      Array.isArray(allActivities) &&
-      allActivities.length > 0
-    ) {
-      const activities = [];
-      const apiBaseUrl = getApiBaseUrl();
-      const iconMap = {
-        create: "fa-plus-circle",
-        move: "fa-arrows-left-right",
-        update: "fa-edit",
-        delete: "fa-trash",
-      };
-
-      allActivities.forEach((activity) => {
-        const activityDate = parseTaskDate(activity.created_at);
-        if (!activityDate) return;
-
-        const userName = activity.user_name || "Usuário";
-        const userAvatarUrl = activity.user_avatar_url
-          ? activity.user_avatar_url.startsWith("http")
-            ? activity.user_avatar_url
-            : `${apiBaseUrl}${activity.user_avatar_url}`
-          : null;
-
-        activities.push({
-          text: escapeHtml(activity.action_description || ""),
-          createdAt: activityDate,
-          icon: iconMap[activity.action_type] || "fa-file-invoice",
-          taskId: activity.task_id,
-          userName: userName,
-          userInitials: getInitials(userName),
-          userAvatarUrl: userAvatarUrl,
-        });
-      });
-      renderRecentActivities(activities);
-    } else {
-      const tasks = AppState.getTasks();
-      const activities = await generateRecentActivities(tasks, true);
-      renderRecentActivities(activities || []);
-    }
-  }
 }
