@@ -116,7 +116,10 @@ const SubtaskManager = {
         const task = AppState.getTaskById(AppState.currentTaskId);
         if (task) {
           if (item.querySelector(".subtask-checkbox").checked) {
-            task.completed_subtask_count = Math.max(0, (task.completed_subtask_count || 0) - 1);
+            task.completed_subtask_count = Math.max(
+              0,
+              (task.completed_subtask_count || 0) - 1
+            );
           }
           task.subtask_count = Math.max(0, (task.subtask_count || 0) - 1);
           this.syncWithBoard(task);
@@ -124,7 +127,8 @@ const SubtaskManager = {
         item.remove();
         this.updateProgress();
         if (DOM.subtaskList.children.length === 0) {
-          DOM.subtaskList.innerHTML = '<p class="text-muted" style="font-size: 0.875rem; text-align: center; padding: 1rem;">Nenhuma subtarefa adicionada.</p>';
+          DOM.subtaskList.innerHTML =
+            '<p class="text-muted" style="font-size: 0.875rem; text-align: center; padding: 1rem;">Nenhuma subtarefa adicionada.</p>';
         }
       } catch (error) {
         NotificationManager.error("Erro ao excluir subtarefa");
