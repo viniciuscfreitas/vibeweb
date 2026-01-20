@@ -10,11 +10,11 @@ function calculateMRRGaps(mrr, hostingPrice) {
   // If hosting price is not configured or invalid, return gaps without upsells calculation
   // This prevents division by zero and provides clearer feedback that hosting price needs to be set
   if (!hostingPrice || hostingPrice <= 0 || !isFinite(hostingPrice)) {
-    return { 
-      gap10k, 
-      gap20k, 
+    return {
+      gap10k,
+      gap20k,
       upsellsNeeded10k: null, // null indicates hosting price not configured
-      upsellsNeeded20k: null 
+      upsellsNeeded20k: null
     };
   }
   const upsellsNeeded10k = Math.ceil(gap10k / hostingPrice);
@@ -133,11 +133,11 @@ function compareUrgentProjects(projectA, projectB, now) {
   // Calculate deadline timestamps
   let projectADeadlineTimestamp = Infinity;
   let projectBDeadlineTimestamp = Infinity;
-  
+
   if (projectA.deadline_timestamp && projectADeadlineHours) {
     projectADeadlineTimestamp = projectA.deadline_timestamp + (projectADeadlineHours * MS_PER_HOUR);
   }
-  
+
   if (projectB.deadline_timestamp && projectBDeadlineHours) {
     projectBDeadlineTimestamp = projectB.deadline_timestamp + (projectBDeadlineHours * MS_PER_HOUR);
   }
@@ -184,7 +184,7 @@ function calculateDashboardMetrics() {
   let pendingPaymentsCount = 0;
   let hostingActiveCount = 0;
   let leadsToday = 0;
-  
+
   const projectCounts = { discoveryCount: 0, agreementCount: 0, buildCount: 0, liveCount: 0 };
   const statusDistribution = COLUMNS.map(col => ({ name: col.name, count: 0, value: 0 }));
   const monthRevenueMap = new Map();
@@ -198,14 +198,14 @@ function calculateDashboardMetrics() {
     const taskDate = parseTaskDate(task.created_at);
 
     // Leads today
-    const isLeadType = task.type === 'Lead Externo' || 
-                       task.type === 'WhatsApp' || 
-                       task.type === 'Lead Site' || 
+    const isLeadType = task.type === 'Lead Externo' ||
+                       task.type === 'WhatsApp' ||
+                       task.type === 'Lead Site' ||
                        (task.type && task.type.includes('LP'));
-    
+
     if (taskDate && isLeadType) {
-      if (taskDate.getDate() === todayDay && 
-          taskDate.getMonth() === todayMonth && 
+      if (taskDate.getDate() === todayDay &&
+          taskDate.getMonth() === todayMonth &&
           taskDate.getFullYear() === todayYear) {
         leadsToday++;
       }
@@ -253,7 +253,7 @@ function calculateDashboardMetrics() {
   const lastMonthInfo = getLastMonthInfo(currentMonth, currentYear);
   const currentMonthKey = `${currentYear}-${currentMonth}`;
   const lastMonthKey = `${lastMonthInfo.year}-${lastMonthInfo.month}`;
-  
+
   const monthlyRevenue = monthRevenueMap.get(currentMonthKey) || 0;
   const lastMonthRevenue = monthRevenueMap.get(lastMonthKey) || 0;
 

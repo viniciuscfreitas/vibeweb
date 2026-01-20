@@ -403,7 +403,7 @@ function generateInvoice(taskData) {
               yPos = layout.margin;
             }
             const linkStr = String(link);
-            const linkText = linkStr.length > 60 ? linkStr.substring(0, 57) + '...' : linkStr;
+            const linkText = linkStr.length > 60 ? linkStr.substring(0, 57) + '…' : linkStr;
             doc.text(linkText, layout.margin + 5, yPos);
             yPos += 6;
           });

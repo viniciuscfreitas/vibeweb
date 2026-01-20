@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
     <meta
       name="description"
@@ -433,7 +433,7 @@
                 <input
                   type="text"
                   class="search-input"
-                  placeholder="Buscar projeto... (/) "
+                  placeholder="Buscar projeto… (/)"
                   id="searchInput"
                   autocomplete="off"
                   inputmode="search"
@@ -823,7 +823,7 @@
                         type="text"
                         class="form-input"
                         id="formStack"
-                        placeholder="React, Node..."
+                        placeholder="React, Node…"
                         aria-label="Stack tecnológico"
                         data-paste-enabled="true"
                       />
@@ -872,7 +872,7 @@
                         class="form-input"
                         id="formDesc"
                         rows="3"
-                        placeholder="Escopo e detalhes do projeto..."
+                        placeholder="Escopo e detalhes do projeto…"
                         aria-label="Detalhes e escopo do projeto"
                         data-paste-enabled="true"
                       ></textarea>
@@ -951,7 +951,7 @@
                         class="form-input"
                         id="formAssetsLink"
                         rows="2"
-                        placeholder="https://drive.google.com/...&#10;https://figma.com/..."
+                        placeholder="https://drive.google.com/…&#10;https://figma.com/…"
                         aria-label="Links de anexos, um por linha ou separados por vírgula"
                       ></textarea>
                     </div>
@@ -974,7 +974,7 @@
                     type="text"
                     id="subtaskNewTitle"
                     class="form-input subtask-add-input"
-                    placeholder="Nova subtarefa..."
+                    placeholder="Nova subtarefa…"
                   />
                   <button
                     type="button"
@@ -1021,7 +1021,10 @@
                 id="btnSave"
                 aria-label="Salvar projeto"
               >
-                Salvar
+                <span class="btn-text-content">Salvar</span>
+                <span class="btn-loading-spinner hidden" aria-hidden="true">
+                  <i class="fa-solid fa-spinner fa-spin"></i>
+                </span>
               </button>
             </div>
           </div>

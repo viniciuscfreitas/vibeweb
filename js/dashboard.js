@@ -137,7 +137,7 @@ async function renderDashboard() {
       // We still might want to update relative times (like "2 min ago") periodically,
       // but graphs are static until data changes.
       renderDashboardInProgress = false;
-      return; 
+      return;
     }
 
     lastMetricsSignature = currentSignature;

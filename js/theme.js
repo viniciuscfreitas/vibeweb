@@ -10,6 +10,12 @@ function setTheme(theme) {
   root.setAttribute('data-theme', theme);
   localStorage.setItem(THEME_STORAGE_KEY, theme);
   updateThemeIcon(theme);
+
+  // Update meta theme-color
+  const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+  if (metaThemeColor) {
+    metaThemeColor.content = theme === 'dark' ? '#000000' : '#ffffff';
+  }
 }
 
 function updateThemeIcon(theme) {

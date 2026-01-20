@@ -136,7 +136,7 @@ function loadSocketIOFromCDN() {
 
 function waitForSocketIO(callback, retries = 0) {
   const maxRetries = Math.floor(SOCKET_IO_LOAD_TIMEOUT / SOCKET_IO_LOAD_RETRY_DELAY);
-  
+
   if (typeof io !== 'undefined') {
     logDebug('[WebSocket] ✅ socket.io already loaded');
     socketIOWaitInProgress = false;
@@ -300,8 +300,8 @@ function initializeSocket() {
 
     socket.on('task:moved', (data) => {
       if (isLocalhost) {
-        console.log('[WebSocket] 📨 Received task:moved', { 
-          taskId: data?.task?.id, 
+        console.log('[WebSocket] 📨 Received task:moved', {
+          taskId: data?.task?.id,
           userId: data?.userId,
           fromCol: data?.task?.col_id,
           toPosition: data?.task?.order_position
@@ -432,8 +432,8 @@ function handleTaskCreated(data) {
   AppState.log('Task created via WebSocket', { taskId: data.task.id });
 
   // Show notification if from another user
-  if (data.userId && data.userId !== getCurrentUserId() && data.userName && 
-      typeof NotificationManager !== 'undefined' && 
+  if (data.userId && data.userId !== getCurrentUserId() && data.userName &&
+      typeof NotificationManager !== 'undefined' &&
       typeof NotificationManager.showUserActivity === 'function') {
     const message = data.actionDescription || `Criou projeto ${data.task.client || 'novo'}`;
     NotificationManager.showUserActivity(
@@ -480,8 +480,8 @@ function handleTaskUpdated(data) {
   AppState.log('Task updated via WebSocket', { taskId: data.task.id });
 
   // Show notification if from another user
-  if (data.userId && data.userId !== getCurrentUserId() && data.userName && 
-      typeof NotificationManager !== 'undefined' && 
+  if (data.userId && data.userId !== getCurrentUserId() && data.userName &&
+      typeof NotificationManager !== 'undefined' &&
       typeof NotificationManager.showUserActivity === 'function') {
     const message = data.actionDescription || `Editou projeto ${data.task.client || 'projeto'}`;
     NotificationManager.showUserActivity(
@@ -527,8 +527,8 @@ function handleTaskDeleted(data) {
   AppState.log('Task deleted via WebSocket', { taskId: data.taskId });
 
   // Show notification if from another user
-  if (data.userId && data.userId !== getCurrentUserId() && data.userName && 
-      typeof NotificationManager !== 'undefined' && 
+  if (data.userId && data.userId !== getCurrentUserId() && data.userName &&
+      typeof NotificationManager !== 'undefined' &&
       typeof NotificationManager.showUserActivity === 'function') {
     const message = data.actionDescription || 'Deletou um projeto';
     NotificationManager.showUserActivity(
@@ -561,10 +561,10 @@ function handleTaskMoved(data) {
   const task = tasks[taskIndex];
   if (task.col_id === data.task.col_id && task.order_position === data.task.order_position) {
     if (isLocalhost) {
-      console.log('[WebSocket] ⏭️  Task position unchanged, skipping', { 
-        taskId: data.task.id, 
-        col_id: data.task.col_id, 
-        order_position: data.task.order_position 
+      console.log('[WebSocket] ⏭️  Task position unchanged, skipping', {
+        taskId: data.task.id,
+        col_id: data.task.col_id,
+        order_position: data.task.order_position
       });
     }
     return;
@@ -587,8 +587,8 @@ function handleTaskMoved(data) {
   scheduleRender();
 
   if (isLocalhost) {
-    console.log('[WebSocket] ✅ Task moved and rendered', { 
-      taskId: data.task.id, 
+    console.log('[WebSocket] ✅ Task moved and rendered', {
+      taskId: data.task.id,
       client: data.task.client,
       fromCol: oldCol,
       toCol: normalizedTask.col_id,
@@ -599,8 +599,8 @@ function handleTaskMoved(data) {
   AppState.log('Task moved via WebSocket', { taskId: data.task.id });
 
   // Show notification if from another user
-  if (data.userId && data.userId !== getCurrentUserId() && data.userName && 
-      typeof NotificationManager !== 'undefined' && 
+  if (data.userId && data.userId !== getCurrentUserId() && data.userName &&
+      typeof NotificationManager !== 'undefined' &&
       typeof NotificationManager.showUserActivity === 'function') {
     const message = data.actionDescription || (() => {
       const colNames = ['Descoberta', 'Acordo', 'Build', 'Live'];

@@ -524,7 +524,7 @@ function renderFinancial() {
 
   if (DOM.searchInput) {
     DOM.searchInput.value = '';
-    DOM.searchInput.placeholder = 'Buscar projeto financeiro... (/)';
+    DOM.searchInput.placeholder = 'Buscar projeto financeiro… (/)';
   }
 
   if (!financialSearchState.cachedMetrics) {

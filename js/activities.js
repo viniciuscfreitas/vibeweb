@@ -9,7 +9,7 @@ async function renderActivities(append = false) {
   if (!append) {
     activitiesPage = 0;
     allActivitiesLoaded = false;
-    DOM.activitiesListFull.innerHTML = '<div class="loading-state">Carregando atividades...</div>';
+    DOM.activitiesListFull.innerHTML = '<div class="loading-state">Carregando atividades…</div>';
     if (DOM.activitiesLoadMore) DOM.activitiesLoadMore.classList.add('hidden');
   }
 

@@ -847,10 +847,9 @@ async function saveForm() {
 
   // Get save button and disable it
   const saveButton = DOM.btnSave;
-  const originalButtonText = saveButton ? saveButton.textContent : 'Salvar';
   if (saveButton) {
     saveButton.disabled = true;
-    saveButton.textContent = 'Salvando...';
+    saveButton.classList.add('loading');
   }
 
   try {
@@ -969,7 +968,7 @@ async function saveForm() {
   } finally {
     if (saveButton) {
       saveButton.disabled = false;
-      saveButton.textContent = originalButtonText;
+      saveButton.classList.remove('loading');
     }
   }
 }

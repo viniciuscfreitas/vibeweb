@@ -129,7 +129,7 @@ const NotificationManager = {
     const userInitials = userName ? getInitials(userName) : '?';
     const escapedUserName = escapeHtml(userName || 'Usuário');
     const escapedMessage = escapeHtml(message);
-    
+
     let avatarUrl = userAvatarUrl;
     if (avatarUrl && !avatarUrl.startsWith('http')) {
       avatarUrl = `${getApiBaseUrl()}${avatarUrl}`;
