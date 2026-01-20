@@ -104,6 +104,8 @@ function renderDashboardHeader(metrics) {
 let renderDashboardInProgress = false;
 let renderDashboardPending = false;
 
+let lastMetricsSignature = null;
+
 async function renderDashboard() {
   if (renderDashboardInProgress) {
     renderDashboardPending = true;
@@ -118,6 +120,27 @@ async function renderDashboard() {
       calculateDashboardMetrics()
     );
     const tasks = AppState.getTasks();
+
+    // Optimization: Check if metrics actually changed before full re-render
+    // We create a signature based on key metrics that affect the visualization
+    const currentSignature = JSON.stringify({
+      mrr: metrics.mrr,
+      revenue: metrics.monthlyRevenue,
+      active: metrics.activeProjects,
+      urgent: metrics.urgentCount,
+      distribution: metrics.statusDistribution.map(d => d.count),
+      view: currentChartView // Also re-render if view mode changes
+    });
+
+    if (currentSignature === lastMetricsSignature) {
+      // Data hasn't changed meaningfully, skip heavy chart rendering
+      // We still might want to update relative times (like "2 min ago") periodically,
+      // but graphs are static until data changes.
+      renderDashboardInProgress = false;
+      return; 
+    }
+
+    lastMetricsSignature = currentSignature;
 
     renderStatsCards(metrics);
     renderMRRCard(metrics);
