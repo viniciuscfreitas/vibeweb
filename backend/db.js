@@ -24,6 +24,7 @@ function initDatabase(uptimeMonitorCallback) {
           createUsersTable(db);
           createTasksTable(db);
           createActivityLogTable(db);
+          createLeadAnalyticsTable(db);
           createSubtasksTable(db, () => {
             console.log('Database initialized successfully');
             if (uptimeMonitorCallback) {
@@ -55,7 +56,7 @@ function createUsersTable(db) {
     db.all(`PRAGMA table_info(users)`, (err, columns) => {
       if (err) return;
       const columnNames = columns.map(col => col.name);
-      
+
       if (!columnNames.includes('username')) {
         db.run(`ALTER TABLE users ADD COLUMN username TEXT`, (err) => {
           if (!err) {
@@ -107,7 +108,7 @@ function createTasksTable(db) {
     db.all(`PRAGMA table_info(tasks)`, (err, columns) => {
       if (err) return;
       const columnNames = columns.map(col => col.name);
-      
+
       const migrations = [
         { name: 'is_recurring', def: 'INTEGER DEFAULT 0' },
         { name: 'assets_link', def: 'TEXT' },
@@ -153,6 +154,24 @@ function createActivityLogTable(db) {
   db.run(`CREATE INDEX IF NOT EXISTS idx_activity_log_task_id ON activity_log(task_id)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_activity_log_created_at ON activity_log(created_at DESC)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_activity_log_task_created ON activity_log(task_id, created_at DESC)`);
+}
+
+function createLeadAnalyticsTable(db) {
+  db.run(`
+    CREATE TABLE IF NOT EXISTS lead_analytics (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_type TEXT NOT NULL,
+      source TEXT,
+      client_ip TEXT,
+      user_agent TEXT,
+      meta_data TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `, (err) => {
+    if (err) console.error('Error creating lead_analytics table:', err);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_analytics_created_at ON lead_analytics(created_at DESC)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_analytics_event_type ON lead_analytics(event_type)`);
+  });
 }
 
 function createSubtasksTable(db, callback) {
