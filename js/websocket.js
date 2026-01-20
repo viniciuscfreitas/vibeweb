@@ -5,6 +5,12 @@ const isLocalhost = window.location.hostname === 'localhost' ||
                     window.location.hostname === '' ||
                     isFileProtocol;
 
+function logDebug(message, ...args) {
+  if (isLocalhost) {
+    console.log(message, ...args);
+  }
+}
+
 function getWebSocketUrl() {
   if (isLocalhost) {
     return 'http://localhost:3000';
@@ -132,25 +138,25 @@ function waitForSocketIO(callback, retries = 0) {
   const maxRetries = Math.floor(SOCKET_IO_LOAD_TIMEOUT / SOCKET_IO_LOAD_RETRY_DELAY);
   
   if (typeof io !== 'undefined') {
-    console.log('[WebSocket] ✅ socket.io already loaded');
+    logDebug('[WebSocket] ✅ socket.io already loaded');
     socketIOWaitInProgress = false;
     callback();
     return;
   }
 
   if (retries === 0 && socketIOWaitInProgress) {
-    console.log('[WebSocket] ⏳ Waiting for existing socket.io load attempt...');
+    logDebug('[WebSocket] ⏳ Waiting for existing socket.io load attempt...');
     // Wait for existing attempt, but set a timeout to prevent infinite wait
     const checkExisting = setInterval(() => {
       if (typeof io !== 'undefined') {
         clearInterval(checkExisting);
         socketIOWaitInProgress = false;
-        console.log('[WebSocket] ✅ socket.io loaded by existing attempt');
+        logDebug('[WebSocket] ✅ socket.io loaded by existing attempt');
         callback();
       } else if (!socketIOWaitInProgress) {
         clearInterval(checkExisting);
         // Previous attempt finished, start new one
-        console.log('[WebSocket] 🔄 Previous attempt finished, starting new one');
+        logDebug('[WebSocket] 🔄 Previous attempt finished, starting new one');
         waitForSocketIO(callback, 0);
       }
     }, 100);
@@ -165,7 +171,7 @@ function waitForSocketIO(callback, retries = 0) {
   }
 
   if (retries === 0) {
-    console.log('[WebSocket] 🔍 Starting socket.io wait (retry 0)');
+    logDebug('[WebSocket] 🔍 Starting socket.io wait (retry 0)');
     socketIOWaitInProgress = true;
   }
 
@@ -175,7 +181,7 @@ function waitForSocketIO(callback, retries = 0) {
     loadSocketIOFromCDN()
       .then(() => {
         socketIOWaitInProgress = false;
-        console.log('[WebSocket] ✅ CDN load successful, calling callback');
+        logDebug('[WebSocket] ✅ CDN load successful, calling callback');
         callback();
       })
       .catch((error) => {
@@ -187,7 +193,7 @@ function waitForSocketIO(callback, retries = 0) {
   }
 
   if (retries > 0 && retries % 10 === 0) {
-    console.log('[WebSocket] 🔍 Still waiting for socket.io... (retry', retries, '/', maxRetries, ')');
+    logDebug('[WebSocket] 🔍 Still waiting for socket.io... (retry', retries, '/', maxRetries, ')');
   }
 
   setTimeout(() => waitForSocketIO(callback, retries + 1), SOCKET_IO_LOAD_RETRY_DELAY);
@@ -195,20 +201,18 @@ function waitForSocketIO(callback, retries = 0) {
 
 function connectWebSocket() {
   if (socket?.connected) {
-    if (isLocalhost) {
-      console.log('[WebSocket] Already connected, skipping');
-    }
+    logDebug('[WebSocket] Already connected, skipping');
     return;
   }
 
-  console.log('[WebSocket] 🔌 connectWebSocket called');
+  logDebug('[WebSocket] 🔌 connectWebSocket called');
   waitForSocketIO(() => {
     if (typeof io === 'undefined') {
       console.error('[WebSocket] ❌ socket.io library not available after wait');
       socketIOWaitInProgress = false;
       return;
     }
-    console.log('[WebSocket] 🔌 socket.io available, initiating connection...');
+    logDebug('[WebSocket] 🔌 socket.io available, initiating connection...');
     initializeSocket();
   }, 0);
 }

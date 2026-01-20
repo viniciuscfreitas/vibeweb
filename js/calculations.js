@@ -29,6 +29,7 @@ function parseTaskDate(dateString) {
 }
 
 function calculateRevenueForMonth(tasks, month, year) {
+  if (!tasks || !Array.isArray(tasks)) return 0;
   const monthTasks = tasks.filter(t => {
     const taskDate = parseTaskDate(t.created_at);
     if (!taskDate) return false;
@@ -40,6 +41,7 @@ function calculateRevenueForMonth(tasks, month, year) {
 }
 
 function calculateAverageTicket(tasks) {
+  if (!tasks || !Array.isArray(tasks)) return 0;
   const paidTasks = tasks.filter(t =>
     t.payment_status === PAYMENT_STATUS_PAID || t.payment_status === PAYMENT_STATUS_PARTIAL
   );
@@ -50,6 +52,7 @@ function calculateAverageTicket(tasks) {
 }
 
 function calculateProjectCountsByStatus(tasks) {
+  if (!tasks || !Array.isArray(tasks)) return { discoveryCount: 0, agreementCount: 0, buildCount: 0, liveCount: 0, activeProjects: 0 };
   const discoveryCount = tasks.filter(t => t.col_id === 0).length;
   const agreementCount = tasks.filter(t => t.col_id === 1).length;
   const buildCount = tasks.filter(t => t.col_id === 2).length;
@@ -442,6 +445,7 @@ function calculateProjectedRevenue(tasks, monthsCount = 12) {
 
 function calculateStatusDistribution(tasks) {
   const distribution = COLUMNS.map(col => ({ name: col.name, count: 0, value: 0 }));
+  if (!tasks || !Array.isArray(tasks)) return distribution;
 
   tasks.forEach(task => {
     const colId = task.col_id || 0;

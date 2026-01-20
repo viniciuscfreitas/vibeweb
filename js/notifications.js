@@ -102,6 +102,24 @@ const NotificationManager = {
     return this.show(message, 'info', duration);
   },
 
+  fatal(message, actionText = 'Recarregar') {
+    this.init();
+    const notification = document.createElement('div');
+    notification.className = 'notification notification-error notification-fatal';
+    notification.innerHTML = `
+      <div class="notification-content">
+        <i class="fa-solid fa-bomb" aria-hidden="true"></i>
+        <div class="notification-message-wrapper">
+          <span class="notification-message">${escapeHtml(message)}</span>
+          <button class="btn-text notification-action" onclick="window.location.reload()">${actionText}</button>
+        </div>
+      </div>
+    `;
+    this.container.appendChild(notification);
+    requestAnimationFrame(() => notification.classList.add('show'));
+    return notification;
+  },
+
   showUserActivity(message, userName, userAvatarUrl, type = 'info', duration = 5000) {
     this.init();
 
