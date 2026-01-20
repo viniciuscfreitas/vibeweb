@@ -44,10 +44,22 @@ function createLeadsRoutes(db, NODE_ENV, sanitizeString, checkLeadRateLimit, io)
 
       // Se for apenas um clique no WhatsApp sem dados de formulário
       const isWhatsAppClick = source === 'WhatsApp' && !client && !contact;
-      
-      const clientName = client || (isWhatsAppClick ? 'Visitante WhatsApp' : null);
-      const contactInfo = contact || (isWhatsAppClick ? 'Clique no Botão' : null);
-      const leadDescription = description || (isWhatsAppClick ? 'Interesse via clique no botão do WhatsApp pelo site.' : null);
+
+      if (isWhatsAppClick) {
+        // Grug: Clique no WhatsApp não deve criar card no Kanban para evitar duplicidade.
+        // Apenas retornamos sucesso. Futuramente podemos salvar em uma tabela de analytics.
+        return res.json({
+          success: true,
+          data: {
+            message: 'Clique registrado (analytics)',
+            isAnalytics: true
+          }
+        });
+      }
+
+      const clientName = client;
+      const contactInfo = contact;
+      const leadDescription = description;
 
       const clientSanitized = clientName ? sanitizeString(clientName, 255) : null;
       const contactSanitized = contactInfo ? sanitizeString(contactInfo, 255) : null;
