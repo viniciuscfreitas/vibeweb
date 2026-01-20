@@ -27,7 +27,7 @@ const NotificationManager = {
     notification.innerHTML = `
       <div class="notification-content">
         <i class="${icon}" aria-hidden="true"></i>
-        <span class="notification-message">${this.escapeHtml(message)}</span>
+        <span class="notification-message">${escapeHtml(message)}</span>
       </div>
       <button class="notification-close" aria-label="Fechar notificação" type="button">
         <i class="fa-solid fa-xmark" aria-hidden="true"></i>
