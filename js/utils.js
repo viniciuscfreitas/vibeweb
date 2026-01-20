@@ -12,6 +12,7 @@ function getApiBaseUrl() {
 }
 
 function parseDeadlineHours(deadlineStr) {
+  if (!deadlineStr || typeof deadlineStr !== 'string') return null;
   const match = deadlineStr.match(DEADLINE_HOURS_REGEX);
   return match ? parseInt(match[1]) : null;
 }
