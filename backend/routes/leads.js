@@ -42,6 +42,7 @@ function createLeadsRoutes(db, NODE_ENV, sanitizeString, checkLeadRateLimit, io)
 
       const { client, contact, description, source } = req.body;
 
+      // Se for apenas um clique no WhatsApp sem dados de formulário
       const isWhatsAppClick = source === 'WhatsApp' && !client && !contact;
       
       const clientName = client || (isWhatsAppClick ? 'Visitante WhatsApp' : null);
@@ -51,21 +52,26 @@ function createLeadsRoutes(db, NODE_ENV, sanitizeString, checkLeadRateLimit, io)
       const clientSanitized = clientName ? sanitizeString(clientName, 255) : null;
       const contactSanitized = contactInfo ? sanitizeString(contactInfo, 255) : null;
       const descriptionSanitized = leadDescription ? sanitizeString(leadDescription, 5000) : null;
-      const sourceSanitized = source ? sanitizeString(source, 100) : null;
+      const sourceSanitized = source ? sanitizeString(source, 100) : 'Lead Site';
 
       if (!clientSanitized || clientSanitized.trim().length === 0) {
-        return res.status(400).json({ success: false, error: 'Campo client é obrigatório' });
+        return res.status(400).json({ success: false, error: 'Nome do cliente é obrigatório' });
       }
       if (!contactSanitized || contactSanitized.trim().length === 0) {
-        return res.status(400).json({ success: false, error: 'Campo contact é obrigatório' });
+        return res.status(400).json({ success: false, error: 'Contato é obrigatório' });
       }
 
       if (clientSanitized.length > 255 || contactSanitized.length > 255 || (descriptionSanitized && descriptionSanitized.length > 5000)) {
         return res.status(400).json({ success: false, error: 'Campos excedem tamanho máximo permitido' });
       }
 
+      // Validação de formato apenas se NÃO for clique no WhatsApp (onde o contato é placeholder)
       if (!isWhatsAppClick && !EMAIL_PATTERN.test(contactSanitized) && !CONTACT_PATTERN.test(contactSanitized)) {
-        return res.status(400).json({ success: false, error: 'Formato de contato inválido. Use email ou @username' });
+        // Se não for e-mail nem @username, verificamos se é um número de telefone válido (pelo menos 8 dígitos)
+        const isPhone = contactSanitized.replace(/\D/g, '').length >= 8;
+        if (!isPhone) {
+          return res.status(400).json({ success: false, error: 'Formato de contato inválido. Use e-mail, telefone ou @username.' });
+        }
       }
 
       // Get first user ID (or use user_id = 1 as default)

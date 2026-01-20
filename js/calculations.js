@@ -195,7 +195,12 @@ function calculateDashboardMetrics() {
     const taskDate = parseTaskDate(task.created_at);
 
     // Leads today
-    if (taskDate && (task.type === 'Lead Externo' || task.type === 'WhatsApp')) {
+    const isLeadType = task.type === 'Lead Externo' || 
+                       task.type === 'WhatsApp' || 
+                       task.type === 'Lead Site' || 
+                       (task.type && task.type.includes('LP'));
+    
+    if (taskDate && isLeadType) {
       if (taskDate.getDate() === todayDay && 
           taskDate.getMonth() === todayMonth && 
           taskDate.getFullYear() === todayYear) {
